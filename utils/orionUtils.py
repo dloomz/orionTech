@@ -1,13 +1,13 @@
 import os
 import json
 
-class orionUtil():
+class OrionUtils():
     
     def __init__(self):
         
          self.location = self.is_at_home()
-         self.root_dir = self.root_dir()
-         
+         self.root_dir = self.get_root_dir()
+         self.json_path = self.get_json_path()
          
     def is_at_home(self):
         
@@ -18,16 +18,21 @@ class orionUtil():
             at_home = False
         else: 
             at_home = True
+        return at_home
     
-    def root_dir(self):
+    def get_root_dir(self):
          
         if self.location == False:
             root_dir =  "O:\\"
         else:
-            root_dir = "P:\\all_work\\studentGroups\\ORION_CORPORATION"       
+            root_dir = "P:\\all_work\\studentGroups\\ORION_CORPORATION"  
+        return root_dir     
     
     def get_json_path(self):
-        pass
+        
+        json_path = os.path.join(self.root_dir, "00_pipeline\\orionTech\\json")
+        
+        return json_path
          
     def read_json(self, file):
        
@@ -35,4 +40,3 @@ class orionUtil():
             data = json.load(f)
             f.close()
         return data
-    
