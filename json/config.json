@@ -1,5 +1,4 @@
 {
-    "userNames": ["aj25aal", "cb23aat", "do23aaf", "dr23aai", "fa25aag", "fk23aae", "ky24aab", "mc23aan", "st23abu", "yf23aab"],
-    "soft"
-
+    "usernames": ["aj25aal", "cb23aat", "do23aaf", "dr23aai", "fa25aag", "fk23aae", "ky24aab", "mc23aan", "st23abu", "default"],
+    "software": ["maya", "mari", "zbrush", "davinci", "houdini", "nuke", "hiero"]
 }
