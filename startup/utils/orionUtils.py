@@ -5,19 +5,22 @@ class OrionUtils():
     
     def __init__(self):
         
-         self.location = self.is_at_home()
+         self.home_status = self.is_at_home()
          self.root_dir = self.get_root_dir()
          self.json_path = self.get_json_path()
          self.usernames = self.read_config("usernames")
          self.software = self.read_config("software")
          
     def is_at_home(self):
-        
-        return os.getlogin() != "do23aaf"
+
+        if os.getlogin() in self.usernames:
+            return False
+        else:
+            return True
     
     def get_root_dir(self):
          
-        if self.location == True:
+        if self.home_status == True:
             root_dir =  "O:\\"
         else:
             root_dir = "P:\\all_work\\studentGroups\\ORION_CORPORATION"  
