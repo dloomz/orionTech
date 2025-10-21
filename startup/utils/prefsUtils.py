@@ -1,7 +1,7 @@
 import os
 import shutil
 import json
-from orionUtils import OrionUtils
+from .orionUtils import OrionUtils
 
 class PrefsUtils:
 
@@ -9,7 +9,7 @@ class PrefsUtils:
         self.orion = OrionUtils()
         self.root_dir = self.orion.get_root_dir()
         self.json_path = self.orion.get_json_path()
-        self.softwares - self.orion.read_config("software")
+        self.softwares = self.orion.read_config("software")
         self.usernames = self.orion.read_config("usernames")
         self.current_user = os.getlogin()
         

@@ -76,21 +76,20 @@ class OrionTechUI(QWidget):
     #Button Functions
     def load_prefs(self):
 
-        selected_software = self.software_selector.currentText()
-        result = self.prefs_utils.load_prefs(selected_software, self.current_user)
-        QMessageBox.information(self, f"Load {selected_software.capitalize()} Prefs", result)
+        self.prefs_utils.load_prefs(self.current_user)
+        QMessageBox.information(self, f"Preferences loaded!")
 
     def save_prefs(self):
 
         selected_software = self.software_selector.currentText()
-        result = self.prefs_utils.save_prefs(selected_software, self.current_user)
-        QMessageBox.information(self, f"Save {selected_software.capitalize()} Prefs", result)
+        self.prefs_utils.save_prefs(selected_software, self.current_user)
+        QMessageBox.information(self, f"Save {selected_software.capitalize()} Prefs", "Preferences saved!")
 
     def toggle_dark_mode(self, state):
 
         is_checked = state == Qt.Checked
         self.settings['dark_mode'] = is_checked
-        self.orion_utils.save_settings(self.settings)
+        self.prefs_utils.save_settings(self.settings)
         self.system_utils.set_windows_dark_mode(is_checked)
 
 
@@ -98,7 +97,7 @@ class OrionTechUI(QWidget):
         
         is_checked = state == Qt.Checked
         self.settings['discord_on_startup'] = is_checked
-        self.orion_utils.save_settings(self.settings)
+        self.prefs_utils.save_settings(self.settings)
 
 
 if __name__ == '__main__':
