@@ -1,0 +1,12 @@
+{
+        "source": {
+            "maya_plugin": "C:\\Docs\\maya\\plug-ins",
+            "maya_module": "C:\\Docs\\maya\\modules",
+            "maya_script": "C:\\Docs\\maya\\2026\\scripts",
+            "maya_pref": "C:\\Docs\\maya\\2026\\prefs",
+            "maya_shelf": "C:\\Docs\\maya\\2026\\prefs\\shelves"
+        },
+        "destination": {
+            "maya_config": "00_pipeline/userPrefs/{user}/maya/{config}"
+        }
+}

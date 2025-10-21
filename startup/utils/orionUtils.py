@@ -65,29 +65,3 @@ class OrionUtils():
         config_path = os.path.join(self.json_path, "config.json")
         config_data = self.read_json(config_path)
         return config_data.get(key, None)
-
-    def get_settings_path(self):
-        #Gets the path to the user_settings.json file
-        settings_path = os.path.join(self.root_dir, "00_pipeline\\orionTech\\settings\\user_settings.json")
-        return settings_path
-
-    def load_settings(self):
-        #Loads settings from user_settings.json
-        settings_path = self.get_settings_path()
-        try:
-            return self.read_json(settings_path)
-        except FileNotFoundError:
-            # If the file doesn't exist, create with default values
-            default_settings = {
-                "dark_mode": False,
-                "discord_on_startup": False
-            }
-            self.save_settings(default_settings)
-            return default_settings
-
-    def save_settings(self, data):
-        #Saves data to the user_settings.json file
-        settings_path = self.get_settings_path()
-        os.makedirs(os.path.dirname(settings_path), exist_ok=True) # Ensure directory exists
-        with open(settings_path, 'w') as f:
-            json.dump(data, f, indent=4)

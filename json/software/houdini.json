@@ -1,0 +1,9 @@
+{
+        "source": {
+            "houdini_script": "C:\\Docs\\houdini20.5\\scripts",
+            "houdini_pref": "C:\\Docs\\houdini20.5"
+        },
+        "destination": {
+            "houdini_config": "00_pipeline\\userPrefs\\{user}\\houdini"
+        }
+}

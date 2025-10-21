@@ -1,0 +1,9 @@
+{
+        "source": {
+            "mari_script": "C:\\Docs\\mari\\scripts",
+            "mari_pref": "C:\\Docs\\mari\\TheFoundry"
+        },
+        "destination": {
+            "mari_config": "00_pipeline/userPrefs/{user}/maya/{config}"
+        }
+}

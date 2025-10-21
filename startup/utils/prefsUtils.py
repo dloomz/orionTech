@@ -1,68 +1,124 @@
 import os
 import shutil
-from datetime import datetime
+import json
+from orionUtils import OrionUtils
 
 class PrefsUtils:
 
-    def __init__(self, orion_utils):
-        self.orion = orion_utils
-        self.pref_paths = self.orion.read_config("pref_paths")
-
-    def get_user_pref_path(self, software, user):
-        #Constructs the destination path for a user's saved prefs.
-        dest_template = self.pref_paths['destination']
+    def __init__(self):
+        self.orion = OrionUtils()
+        self.root_dir = self.orion.get_root_dir()
+        self.json_path = self.orion.get_json_path()
+        self.softwares - self.orion.read_config("software")
+        self.usernames = self.orion.read_config("usernames")
+        self.current_user = os.getlogin()
         
-        # Replace placeholders with actual user and software names
-        relative_path = dest_template.format(user=user, software=software)
+    def is_user_recognized(self):
+        #Checks if the current user is in the recognized usernames list
+        return self.current_user in self.usernames
+    
+    def save_prefs(self, software, user = None):
         
-        # Join with the root directory to get the full path
-        return os.path.join(self.orion.get_root_dir(), relative_path)
-
-    def get_source_pref_path(self, software, user):
-        #Constructs the source path of a software's prefs
-        source_template = self.pref_paths['source'].get(software)
-        if not source_template:
-            return None
-        # Replace the user placeholder
-        return source_template.format(user=user)
-
-    def save_prefs(self, software, user):
-        #Saves preferences by copying them from the source to the destination
-        source_path = self.get_source_pref_path(software, user)
-        dest_path = self.get_user_pref_path(software, user)
-
-        if not source_path or not os.path.exists(source_path):
-            print(f"Source path for {software} not found: {source_path}")
-            return f"Source path for {software} not found."
-
-        try:
-            # Ensure the destination directory exists
-            os.makedirs(dest_path, exist_ok=True)
+        pref_json = self.json_path + f"\\software\\{software}.json"
+        pref_data = self.orion.read_json(pref_json)
+    
+        src = pref_data["source"]
+        dst = pref_data["destination"]
+        
+        src_paths = list(src.values())
+        dst_paths = []
+        
+        for s in src_paths:
+            path_sections = s.split("\\")
+            pref_configs = path_sections[-1]
             
-            shutil.copytree(source_path, dest_path, dirs_exist_ok=True)
-            print(f"Successfully saved {software} prefs for {user} to {dest_path}")
+            dst_path_raw = dst[f"{software}_config"]
+            dst_format = dst_path_raw.format(user=user if user else self.current_user)
+            dst_path = os.path.join(self.root_dir, dst_format, pref_configs)
             
-            return f"Successfully saved {software} prefs."
-        except Exception as e:
-            print(f"Error saving {software} prefs: {e}")
-            return f"Error saving {software} prefs: {e}"
-
-    def load_prefs(self, software, user):
-        #Loads preferences by copying them from the destination to the source
-        source_path = self.get_user_pref_path(software, user)
-        dest_path = self.get_source_pref_path(software, user)
-
-        if not dest_path:
-            return f"No destination path configured for {software}."
-        if not os.path.exists(source_path):
-            print(f"Saved prefs for {software} not found at: {source_path}")
-            return f"No saved prefs found for {software}."
+            dst_paths.append(dst_path)
+            
+        transfer_route = zip(src_paths, dst_paths)
         
+        for r in transfer_route:
+            s_path, d_path = r
+            if not os.path.exists(s_path):
+                print(f"Source path does not exist: {s_path}")
+                continue
+            
+            try:
+                os.makedirs(os.path.dirname(d_path), exist_ok=True)
+                shutil.copytree(s_path, d_path, dirs_exist_ok=True)
+                print(f"Successfully saved prefs from {s_path} to {d_path}")
+            except Exception as e:
+                print(f"Error saving prefs from {s_path} to {d_path}: {e}")
+        
+    def load_prefs(self, user = None):
+        
+        for software in self.softwares:
+            
+            pref_json = self.json_path + f"\\software\\{software}.json"
+            
+            if os.path.exists(pref_json):
+                pref_data = self.orion.read_json(pref_json)
+                
+                src = pref_data["destination"]
+                dst = pref_data["source"]
+        
+                src_paths = list(src.values())
+                dst_paths = []
+                
+                for s in src_paths:
+                    path_sections = s.split("\\")
+                    pref_configs = path_sections[-1]
+                    
+                    dst_path_raw = dst[f"{software}_config"]
+                    dst_format = dst_path_raw.format(user=user if user else self.current_user)
+                    dst_path = os.path.join(self.root_dir, dst_format, pref_configs)
+                    
+                    dst_paths.append(dst_path)
+                    
+                transfer_route = zip(src_paths, dst_paths)
+                
+                for r in transfer_route:
+                    s_path, d_path = r
+                    if not os.path.exists(s_path):
+                        print(f"Source path does not exist: {s_path}")
+                        continue
+                    
+                    try:
+                        os.makedirs(os.path.dirname(d_path), exist_ok=True)
+                        shutil.copytree(s_path, d_path, dirs_exist_ok=True)
+                        print(f"Successfully saved prefs from {s_path} to {d_path}")
+                    except Exception as e:
+                        print(f"Error saving prefs from {s_path} to {d_path}: {e}")  
+                        
+            else:
+                pass
+            
+    def get_settings_path(self):
+        #Gets the path to the user_settings.json file
+        settings_path = os.path.join(self.root_dir, "00_pipeline\\orionTech\\settings\\user_settings.json")
+        return settings_path
+
+    def load_settings(self):
+        #Loads settings from user_settings.json
+        settings_path = self.get_settings_path()
         try:
-            os.makedirs(os.path.dirname(dest_path), exist_ok=True)
-            shutil.copytree(source_path, dest_path, dirs_exist_ok=True)
-            print(f"Successfully loaded {software} prefs for {user} from {source_path}")
-            return f"Successfully loaded {software} prefs."
-        except Exception as e:
-            print(f"Error loading {software} prefs: {e}")
-            return f"Error loading {software} prefs: {e}"
+            return self.orion.read_json(settings_path)
+        except FileNotFoundError:
+            # If the file doesn't exist, create with default values
+            default_settings = {
+                "dark_mode": False,
+                "wacom_fix": False,
+                "discord_on_startup": False
+            }
+            self.save_settings(default_settings)
+            return default_settings
+
+    def save_settings(self, data):
+        #Saves data to the user_settings.json file
+        settings_path = self.get_settings_path()
+        os.makedirs(os.path.dirname(settings_path), exist_ok=True) # Ensure directory exists
+        with open(settings_path, 'w') as f:
+            json.dump(data, f, indent=4)

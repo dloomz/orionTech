@@ -1,13 +1,5 @@
 {
     "usernames": ["aj25aal", "cb23aat", "do23aaf", "dr23aai", "fa25aag", "fk23aae", "ky24aab", "mc23aan", "st23abu", "default"],
-    "software": ["maya", "mari", "zbrush", "davinci", "houdini", "nuke", "hiero"],
-    "pref_paths": {
-        "source": {
-            "maya": "C:/Docs/maya/2026",
-            "houdini": "C:/Docs/houdini20.5",
-            "nuke": "C:/Docs/nuke",
-            "mari": "C:/Docs/mari"
-        },
-        "destination": "00_pipeline/userPrefs/{user}/{software}"
-    }
+    "software": ["maya", "mari", "zbrush", "davinci", "houdini", "nuke", "hiero"]
+
 }
