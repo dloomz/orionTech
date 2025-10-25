@@ -1,5 +1,6 @@
 import os
 import json
+import urllib.request as request
 
 class OrionUtils():
     
@@ -29,6 +30,7 @@ class OrionUtils():
         #assign the usernames and software lists
         self.usernames = config_data.get("usernames", [])
         self.software = config_data.get("software", [])
+        self.webhook_url = config_data.get("discord_webhook_url", "")
         
         #user is at home based on whether username is in list
         # If the user is in the list, they are at work
@@ -65,3 +67,19 @@ class OrionUtils():
         config_path = os.path.join(self.json_path, "config.json")
         config_data = self.read_json(config_path)
         return config_data.get(key, None)
+
+    def send_discord_notification(self, message):
+      
+        if not self.webhook_url:
+            print("Discord webhook URL not found in config.json. Skipping notification.")
+            return
+
+        data = {"content": message}
+        headers = {"Content-Type": "application/json"}
+
+        try:
+            req = request.Request(self.webhook_url, data=json.dumps(data).encode('utf-8'), headers=headers)
+            request.urlopen(req)
+            print(f"Successfully sent Discord notification")
+        except Exception as e:
+            print(f"Failed to send Discord notification: {e}")
