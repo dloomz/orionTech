@@ -240,7 +240,7 @@ def submit_to_orion_deadline():
 
             #job_file_handle.write(f"ExtraInfoKeyValue0=OnJobFailureScript={on_job_fail}\n") 
             '''FAIL JOB TEST USING EVENT LISTENER'''
-            job_file_handle.write(f"ExtraInfoKeyValue0=OnJobFailedCallback={on_job_fail}\n") 
+            job_file_handle.write(f"OnJobFailureScript={on_job_fail}\n") 
 
             job_file_handle.write(f"ExtraInfoKeyValue1=OrionDiscordNotify=True\n")
             #add PYTHONPATH (ensure key index doesn't clash if adding more)
