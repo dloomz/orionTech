@@ -24,6 +24,7 @@ def __main__(*args):
 
         job_name = job.JobName
         user = job.JobUserName
+        comment = job.JobComment
         pool = job.JobPool
         priority = job.JobPriority
         task_count = job.JobTaskCount
@@ -37,7 +38,8 @@ def __main__(*args):
             f"🚀 **Nuke Render Started:** `{job_name}`\n"
             f"> **User:** {user}\n"
             f"> **Pool:** {pool} | **Priority:** {priority}\n"
-            f"> **Frames:** {job.JobFrames} ({task_count} tasks)"
+            f"> **Frames:** {job.JobFrames} ({task_count} tasks)\n"
+            f"> **Comment:** {comment}"
         )
         orion.send_discord_notification(message)
         deadline_plugin.LogInfo("Sent Orion Discord start notification.")
