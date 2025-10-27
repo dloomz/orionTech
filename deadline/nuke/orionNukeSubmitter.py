@@ -240,7 +240,7 @@ def submit_to_orion_deadline():
 
             #job_file_handle.write(f"ExtraInfoKeyValue0=OnJobFailureScript={on_job_fail}\n") 
             '''FAIL JOB TEST USING EVENT LISTENER'''
-            job_file_handle.write(f"OnJobFailureScript={on_job_fail}\n") 
+            job_file_handle.write(f"ExtraInfoKeyValue0=OnJobFailureScript={on_job_fail}\n") 
 
             job_file_handle.write(f"ExtraInfoKeyValue1=OrionDiscordNotify=True\n")
             #add PYTHONPATH (ensure key index doesn't clash if adding more)
@@ -261,7 +261,6 @@ def submit_to_orion_deadline():
         plugin_file_handle.write(f"Version={nuke_version}\n")
         plugin_file_handle.write(f"Threads={threads}\n")
         plugin_file_handle.write(f"NukeX={use_nukex}\n")
-        #add other relevant Nuke plugin info here if needed
 
         plugin_file_handle.close()
 
@@ -271,7 +270,7 @@ def submit_to_orion_deadline():
         if submit_scene:
             args_to_pass.append(script_path)
             
-        #ensure paths use correct encoding if needed (Python 2)
+        #ensure paths use correct encoding if needed
         if sys.version_info[0] < 3:
             preferred_encoding = locale.getpreferredencoding()
             args_to_pass = [arg.encode(preferred_encoding) if isinstance(arg, unicode) else arg for arg in args_to_pass]
