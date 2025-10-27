@@ -21,12 +21,7 @@ def __main__(*args):
 
         job_name = job.JobName
         user = job.JobUserName
-        avg_frame_time_secs = job.JobAverageFrameRenderTime.TotalSeconds
-        total_render_time_secs = job.JobTotalRenderTime.TotalSeconds
-
-        avg_time_str = time.strftime('%H:%M:%S', time.gmtime(avg_frame_time_secs)) if avg_frame_time_secs > 0 else "N/A"
-        total_time_str = time.strftime('%H:%M:%S', time.gmtime(total_render_time_secs)) if total_render_time_secs > 0 else "N/A"
-
+        
         orion = OrionUtils()
         if not orion.webhook_url:
              deadline_plugin.LogWarning("Orion Discord webhook URL is not configured in config.json.")
@@ -35,8 +30,6 @@ def __main__(*args):
         message = (
             f"✅ **Nuke Render Finished:** `{job_name}`\n"
             f"> **User:** {user}\n"
-            f"> **Avg Frame Time:** {avg_time_str}\n"
-            f"> **Total Render Time:** {total_time_str}"
         )
         orion.send_discord_notification(message)
         deadline_plugin.LogInfo("Sent Orion Discord finish notification.")

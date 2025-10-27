@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 from __future__ import print_function
 import nuke
 import nukescripts
@@ -9,24 +8,23 @@ from tempfile import NamedTemporaryFile
 import locale
 import sys
 
-# --- Configuration ---
-# !! MODIFY THESE PATHS !!
+#config
 ORION_STARTUP_PATH = "P:\\all_work\\studentGroups\\ORION_CORPORATION\\00_pipeline\\orionTech\\startup"
 EVENT_SCRIPT_DIR = "P:\\all_work\\studentGroups\\ORION_CORPORATION\\00_pipeline\\orionTech\\deadline\\nuke"
-# ---
 
-# --- Deadline Command Helper ---
 def get_deadline_command():
     """Finds the deadlinecommand executable."""
-    deadline_bin = os.environ.get('DEADLINE_PATH', '')
-    if deadline_bin and os.path.exists(os.path.join(deadline_bin, "deadlinecommand")):
-        return os.path.join(deadline_bin, "deadlinecommand")
-    
-    # Add other search logic if needed (e.g., checking PATH)
-    
-    # Fallback if not found
-    print("Warning: DEADLINE_PATH environment variable not set or deadlinecommand not found.")
-    return "deadlinecommand" # Assume it's in PATH
+    #force path due to error
+    forced_path = r"C:\Program Files\Thinkbox\Deadline10\bin\deadlinecommand.exe" 
+    print(f"DEBUG: Attempting to use forced path: {forced_path}") 
+    if os.path.exists(forced_path):
+        print(f"DEBUG: Forced path exists.")
+        return forced_path
+    else:
+         print(f"ERROR: Forced path does not exist: {forced_path}")
+         nuke.message(f"ERROR: Hardcoded Deadline Command path not found:\n{forced_path}")
+         #fall back just in case something is really weird
+         return "deadlinecommand"
 
 def call_deadline_command(arguments, hide_window=True):
     """Executes deadlinecommand with given arguments."""
@@ -53,7 +51,7 @@ def call_deadline_command(arguments, hide_window=True):
         print(f"An unexpected error occurred: {e}\n{traceback.format_exc()}")
         return f"Error: {e}"
 
-# --- Submission Dialog ---
+#submission dialog 
 class OrionSubmitDialog(nukescripts.PythonPanel):
     def __init__(self, pools, groups, max_priority):
         super(OrionSubmitDialog, self).__init__("Orion Nuke Submitter", "com.orion.nukesubmit")
@@ -94,7 +92,7 @@ class OrionSubmitDialog(nukescripts.PythonPanel):
         self.priority = nuke.Int_Knob("priority", "Priority:")
         self.addKnob(self.priority)
         self.priority.setRange(0, max_priority)
-        self.priority.setDefaultValue(max_priority // 2)
+        self.priority.setValue(max_priority // 2)
         self.priority.setValue(max_priority // 2)
         self.priority.setTooltip(f"Job priority (0-{max_priority}).")
 
@@ -124,7 +122,10 @@ class OrionSubmitDialog(nukescripts.PythonPanel):
 
         self.useNukeX = nuke.Boolean_Knob("useNukeX", "Use NukeX License")
         self.addKnob(self.useNukeX)
-        self.useNukeX.setValue(nuke.env.get('nukex', False))
+       
+        nukex_env_value = nuke.env.get('nukex', '0')
+        self.useNukeX.setValue(bool(int(nukex_env_value)))
+        
         self.useNukeX.setTooltip("Requires a NukeX license on the farm.")
         
         self.submitSceneFile = nuke.Boolean_Knob("submitSceneFile", "Submit Scene File")
@@ -144,20 +145,20 @@ class OrionSubmitDialog(nukescripts.PythonPanel):
     def show_dialog(self):
         return self.showModalDialog()
 
-# --- Main Submission Logic ---
+#main submission logic
 def submit_to_orion_deadline():
-    # Check if script is saved
+    #check if script is saved
     root = nuke.root()
     script_path = root.name()
     if script_path == 'Root':
         nuke.message("Please save your Nuke script before submitting.")
         return
 
-    # Save current changes
+    #save current changes
     if root.modified():
         nuke.scriptSave()
         
-    # --- Get Deadline Info ---
+    #get deadline info 
     try:
         pools_output = call_deadline_command(["-pools"])
         groups_output = call_deadline_command(["-groups"])
@@ -172,13 +173,13 @@ def submit_to_orion_deadline():
         traceback.print_exc()
         return
 
-    # --- Show Dialog ---
+    #show dialog
     dialog = OrionSubmitDialog(pools, groups, max_priority)
     if not dialog.show_dialog():
         print("Submission cancelled by user.")
         return # User cancelled
 
-    # --- Gather Submission Data ---
+    #gather submission data 
     job_name = dialog.jobName.value()
     comment = dialog.comment.value()
     department = dialog.department.value()
@@ -192,7 +193,7 @@ def submit_to_orion_deadline():
     submit_scene = dialog.submitSceneFile.value()
     discord_notify = dialog.discordNotify.value()
 
-    # --- Basic Validation ---
+    #basic validation 
     if not frame_list:
         nuke.message("Frame List cannot be empty.")
         return
@@ -200,7 +201,7 @@ def submit_to_orion_deadline():
         nuke.message("Frames Per Task must be 1 or greater.")
         return
         
-    # --- Prepare Submission Files ---
+    #prepare submission files
     deadline_temp = os.path.join(os.path.expanduser("~"), "temp") # Basic temp dir
     try:
         os.makedirs(deadline_temp, exist_ok=True)
@@ -213,7 +214,7 @@ def submit_to_orion_deadline():
     plugin_info_file = None
     
     try:
-        # Create Job Info File
+        #create job info file
         job_file_handle = NamedTemporaryFile(mode='w', dir=deadline_temp, suffix='.job', delete=False)
         job_info_file = job_file_handle.name
         
@@ -226,9 +227,9 @@ def submit_to_orion_deadline():
         job_file_handle.write(f"Priority={priority}\n")
         job_file_handle.write(f"Frames={frame_list}\n")
         job_file_handle.write(f"ChunkSize={chunk_size}\n")
-        job_file_handle.write(f"UserName={os.environ.get('USERNAME', 'unknown')}\n") # Get username
+        job_file_handle.write(f"UserName={os.environ.get('USERNAME', 'unknown')}\n") #get username
 
-        # Add Discord notification setup if enabled
+        #add discord notification setup if enabled
         if discord_notify:
             on_job_start = os.path.join(EVENT_SCRIPT_DIR, "orion_nuke_on_job_start.py").replace("\\", "/")
             on_job_finish = os.path.join(EVENT_SCRIPT_DIR, "orion_nuke_on_job_finish.py").replace("\\", "/")
@@ -236,17 +237,20 @@ def submit_to_orion_deadline():
 
             job_file_handle.write(f"PreJobScript={on_job_start}\n")
             job_file_handle.write(f"PostJobScript={on_job_finish}\n")
-            # Using ExtraInfoKeyValue for failure script is more flexible
-            job_file_handle.write(f"ExtraInfoKeyValue0=OnJobFailureScript={on_job_fail}\n") 
+
+            #job_file_handle.write(f"ExtraInfoKeyValue0=OnJobFailureScript={on_job_fail}\n") 
+            '''FAIL JOB TEST USING EVENT LISTENER'''
+            job_file_handle.write(f"ExtraInfoKeyValue0=OnJobFailedCallback={on_job_fail}\n") 
+
             job_file_handle.write(f"ExtraInfoKeyValue1=OrionDiscordNotify=True\n")
-            # Add PYTHONPATH (ensure key index doesn't clash if you add more)
+            #add PYTHONPATH (ensure key index doesn't clash if adding more)
             job_file_handle.write(f"EnvironmentKeyValue0=PYTHONPATH={ORION_STARTUP_PATH}\n")
         else:
              job_file_handle.write(f"ExtraInfoKeyValue0=OrionDiscordNotify=False\n")
             
         job_file_handle.close()
 
-        # Create Plugin Info File
+        #create plugin info file
         plugin_file_handle = NamedTemporaryFile(mode='w', dir=deadline_temp, suffix='.job', delete=False)
         plugin_info_file = plugin_file_handle.name
         
@@ -257,17 +261,17 @@ def submit_to_orion_deadline():
         plugin_file_handle.write(f"Version={nuke_version}\n")
         plugin_file_handle.write(f"Threads={threads}\n")
         plugin_file_handle.write(f"NukeX={use_nukex}\n")
-        # Add other relevant Nuke plugin info here if needed (e.g., RAM usage, GPU)
+        #add other relevant Nuke plugin info here if needed
 
         plugin_file_handle.close()
 
-        # --- Submit ---
+        #submit
         print("Submitting Nuke job to Deadline...")
         args_to_pass = [job_info_file, plugin_info_file]
         if submit_scene:
             args_to_pass.append(script_path)
             
-        # Ensure paths use correct encoding if needed (Python 2)
+        #ensure paths use correct encoding if needed (Python 2)
         if sys.version_info[0] < 3:
             preferred_encoding = locale.getpreferredencoding()
             args_to_pass = [arg.encode(preferred_encoding) if isinstance(arg, unicode) else arg for arg in args_to_pass]
@@ -282,7 +286,7 @@ def submit_to_orion_deadline():
         print(error_msg)
         nuke.message(error_msg)
     finally:
-        # --- Cleanup ---
+        #cleanup
         try:
             if job_info_file and os.path.exists(job_info_file):
                 os.remove(job_info_file)
@@ -299,7 +303,7 @@ def add_orion_menu():
         if render_menu:
             render_menu.addCommand("Orion/Submit Nuke to Deadline", submit_to_orion_deadline)
         else:
-            # Fallback if Render menu doesn't exist (unlikely)
+            #fallback if Render menu doesn't exist
              menu_bar.addCommand("Orion/Submit Nuke to Deadline", submit_to_orion_deadline)
         print("Orion Nuke Submitter added to Render menu.")
     except Exception as e:

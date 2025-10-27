@@ -20,7 +20,7 @@ def __main__(*args):
 
         job_name = job.JobName
         user = job.JobUserName
-        failed_tasks = job.JobFailedTasks # Example property
+        failed_tasks = job.JobFailedTasks 
 
         orion = OrionUtils()
         if not orion.webhook_url:

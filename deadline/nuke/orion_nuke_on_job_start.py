@@ -13,7 +13,7 @@ def __main__(*args):
     job = deadline_plugin.GetJob()
 
     try:
-        # Check if notifications are enabled via ExtraInfoKeyValue
+        #check if notifications are enabled via ExtraInfoKeyValue
         notify_enabled_str = job.GetJobExtraInfoKeyValueWithDefault("OrionDiscordNotify", "false")
 
         if notify_enabled_str.lower() != 'true':
