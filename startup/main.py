@@ -1,6 +1,15 @@
 import sys
 import os
+
+startup_dir = os.path.dirname(os.path.abspath(__file__))
+main_dir = os.path.dirname(os.path.abspath(startup_dir))
+libs_path = os.path.join(startup_dir, 'libs')
+
+if libs_path not in sys.path:
+    sys.path.insert(0, libs_path)
+
 from PyQt5.QtWidgets import QApplication
+
 from ui.orionTechUI import OrionTechUI
 from utils.systemUtils import SystemUtils
 from utils.orionUtils import OrionUtils
@@ -8,20 +17,11 @@ from utils.orionUtils import OrionUtils
 system_utils = SystemUtils()
 orion_utils = OrionUtils()
 
-x = __file__
-
-split = x.split("\\")
-path_list = split[:-2]
-
-sep = "\\"
-project_path = sep.join(path_list)
-
-wallpaper_path = os.path.join(project_path, "graphics\orionBack_001.png")
+wallpaper_path = os.path.join(main_dir, "graphics\orionBack_001.png")
 
 if __name__ == '__main__':
     
     system_utils.change_wallpaper(wallpaper_path)
-    print(project_path)
     
     app = QApplication(sys.argv)
     ex = OrionTechUI()
