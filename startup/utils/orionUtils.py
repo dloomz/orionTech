@@ -1,5 +1,6 @@
 import os
 import json
+import requests
 
 class OrionUtils():
     
@@ -29,6 +30,7 @@ class OrionUtils():
         #assign the usernames and software lists
         self.usernames = config_data.get("usernames", [])
         self.software = config_data.get("software", [])
+        self.webhook_url = config_data.get("discord_webhook_url", "")
         
         #user is at home based on whether username is in list
         # If the user is in the list, they are at work
@@ -65,3 +67,34 @@ class OrionUtils():
         config_path = os.path.join(self.json_path, "config.json")
         config_data = self.read_json(config_path)
         return config_data.get(key, None)
+
+    def send_discord_notification(self, message):
+        """Sends a message directly to the Discord webhook URL using the requests library."""
+        if not self.webhook_url:
+            print("Discord webhook URL not found in config.json. Skipping notification.")
+            return
+
+        # Structure the data as required by Discord webhooks
+        data = {"content": message} 
+        headers = {"Content-Type": "application/json"} # Standard header
+
+        try:
+            # Use requests.post - it handles JSON conversion automatically with the 'json' argument
+            result = requests.post(self.webhook_url, json=data, headers=headers, timeout=10) # Added timeout
+
+            # Check for HTTP errors (like 403, 404, 500 etc.)
+            result.raise_for_status() 
+
+            print(f"Successfully sent Discord notification via requests (Code: {result.status_code}).")
+
+        except requests.exceptions.RequestException as e: 
+            # Catch errors specifically from the requests library (network issues, timeouts, bad status codes)
+            print(f"Failed to send Discord notification via requests: {e}")
+            # If there's a response body with the error, print it
+            if e.response is not None:
+                print(f"Response Status Code: {e.response.status_code}")
+                print(f"Response Content: {e.response.text}")
+        except Exception as e:
+            # Catch any other unexpected Python errors during the process
+             print(f"An unexpected Python error occurred sending Discord notification: {e}")
+             print(traceback.format_exc())
