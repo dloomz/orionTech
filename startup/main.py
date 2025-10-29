@@ -9,6 +9,8 @@ if libs_path not in sys.path:
     sys.path.insert(0, libs_path)
 
 from PyQt5.QtWidgets import QApplication
+from PyQt5.QtWidgets import QApplication, QWidget, QLabel, QPushButton, QVBoxLayout, QCheckBox, QTabWidget, QMessageBox, QComboBox
+from PyQt5.QtCore import Qt
 
 from ui.orionTechUI import OrionTechUI
 from utils.systemUtils import SystemUtils
@@ -21,6 +23,8 @@ wallpaper_path = os.path.join(main_dir, "graphics\orionBack_001.png")
 
 if __name__ == '__main__':
     
+    # print(libs_path)
+
     system_utils.change_wallpaper(wallpaper_path)
     
     app = QApplication(sys.argv)

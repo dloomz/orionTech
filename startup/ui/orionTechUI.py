@@ -1,5 +1,13 @@
 import sys
 import os
+
+startup_dir = os.path.dirname(os.path.abspath(__file__))
+libs_path = os.path.join(startup_dir, 'libs')
+
+if libs_path not in sys.path:
+    sys.path.insert(0, libs_path)
+
+from PyQt5.QtWidgets import QApplication
 from PyQt5.QtWidgets import QApplication, QWidget, QLabel, QPushButton, QVBoxLayout, QCheckBox, QTabWidget, QMessageBox, QComboBox
 from PyQt5.QtCore import Qt
 
