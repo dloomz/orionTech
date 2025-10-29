@@ -1,6 +1,7 @@
 import os
 import shutil
 import json
+import subprocess
 from .orionUtils import OrionUtils
 
 class PrefsUtils:
@@ -53,8 +54,14 @@ class PrefsUtils:
             except Exception as e:
                 print(f"Error saving prefs from {s_path} to {d_path}: {e}")
         
-    def load_prefs(self, user = None):
+    def load_prefs(self, software, user = None):
         
+        if software == "houdini":
+            command = "setx HOUDINI_PACKAGE_DIR \"P:\\all_work\\studentGroups\\ORION_CORPORATION\\60_config\\softwarePrefs\\houdini\\packages\""
+            subprocess.run(command, shell=True, check=True)
+
+            
+
         for software in self.softwares:
             
             pref_json = self.json_path + f"\\software\\{software}.json"

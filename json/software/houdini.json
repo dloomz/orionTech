@@ -4,6 +4,6 @@
             "houdini_pref": "C:\\Docs\\houdini20.5"
         },
         "destination": {
-            "houdini_config": "00_pipeline\\userPrefs\\{user}\\houdini"
+            "houdini_config": "60_config\\userPrefs\\{user}\\houdini"
         }
 }

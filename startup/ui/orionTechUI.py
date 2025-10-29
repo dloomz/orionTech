@@ -1,8 +1,12 @@
 import sys
 import os
 
-startup_dir = os.path.dirname(os.path.abspath(__file__))
-libs_path = os.path.join(startup_dir, 'libs')
+from utils.orionUtils import OrionUtils
+from utils.systemUtils import SystemUtils
+from utils.prefsUtils import PrefsUtils
+
+orion_utils = OrionUtils()
+libs_path = orion_utils.get_libs_path()
 
 if libs_path not in sys.path:
     sys.path.insert(0, libs_path)
@@ -10,10 +14,6 @@ if libs_path not in sys.path:
 from PyQt5.QtWidgets import QApplication
 from PyQt5.QtWidgets import QApplication, QWidget, QLabel, QPushButton, QVBoxLayout, QCheckBox, QTabWidget, QMessageBox, QComboBox
 from PyQt5.QtCore import Qt
-
-from utils.orionUtils import OrionUtils
-from utils.systemUtils import SystemUtils
-from utils.prefsUtils import PrefsUtils
 
 class OrionTechUI(QWidget):
     def __init__(self):
@@ -84,7 +84,8 @@ class OrionTechUI(QWidget):
     #Button Functions
     def load_prefs(self):
 
-        self.prefs_utils.load_prefs(self.current_user)
+        selected_software = self.software_selector.currentText()
+        self.prefs_utils.load_prefs(selected_software, self.current_user)
         QMessageBox.information(self, "Success", "Preferences loaded!")
 
     def save_prefs(self):

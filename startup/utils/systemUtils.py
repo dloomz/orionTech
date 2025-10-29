@@ -92,7 +92,12 @@ class SystemUtils:
     
     def env_setup(self):
         
-        os.environ['MAYA_DISABLE_CLIC_IPM'] = 1
-        os.environ['MAYA_DISABLE_CIP'] = 1
+        #set maya env var
+        os.environ['MAYA_DISABLE_CLIC_IPM'] = "1"
+        os.environ['MAYA_DISABLE_CIP'] = "1"
         
+        #set orion project path
         os.environ['ORION_PROJECT_PATH'] = self.root + "\\00_pipeline"
+
+        #set houdini package dir
+        os.environ['HOUDINI_PACKAGE_DIR'] = "P:\\all_work\\studentGroups\\ORION_CORPORATION\\00_pipeline\\orionTech\\softwarePrefs\houdini\\packages"

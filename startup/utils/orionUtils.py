@@ -2,14 +2,6 @@ import os
 import json
 import sys
 
-startup_dir = os.path.dirname(os.path.abspath(__file__))
-libs_path = os.path.join(startup_dir, 'libs')
-
-if libs_path not in sys.path:
-    sys.path.insert(0, libs_path)
-
-import requests
-
 class OrionUtils():
     
     def __init__(self):
@@ -49,8 +41,18 @@ class OrionUtils():
             self.home_status = True   # At home
             self.root_dir = home_root  
         
+        #set the definite path for the config directory.
+        self.config_path = os.path.join(self.root_dir, "60_config")
         #set the definite path for the JSON directory.
         self.json_path = os.path.join(self.root_dir, json_relative_path)
+
+        libs_path = self.get_libs_path()
+
+        if libs_path not in sys.path:
+            sys.path.insert(0, libs_path)
+
+        import requests
+
 
     def is_at_home(self):
         #Returns True if the user is 'at home', False otherwise
@@ -63,7 +65,18 @@ class OrionUtils():
     def get_json_path(self):
         #Returns the full path to the json directory
         return self.json_path
+    
+    def get_config_path(self):
+        #Returns the full path to the json directory
+        return self.config_path
          
+    def get_libs_path(self):
+        
+        config_path = self.get_config_path()
+        self.libs_path = os.path.join(config_path, 'libs')
+
+        return self.libs_path
+
     def read_json(self, file_path):
         #Reads a JSON file from given absolute path
         with open(file_path) as f:
@@ -78,6 +91,7 @@ class OrionUtils():
 
     def send_discord_notification(self, message):
         """Sends a message directly to the Discord webhook URL using the requests library."""
+
         if not self.webhook_url:
             print("Discord webhook URL not found in config.json. Skipping notification.")
             return

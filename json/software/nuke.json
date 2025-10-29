@@ -3,6 +3,6 @@
             "nuke": "C:\\Docs\\nuke"
         },
         "destination": {
-            "nuke_config": "00_pipeline\\userPrefs\\{user}\\nuke"
+            "nuke_config": "60_config\\userPrefs\\userPrefs\\{user}\\nuke"
         }
 }

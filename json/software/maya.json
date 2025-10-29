@@ -7,6 +7,6 @@
             "maya_shelf": "C:\\Docs\\maya\\2026\\prefs\\shelves"
         },
         "destination": {
-            "maya_config": "00_pipeline\\userPrefs\\{user}\\maya\\{config}"
+            "maya_config": "60_config\\userPrefs\\{user}\\maya\\{config}"
         }
 }

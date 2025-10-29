@@ -1,0 +1,5 @@
+[
+    "setx OCIO \"P:\\all_work\\shared\\scripts\\common\\OCIO\\aces_1.2\\config.ocio\"",
+    "setx HOUDINI_PACKAGE_DIR \"P:\\all_work\\studentGroups\\ORION_CORPORATION\\60_config\\softwarePrefs\\houdini\\packages\"",
+    "setx NUKE_PATH \"P:\\all_work\\studentGroups\\ORION_CORPORATION\\60_config\\softwarePrefs\\nuke\""
+]
