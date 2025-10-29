@@ -3,8 +3,13 @@ from datetime import datetime
 import subprocess
 import ctypes
 import winreg
+from .orionUtils import OrionUtils
 
 class SystemUtils:
+
+    def __init__(self):
+        self.orion = OrionUtils()
+        self.root = self.orion.get_root_dir()
 
     def run_terminal_command(self, command):
         """
@@ -84,3 +89,10 @@ class SystemUtils:
                 files_modified.append(f)
 
         return files_modified
+    
+    def env_setup(self):
+        
+        os.environ['MAYA_DISABLE_CLIC_IPM'] = 1
+        os.environ['MAYA_DISABLE_CIP'] = 1
+        
+        os.environ['ORION_PROJECT_PATH'] = self.root + "\\00_pipeline"
