@@ -5,5 +5,13 @@
         },
         "destination": {
             "mari_config": "60_config\\userPrefs\\{user}\\mari"
+        },
+        "env_var": {
+            "MARI_NAVIGATION_CONTROLTYPE": "Maya",
+            "MARI_PAINTER_PAINTBUFFERDEPTH": "16 bit (Half)",
+            "DEFAULTBUFFERINTERNALFORMAT": "16 bit (Half)",
+            "MARI_PAINTER_PAINTBUFFERSIZE": "4096 x 4096",
+            "MARI_PAINTER_PAINTBUFFERSETTINGS": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<!DOCTYPE MariML>\n<Mari FnVersion=\"7.1\" Version=\"2.1\">\n <MriPaintBuffer Type=\"MriPaintBuffer\">\n  <objectName Type=\"QString\">Paint Buffer</objectName>\n  <selected Type=\"bool\">false</selected>\n  <uuidString Type=\"QString\">{dae4b7c0-e4c1-41c5-ace2-ea6dfaeebeaf}</uuidString>\n  <fixedName Type=\"bool\">false</fixedName>\n  <rotation Type=\"float\">0</rotation>\n  <scale Type=\"Vector2f\">(0.949999988079071044921875,0.949999988079071044921875)</scale>\n  <translation Type=\"Vector2f\">(0,0)</translation>\n  <clampColors Type=\"bool\">true</clampColors>\n  <autoResetBehaviour Type=\"Enum\">0</autoResetBehaviour>\n  <autoResetZoomBehaviour Type=\"Enum\">1</autoResetZoomBehaviour>\n  <bufferSize Type=\"QString\">4096 x 4096</bufferSize>\n  <bufferDepth Type=\"QString\">16 bit (Half)</bufferDepth>\n  <bufferShowDescription Type=\"bool\">true</bufferShowDescription>\n  <m_Snapshots Type=\"MriSnapshot\" Size=\"0\" ContainerType=\"QVector\"/>\n </MriPaintBuffer>\n</Mari>\n"
+
         }
 }

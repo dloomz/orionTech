@@ -119,13 +119,6 @@ class PrefsUtils:
             command = "setx NUKE_PATH \"P:\\all_work\\studentGroups\\ORION_CORPORATION\\60_config\\softwarePrefs\\nuke\""
             subprocess.run(command, shell=True, check=True)
 
-        elif software == "mari":
-            mari_config = "P:\\all_work\\studentGroups\\ORION_CORPORATION\\60_config\\userPrefs\\{user}\\mari"
-            mari_path = mari_config.format(user=user if user else self.current_user)
-            command = f"setx XDG_CONFIG_HOME \"{mari_path}\""
-            subprocess.run(command, shell=True, check=True)
-            print(command)
-
         else:
             
             pref_json = self.json_path + f"\\software\\{software}.json"
@@ -135,7 +128,18 @@ class PrefsUtils:
                 
                 src = pref_data["destination"]
                 dst = pref_data["source"]
-        
+
+                if "env_var" in pref_data:
+                    env_var = pref_data["env_var"]
+            
+                    variables = list(env_var.keys())
+                    values = list(env_var.values())
+
+                    for i in range(len(variables)):
+                        var = variables[i]
+                        val = values[i]
+                        command = f'setx {var} "{val}"'
+
                 dst_paths = list(dst.values())
                 src_paths = []
                 
