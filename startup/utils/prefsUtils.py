@@ -19,42 +19,86 @@ class PrefsUtils:
         return self.current_user in self.usernames
     
     def save_prefs(self, software, user = None):
-        
+
         pref_json = self.json_path + f"\\software\\{software}.json"
         pref_data = self.orion.read_json(pref_json)
     
         src = pref_data["source"]
         dst = pref_data["destination"]
         
-        src_paths = list(src.values())
-        dst_paths = []
+        if software == "houdini":
+
+            src_paths = list(src.values())
+
+            dst_config = dst["houdini_config"]
+            src_path = src["houdini_pref"]
+
+            dst_format_path = dst_config.format(user=user if user else self.current_user)
+            dst = os.path.join(self.root_dir, dst_format_path)
+
+            src_files = os.listdir(src_path)
+            for f in src_files:
+                src_file_paths = os.path.join(src_path, f)
+                root, extension = os.path.splitext(src_file_paths)
+
+                if extension == '.pref':
+                    if f != "jump.pref":
+                        try:
+                            shutil.copy2(src_file_paths, dst)
+
+                        except shutil.SameFileError:
+                            print("Source and destination represents the same file.")
+
+                        except PermissionError:
+                            print("Permission denied.")
+
+                        except:
+                            print("Error occurred while copying file.")
+
+                    else:
+                        pass
+                else:
+                    pass
+
+        elif software == "nuke":
+            pass
+
+        else:
+            pref_json = self.json_path + f"\\software\\{software}.json"
+            pref_data = self.orion.read_json(pref_json)
         
-        for s in src_paths:
-            path_sections = s.split("\\")
-            pref_configs = path_sections[-1]
+            src = pref_data["source"]
+            dst = pref_data["destination"]
             
-            dst_path_raw = dst[f"{software}_config"]
-            dst_format = dst_path_raw.format(user=user if user else self.current_user)
-            dst_path = os.path.join(self.root_dir, dst_format, pref_configs)
+            src_paths = list(src.values())
+            dst_paths = []
             
-            dst_paths.append(dst_path)
+            for s in src_paths:
+                path_sections = s.split("\\")
+                pref_configs = path_sections[-1]
+                
+                dst_path_raw = dst[f"{software}_config"]
+                dst_format = dst_path_raw.format(user=user if user else self.current_user)
+                dst_path = os.path.join(self.root_dir, dst_format, pref_configs)
+
+                dst_paths.append(dst_path)
+                
+            transfer_route = zip(src_paths, dst_paths)
             
-        transfer_route = zip(src_paths, dst_paths)
+            for r in transfer_route:
+                s_path, d_path = r
+                if not os.path.exists(s_path):
+                    print(f"Source path does not exist: {s_path}")
+                    continue
+                
+                try:
+                    os.makedirs(os.path.dirname(d_path), exist_ok=True)
+                    shutil.copytree(s_path, d_path, dirs_exist_ok=True)
+                    print(f"Successfully saved prefs from {s_path} to {d_path}")
+                except Exception as e:
+                    print(f"Error saving prefs from {s_path} to {d_path}: {e}")
         
-        for r in transfer_route:
-            s_path, d_path = r
-            if not os.path.exists(s_path):
-                print(f"Source path does not exist: {s_path}")
-                continue
-            
-            try:
-                os.makedirs(os.path.dirname(d_path), exist_ok=True)
-                shutil.copytree(s_path, d_path, dirs_exist_ok=True)
-                print(f"Successfully saved prefs from {s_path} to {d_path}")
-            except Exception as e:
-                print(f"Error saving prefs from {s_path} to {d_path}: {e}")
-        
-    def load_prefs(self, software, user):
+    def load_prefs(self, software, user=None):
         
         if software == "houdini":
             command = "setx HOUDINI_PACKAGE_DIR \"P:\\all_work\\studentGroups\\ORION_CORPORATION\\60_config\\softwarePrefs\\houdini\\packages\""
@@ -75,6 +119,13 @@ class PrefsUtils:
             command = "setx NUKE_PATH \"P:\\all_work\\studentGroups\\ORION_CORPORATION\\60_config\\softwarePrefs\\nuke\""
             subprocess.run(command, shell=True, check=True)
 
+        elif software == "mari":
+            mari_config = "P:\\all_work\\studentGroups\\ORION_CORPORATION\\60_config\\userPrefs\\{user}\\mari"
+            mari_path = mari_config.format(user=user if user else self.current_user)
+            command = f"setx XDG_CONFIG_HOME \"{mari_path}\""
+            subprocess.run(command, shell=True, check=True)
+            print(command)
+
         else:
             
             pref_json = self.json_path + f"\\software\\{software}.json"
@@ -84,8 +135,6 @@ class PrefsUtils:
                 
                 src = pref_data["destination"]
                 dst = pref_data["source"]
-
-                print(f"SOURCE: {src}\n", f"DEST: {dst}")
         
                 dst_paths = list(dst.values())
                 src_paths = []

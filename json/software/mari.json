@@ -4,6 +4,6 @@
             "mari_pref": "C:\\Docs\\mari\\TheFoundry"
         },
         "destination": {
-            "mari_config": "60_config\\userPrefs\\{user}\\mari\\{config}"
+            "mari_config": "60_config\\userPrefs\\{user}\\mari"
         }
 }

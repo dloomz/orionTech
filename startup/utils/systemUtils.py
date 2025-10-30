@@ -57,6 +57,9 @@ class SystemUtils:
             print("Could not find the reg key for theme.")
         except Exception as e:
             print(f"An error occurred while changing the theme: {e}")
+
+        os.system("taskkill /f /im explorer.exe")
+        subprocess.Popen("explorer.exe")
             
     def add_line_to_file(self, file_path, line_to_add):
 
