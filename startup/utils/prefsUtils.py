@@ -54,36 +54,52 @@ class PrefsUtils:
             except Exception as e:
                 print(f"Error saving prefs from {s_path} to {d_path}: {e}")
         
-    def load_prefs(self, software, user = None):
+    def load_prefs(self, software, user):
         
         if software == "houdini":
             command = "setx HOUDINI_PACKAGE_DIR \"P:\\all_work\\studentGroups\\ORION_CORPORATION\\60_config\\softwarePrefs\\houdini\\packages\""
             subprocess.run(command, shell=True, check=True)
 
-            
+            config_dir = self.orion.get_config_path()
 
-        for software in self.softwares:
+            houdini_path = "C:\\Docs\\houdini20.5"
+            jump_path_src = os.path.join(config_dir, "softwarePrefs","houdini","jump.pref")
+            jump_path_dst = os.path.join(houdini_path, "jump.pref")
+
+            try:
+                shutil.copyfile(jump_path_src, jump_path_dst)
+            except:
+                print("an error has occured")
+
+        elif software == "nuke":
+            command = "setx NUKE_PATH \"P:\\all_work\\studentGroups\\ORION_CORPORATION\\60_config\\softwarePrefs\\nuke\""
+            subprocess.run(command, shell=True, check=True)
+
+        else:
             
             pref_json = self.json_path + f"\\software\\{software}.json"
-            
+
             if os.path.exists(pref_json):
                 pref_data = self.orion.read_json(pref_json)
                 
                 src = pref_data["destination"]
                 dst = pref_data["source"]
+
+                print(f"SOURCE: {src}\n", f"DEST: {dst}")
         
-                src_paths = list(src.values())
-                dst_paths = []
+                dst_paths = list(dst.values())
+                src_paths = []
                 
-                for s in src_paths:
-                    path_sections = s.split("\\")
+                for d in dst_paths:
+                    path_sections = d.split("\\")
                     pref_configs = path_sections[-1]
+
+                    src_path_raw = src[f"{software}_config"]
+                    src_format = src_path_raw.format(user=user if user else self.current_user, config = pref_configs)
+                    src_path = os.path.join(self.root_dir, src_format)
                     
-                    dst_path_raw = dst[f"{software}_config"]
-                    dst_format = dst_path_raw.format(user=user if user else self.current_user)
-                    dst_path = os.path.join(self.root_dir, dst_format, pref_configs)
-                    
-                    dst_paths.append(dst_path)
+                    print(src_path)
+                    src_paths.append(src_path)
                     
                 transfer_route = zip(src_paths, dst_paths)
                 
