@@ -3,7 +3,7 @@ import os
 import maya.cmds as cmds
 
 #store original MAYA_PLUG_IN_PATH
-og_maya_plugin_path = (os.getenv("MAYA_PLUG_IN_PATH"))
+og_maya_plugin_path = str(os.getenv("MAYA_PLUG_IN_PATH"))
 
 '''CODE FROM https://www.regnareb.com/pro/2018/01/improve-maya-usability/'''
 if not cmds.optionVar(exists="firstLaunch"):

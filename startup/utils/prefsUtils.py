@@ -172,14 +172,14 @@ class PrefsUtils:
             else:
                 pass
             
-    def get_settings_path(self):
+    def get_settings_path(self, user):
         #Gets the path to the user_settings.json file
-        settings_path = os.path.join(self.root_dir, "00_pipeline\\orionTech\\settings\\user_settings.json")
+        settings_path = os.path.join(self.root_dir, f"60_config\\userPrefs\\{user}\\user_settings.json")
         return settings_path
 
     def load_settings(self):
         #Loads settings from user_settings.json
-        settings_path = self.get_settings_path()
+        settings_path = self.get_settings_path(self.current_user)
         try:
             return self.orion.read_json(settings_path)
         except FileNotFoundError:
@@ -194,7 +194,7 @@ class PrefsUtils:
 
     def save_settings(self, data):
         #Saves data to the user_settings.json file
-        settings_path = self.get_settings_path()
+        settings_path = self.get_settings_path(self.current_user)
         os.makedirs(os.path.dirname(settings_path), exist_ok=True) # Ensure directory exists
         with open(settings_path, 'w') as f:
             json.dump(data, f, indent=4)

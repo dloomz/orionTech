@@ -38,28 +38,53 @@ class SystemUtils:
 
         #enabled (bool): True to enable dark mode, False for light mode.
 
-        if os.name != 'nt' or winreg is None:
-            print("Dark mode control is only supported on Windows.")
-            return
+        if enabled == True:
+            if os.name != 'nt' or winreg is None:
+                print("Dark mode control is only supported on Windows.")
+                return
 
-        try:
-            # The registry key that controls theme settings
-            key_path = r'Software\Microsoft\Windows\CurrentVersion\Themes\Personalize'
+            try:
+                # The registry key that controls theme settings
+                key_path = r'Software\Microsoft\Windows\CurrentVersion\Themes\Personalize'
+                
+                reg_key = winreg.CreateKey(winreg.HKEY_CURRENT_USER, key_path)
+                winreg.SetValueEx(reg_key, "AppsUseLightTheme", 0, winreg.REG_DWORD, 0)
+                winreg.SetValueEx(reg_key, "SystemUsesLightTheme", 0, winreg.REG_DWORD, 0)
+                winreg.CloseKey(reg_key)
+
+                print(f"Windows dark mode set to: {enabled}")
             
-            reg_key = winreg.CreateKey(winreg.HKEY_CURRENT_USER, key_path)
-            winreg.SetValueEx(reg_key, "AppsUseLightTheme", 0, winreg.REG_DWORD, 0)
-            winreg.SetValueEx(reg_key, "SystemUsesLightTheme", 0, winreg.REG_DWORD, 0)
-            winreg.CloseKey(reg_key)
+            except FileNotFoundError:
+                print("Could not find the reg key for theme.")
+            except Exception as e:
+                print(f"An error occurred while changing the theme: {e}")
 
-            print(f"Windows dark mode set to: {enabled}")
+            os.system("taskkill /f /im explorer.exe")
+            subprocess.Popen("explorer.exe")
+            
+        else:
+
+            try:
+                # The registry key that controls theme settings
+                key_path = r'Software\Microsoft\Windows\CurrentVersion\Themes\Personalize'
+
+                reg_key = winreg.CreateKey(winreg.HKEY_CURRENT_USER, key_path)
         
-        except FileNotFoundError:
-            print("Could not find the reg key for theme.")
-        except Exception as e:
-            print(f"An error occurred while changing the theme: {e}")
+                is_app_light = winreg.QueryValueEx(reg_key, "AppsUseLightTheme")
+                is_sys_light = winreg.QueryValueEx(reg_key, "SystemUsesLightTheme")
 
-        os.system("taskkill /f /im explorer.exe")
-        subprocess.Popen("explorer.exe")
+                if is_app_light and is_sys_light == 0:
+                    winreg.SetValueEx(reg_key, "AppsUseLightTheme", 1, winreg.REG_DWORD, 1)
+                    winreg.SetValueEx(reg_key, "SystemUsesLightTheme", 1, winreg.REG_DWORD, 1)
+
+                else:
+                    pass
+            
+            except:
+                pass
+
+
+
             
     def add_line_to_file(self, file_path, line_to_add):
 
@@ -98,9 +123,9 @@ class SystemUtils:
         #set maya env var
         os.environ['MAYA_DISABLE_CLIC_IPM'] = "1"
         os.environ['MAYA_DISABLE_CIP'] = "1"
+        os.environ['MAYA_DISABLE_CER'] = "1"
         
         #set orion project path
         os.environ['ORION_PROJECT_PATH'] = self.root + "\\00_pipeline"
+        os.environ['ORION_PIPELINE_PATH'] = self.root 
 
-        #set houdini package dir
-        os.environ['HOUDINI_PACKAGE_DIR'] = "P:\\all_work\\studentGroups\\ORION_CORPORATION\\00_pipeline\\orionTech\\softwarePrefs\houdini\\packages"
