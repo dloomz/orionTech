@@ -129,16 +129,17 @@ class PrefsUtils:
                 src = pref_data["destination"]
                 dst = pref_data["source"]
 
-                if "env_var" in pref_data:
-                    env_var = pref_data["env_var"]
-            
-                    variables = list(env_var.keys())
-                    values = list(env_var.values())
 
-                    for i in range(len(variables)):
-                        var = variables[i]
-                        val = values[i]
-                        command = f'setx {var} "{val}"'
+                env_var = pref_data["env_var"]
+                print(env_var)
+                variables = list(env_var.keys())
+                values = list(env_var.values())
+
+                for i in range(len(variables)):
+                    var = variables[i]
+                    val = values[i]
+                    command = f'setx {var} "{val}"'
+                    subprocess.run(command, shell=True, check=True)
 
                 dst_paths = list(dst.values())
                 src_paths = []
