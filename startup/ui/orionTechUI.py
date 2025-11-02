@@ -79,7 +79,8 @@ class OrionTechUI(QWidget):
     def apply_startup_settings(self):
 
         dark_mode_enabled = self.settings.get('dark_mode', False)
-        self.system_utils.set_windows_dark_mode(dark_mode_enabled)
+        if dark_mode_enabled:
+            self.system_utils.set_windows_dark_mode(True)
 
     #Button Functions
     def load_prefs(self):

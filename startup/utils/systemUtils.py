@@ -35,56 +35,36 @@ class SystemUtils:
 
             
     def set_windows_dark_mode(self, enabled: bool):
-
         #enabled (bool): True to enable dark mode, False for light mode.
 
-        if enabled == True:
-            if os.name != 'nt' or winreg is None:
-                print("Dark mode control is only supported on Windows.")
-                return
+        if os.name != 'nt' or winreg is None:
+            print("Dark mode control is only supported on Windows.")
+            return
 
-            try:
-                # The registry key that controls theme settings
-                key_path = r'Software\Microsoft\Windows\CurrentVersion\Themes\Personalize'
-                
-                reg_key = winreg.CreateKey(winreg.HKEY_CURRENT_USER, key_path)
-                winreg.SetValueEx(reg_key, "AppsUseLightTheme", 0, winreg.REG_DWORD, 0)
-                winreg.SetValueEx(reg_key, "SystemUsesLightTheme", 0, winreg.REG_DWORD, 0)
-                winreg.CloseKey(reg_key)
+        # 0 = Dark Mode, 1 = Light Mode
+        theme_value = 0 if enabled else 1
+        theme_action = "dark" if enabled else "light"
 
-                print(f"Windows dark mode set to: {enabled}")
+        try:
+            #registry key that controls theme settings
+            key_path = r'Software\Microsoft\Windows\CurrentVersion\Themes\Personalize'
             
-            except FileNotFoundError:
-                print("Could not find the reg key for theme.")
-            except Exception as e:
-                print(f"An error occurred while changing the theme: {e}")
-
-            os.system("taskkill /f /im explorer.exe")
-            subprocess.Popen("explorer.exe")
+            reg_key = winreg.CreateKey(winreg.HKEY_CURRENT_USER, key_path)
             
-        else:
+            #Set both App and System theme values
+            winreg.SetValueEx(reg_key, "AppsUseLightTheme", 0, winreg.REG_DWORD, theme_value)
+            winreg.SetValueEx(reg_key, "SystemUsesLightTheme", 0, winreg.REG_DWORD, theme_value)
+            winreg.CloseKey(reg_key)
 
-            try:
-                # The registry key that controls theme settings
-                key_path = r'Software\Microsoft\Windows\CurrentVersion\Themes\Personalize'
-
-                reg_key = winreg.CreateKey(winreg.HKEY_CURRENT_USER, key_path)
+            print(f"Windows theme set to: {theme_action}")
         
-                is_app_light = winreg.QueryValueEx(reg_key, "AppsUseLightTheme")
-                is_sys_light = winreg.QueryValueEx(reg_key, "SystemUsesLightTheme")
+        except FileNotFoundError:
+            print("Could not find the reg key for theme.")
+        except Exception as e:
+            print(f"An error occurred while changing the theme: {e}")
 
-                if is_app_light and is_sys_light == 0:
-                    winreg.SetValueEx(reg_key, "AppsUseLightTheme", 1, winreg.REG_DWORD, 1)
-                    winreg.SetValueEx(reg_key, "SystemUsesLightTheme", 1, winreg.REG_DWORD, 1)
-
-                else:
-                    pass
-            
-            except:
-                pass
-
-
-
+        os.system("taskkill /f /im explorer.exe")
+        subprocess.Popen("explorer.exe")
             
     def add_line_to_file(self, file_path, line_to_add):
 

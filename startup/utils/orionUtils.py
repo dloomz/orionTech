@@ -37,7 +37,7 @@ class OrionUtils():
         self.software = config_data.get("software", [])
         self.webhook_url = config_data.get("discord_webhook_url", "")
         
-        # Set other paths based on the now-guaranteed self.root_dir
+        # Set other paths
         self.config_path = os.path.join(self.root_dir, "60_config")
         self.json_path = os.path.join(self.root_dir, json_relative_path)
 
