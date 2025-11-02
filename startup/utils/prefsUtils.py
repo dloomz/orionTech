@@ -6,8 +6,8 @@ from .orionUtils import OrionUtils
 
 class PrefsUtils:
 
-    def __init__(self):
-        self.orion = OrionUtils()
+    def __init__(self, orion_utils_instance):
+        self.orion = orion_utils_instance      
         self.root_dir = self.orion.get_root_dir()
         self.json_path = self.orion.get_json_path()
         self.softwares = self.orion.read_config("software")
@@ -129,17 +129,20 @@ class PrefsUtils:
                 src = pref_data["destination"]
                 dst = pref_data["source"]
 
+                env_var = pref_data.get("env_var") 
+                
+                if env_var:
+                    print(f"Setting environment variables for {software}: {env_var}")
+                    variables = list(env_var.keys())
+                    values = list(env_var.values())
 
-                env_var = pref_data["env_var"]
-                print(env_var)
-                variables = list(env_var.keys())
-                values = list(env_var.values())
-
-                for i in range(len(variables)):
-                    var = variables[i]
-                    val = values[i]
-                    command = f'setx {var} "{val}"'
-                    subprocess.run(command, shell=True, check=True)
+                    for i in range(len(variables)):
+                        var = variables[i]
+                        val = values[i]
+                        command = f'setx {var} "{val}"'
+                        subprocess.run(command, shell=True, check=True)
+                else:
+                    print(f"No 'env_var' key found in {software}.json, skipping environment variable setup.")
 
                 dst_paths = list(dst.values())
                 src_paths = []

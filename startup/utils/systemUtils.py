@@ -7,8 +7,8 @@ from .orionUtils import OrionUtils
 
 class SystemUtils:
 
-    def __init__(self):
-        self.orion = OrionUtils()
+    def __init__(self, orion_utils_instance): 
+        self.orion = orion_utils_instance  
         self.root = self.orion.get_root_dir()
 
     def run_terminal_command(self, command):

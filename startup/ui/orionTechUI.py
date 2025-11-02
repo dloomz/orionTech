@@ -16,12 +16,12 @@ from PyQt5.QtWidgets import QApplication, QWidget, QLabel, QPushButton, QVBoxLay
 from PyQt5.QtCore import Qt
 
 class OrionTechUI(QWidget):
-    def __init__(self):
+    def __init__(self, orion_utils_inst, system_utils_inst, prefs_utils_inst):
         super().__init__()
 
-        self.orion_utils = OrionUtils()
-        self.system_utils = SystemUtils()
-        self.prefs_utils = PrefsUtils()
+        self.orion_utils = orion_utils_inst
+        self.system_utils = system_utils_inst
+        self.prefs_utils = prefs_utils_inst
 
         self.settings = self.prefs_utils.load_settings()
         self.current_user = os.getlogin()
