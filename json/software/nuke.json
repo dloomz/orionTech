@@ -1,8 +1,5 @@
 {
-        "source": {
-            "nuke": "C:\\Docs\\nuke"
-        },
-        "destination": {
-            "nuke_config": "60_config\\userPrefs\\userPrefs\\{user}\\nuke"
+        "env_var": {
+            "NUKE_PATH": "P:\\all_work\\studentGroups\\ORION_CORPORATION\\60_config\\softwarePrefs\\nuke"
         }
 }

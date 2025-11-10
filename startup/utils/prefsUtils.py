@@ -2,7 +2,6 @@ import os
 import shutil
 import json
 import subprocess
-from .orionUtils import OrionUtils
 
 class PrefsUtils:
 
@@ -18,6 +17,19 @@ class PrefsUtils:
         #Checks if the current user is in the recognized usernames list
         return self.current_user in self.usernames
     
+    def set_pref_env_var(self, software, env_var):
+
+        print(f"Setting environment variables for {software}: {env_var}")
+
+        variables = list(env_var.keys())
+        values = list(env_var.values())
+
+        for i in range(len(variables)):
+            var = variables[i]
+            val = values[i]
+            command = f'setx {var} "{val}"'
+            subprocess.run(command, shell=True, check=True)
+
     def save_prefs(self, software, user = None):
 
         pref_json = self.json_path + f"\\software\\{software}.json"
@@ -101,8 +113,6 @@ class PrefsUtils:
     def load_prefs(self, software, user=None):
         
         if software == "houdini":
-            command = "setx HOUDINI_PACKAGE_DIR \"P:\\all_work\\studentGroups\\ORION_CORPORATION\\60_config\\softwarePrefs\\houdini\\packages\""
-            subprocess.run(command, shell=True, check=True)
 
             config_dir = self.orion.get_config_path()
 
@@ -115,9 +125,34 @@ class PrefsUtils:
             except:
                 print("an error has occured")
 
+            pref_json = self.json_path + f"\\software\\{software}.json"
+
+            if os.path.exists(pref_json):
+
+                pref_data = self.orion.read_json(pref_json)
+                env_var = pref_data.get("env_var") 
+                
+                if env_var:
+                    self.set_pref_env_var(software, env_var)
+
+                else:
+                    print(f"No 'env_var' key found in {software}.json, skipping environment variable setup.")
+
+
         elif software == "nuke":
-            command = "setx NUKE_PATH \"P:\\all_work\\studentGroups\\ORION_CORPORATION\\60_config\\softwarePrefs\\nuke\""
-            subprocess.run(command, shell=True, check=True)
+
+            pref_json = self.json_path + f"\\software\\{software}.json"
+
+            if os.path.exists(pref_json):
+
+                pref_data = self.orion.read_json(pref_json)
+                env_var = pref_data.get("env_var") 
+                
+                if env_var:
+                    self.set_pref_env_var(software, env_var)
+
+                else:
+                    print(f"No 'env_var' key found in {software}.json, skipping environment variable setup.")
 
         else:
             
@@ -132,15 +167,9 @@ class PrefsUtils:
                 env_var = pref_data.get("env_var") 
                 
                 if env_var:
-                    print(f"Setting environment variables for {software}: {env_var}")
-                    variables = list(env_var.keys())
-                    values = list(env_var.values())
 
-                    for i in range(len(variables)):
-                        var = variables[i]
-                        val = values[i]
-                        command = f'setx {var} "{val}"'
-                        subprocess.run(command, shell=True, check=True)
+                    self.set_pref_env_var(software, env_var)
+
                 else:
                     print(f"No 'env_var' key found in {software}.json, skipping environment variable setup.")
 

@@ -24,7 +24,6 @@ if __name__ == '__main__':
     
     app = QApplication(sys.argv)
     
-    # 5. Pass all the utilities into your UI class
     ex = OrionTechUI(orion_utils, system_utils, prefs_utils)
     
     ex.show()

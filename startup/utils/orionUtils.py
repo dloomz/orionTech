@@ -1,45 +1,61 @@
 import os
 import json
 import sys
-import requests  
-import traceback
 
 class OrionUtils():
     
     def __init__(self):
-        #Define all the possible paths 
+        #define all the possible paths and variables
         logged_in_user = os.getlogin()
         home_root = "O:\\"
         work_root = "P:\\all_work\\studentGroups\\ORION_CORPORATION"
         json_relative_path = "00_pipeline\\orionTech\\json"
         config_filename = "config.json"
 
-        # Absolute paths to the config file
+        # absolute paths to the config file for both at-home and at-work 
         work_config_path = os.path.join(work_root, json_relative_path, config_filename)
         home_config_path = os.path.join(home_root, json_relative_path, config_filename)
         
-        #Determine root_dir and home_status based on which config file is found
+        # check which config file exists on system
         config_data = None
         if os.path.exists(work_config_path):
             self.root_dir = work_root
-            self.home_status = False  # At work
             config_data = self.read_json(work_config_path)
         elif os.path.exists(home_config_path):
             self.root_dir = home_root
-            self.home_status = True   # At home
             config_data = self.read_json(home_config_path)
         else:
-            #No config file found, this is a fatal error
             raise FileNotFoundError(f"Configuration file not found. Checked in {work_config_path} and {home_config_path}")
 
-        #Assign config data
+        #assign the usernames and software lists
         self.usernames = config_data.get("usernames", [])
         self.software = config_data.get("software", [])
         self.webhook_url = config_data.get("discord_webhook_url", "")
         
-        # Set other paths
+        #user is at home based on whether username is in list
+        # If the user is in the list, they are at work
+        if logged_in_user in self.usernames:
+            self.home_status = False  # At work
+            self.root_dir = work_root 
+        else:
+            self.home_status = True   # At home
+            self.root_dir = home_root  
+        
+        #set the definite path for the config directory.
         self.config_path = os.path.join(self.root_dir, "60_config")
+
+        #set the definite path for the graphics directory.
+        self.graphic_path = os.path.join(self.config_path, "graphics")
+
+        #set the definite path for the JSON directory.
         self.json_path = os.path.join(self.root_dir, json_relative_path)
+
+        libs_path = self.get_libs_path()
+
+        if libs_path not in sys.path:
+            sys.path.insert(0, libs_path)
+
+        import requests
 
 
     def is_at_home(self):
@@ -55,9 +71,13 @@ class OrionUtils():
         return self.json_path
     
     def get_config_path(self):
-        #Returns the full path to the json directory
+        #Returns the full path to config
         return self.config_path
          
+    def get_graphic_path(self):
+        #Returns the full path to config
+        return self.graphic_path
+
     def get_libs_path(self):
         
         config_path = self.get_config_path()
