@@ -17,12 +17,21 @@ class PrefsUtils:
         #Checks if the current user is in the recognized usernames list
         return self.current_user in self.usernames
     
-    def set_pref_env_var(self, software, env_var):
-
-        print(f"Setting environment variables for {software}: {env_var}")
+    def set_pref_env_var(self, env_var, user = None):
 
         variables = list(env_var.keys())
-        values = list(env_var.values())
+        raw_values = list(env_var.values())
+
+        values = []
+
+        for v in raw_values:
+
+            val = v.format(user=user if user else self.current_user)
+
+            if "60_config" in val:
+                val = os.path.join(self.root_dir, val)
+
+            values.append(val)
 
         for i in range(len(variables)):
             var = variables[i]
@@ -133,7 +142,7 @@ class PrefsUtils:
                 env_var = pref_data.get("env_var") 
                 
                 if env_var:
-                    self.set_pref_env_var(software, env_var)
+                    self.set_pref_env_var(env_var)
 
                 else:
                     print(f"No 'env_var' key found in {software}.json, skipping environment variable setup.")
@@ -149,7 +158,7 @@ class PrefsUtils:
                 env_var = pref_data.get("env_var") 
                 
                 if env_var:
-                    self.set_pref_env_var(software, env_var)
+                    self.set_pref_env_var(env_var)
 
                 else:
                     print(f"No 'env_var' key found in {software}.json, skipping environment variable setup.")
@@ -159,51 +168,54 @@ class PrefsUtils:
             pref_json = self.json_path + f"\\software\\{software}.json"
 
             if os.path.exists(pref_json):
-                pref_data = self.orion.read_json(pref_json)
-                
-                src = pref_data["destination"]
-                dst = pref_data["source"]
 
+                pref_data = self.orion.read_json(pref_json)
                 env_var = pref_data.get("env_var") 
                 
                 if env_var:
 
-                    self.set_pref_env_var(software, env_var)
+                    self.set_pref_env_var(env_var)
 
                 else:
                     print(f"No 'env_var' key found in {software}.json, skipping environment variable setup.")
 
-                dst_paths = list(dst.values())
-                src_paths = []
-                
-                for d in dst_paths:
-                    path_sections = d.split("\\")
-                    pref_configs = path_sections[-1]
+                src = pref_data.get("destination")
+                dst = pref_data.get("source")   
 
-                    src_path_raw = src[f"{software}_config"]
-                    src_format = src_path_raw.format(user=user if user else self.current_user, config = pref_configs)
-                    src_path = os.path.join(self.root_dir, src_format)
+                if src and dst:
+
+                    dst_paths = list(dst.values())
+                    src_paths = []
                     
-                    print(src_path)
-                    src_paths.append(src_path)
-                    
-                transfer_route = zip(src_paths, dst_paths)
-                
-                for r in transfer_route:
-                    s_path, d_path = r
-                    if not os.path.exists(s_path):
-                        print(f"Source path does not exist: {s_path}")
-                        continue
-                    
-                    try:
-                        os.makedirs(os.path.dirname(d_path), exist_ok=True)
-                        shutil.copytree(s_path, d_path, dirs_exist_ok=True)
-                        print(f"Successfully saved prefs from {s_path} to {d_path}")
-                    except Exception as e:
-                        print(f"Error saving prefs from {s_path} to {d_path}: {e}")  
+                    for d in dst_paths:
+                        path_sections = d.split("\\")
+                        pref_configs = path_sections[-1]
+
+                        src_path_raw = src[f"{software}_config"]
+                        src_format = src_path_raw.format(user=user if user else self.current_user, config = pref_configs)
+                        src_path = os.path.join(self.root_dir, src_format)
                         
-            else:
-                pass
+                        print(src_path)
+                        src_paths.append(src_path)
+                        
+                    transfer_route = zip(src_paths, dst_paths)
+                    
+                    for r in transfer_route:
+                        print(r)
+                        s_path, d_path = r
+                        if not os.path.exists(s_path):
+                            print(f"Source path does not exist: {s_path}")
+                            continue
+                        
+                        try:
+                            os.makedirs(os.path.dirname(d_path), exist_ok=True)
+                            shutil.copytree(s_path, d_path, dirs_exist_ok=True)
+                            print(f"Successfully saved prefs from {s_path} to {d_path}")
+                        except Exception as e:
+                            print(f"Error saving prefs from {s_path} to {d_path}: {e}")  
+                            
+                else:
+                    pass
             
     def get_settings_path(self, user):
         #Gets the path to the user_settings.json file

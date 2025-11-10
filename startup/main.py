@@ -15,8 +15,8 @@ if libs_path not in sys.path:
 from PyQt5.QtWidgets import QApplication
 from PyQt5.QtCore import Qt
 
-system_utils = SystemUtils(orion_utils) 
-prefs_utils = PrefsUtils(orion_utils)   
+prefs_utils = PrefsUtils(orion_utils) 
+system_utils = SystemUtils(orion_utils, prefs_utils)   
 
 if __name__ == '__main__':
     

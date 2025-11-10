@@ -7,8 +7,8 @@
             "mari_config": "60_config\\userPrefs\\{user}\\mari"
         },
         "env_var": {
-            "MARI_SCRIPT_PATH": "P:\\all_work\\studentGroups\\ORION_CORPORATION\\60_config\\softwarePrefs\\mari\\scripts",
-            "XDG_CONFIG_HOME": "P:\\all_work\\studentGroups\\ORION_CORPORATION\\60_config\\softwarePrefs\\mari",
+            "MARI_SCRIPT_PATH": "60_config\\softwarePrefs\\mari\\scripts",
+            "XDG_CONFIG_HOME": "60_config\\softwarePrefs\\mari",
             "MARI_MRISNNODEPROPERTIESWIDGET_MAXPANELS": "1",
             "MARI_NAVIGATION_CONTROLTYPE": "Maya",
             "MARI_PAINTER_PAINTBUFFERDEPTH": "16 bit (Half)",

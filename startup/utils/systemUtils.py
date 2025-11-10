@@ -6,9 +6,12 @@ import winreg
 
 class SystemUtils:
 
-    def __init__(self, orion_utils_instance):
+    def __init__(self, orion_utils_instance, pref_utils_instance):
         self.orion = orion_utils_instance
+        self.pref = pref_utils_instance
         self.root = self.orion.get_root_dir()
+        self.json_path = self.orion.get_json_path()
+        self.current_user = os.getlogin()
 
     def run_terminal_command(self, command):
         """
@@ -116,13 +119,29 @@ class SystemUtils:
 
 
     def env_setup(self):
-        
-        #set maya env var
-        os.environ['MAYA_DISABLE_CLIC_IPM'] = "1"
-        os.environ['MAYA_DISABLE_CIP'] = "1"
-        os.environ['MAYA_DISABLE_CER'] = "1"
-        
+
+        path = [r"P:\all_work\studentGroups\ORION_CORPORATION", f"P:\\all_work\\studentGroups\\ORION_CORPORATION\\05_sandbox\\{self.current_user}"]
+
+        for p in path:
+            subprocess.run([
+                "powershell", "-Command",
+                f"($qa = New-Object -ComObject shell.application).Namespace('{p}').Self.InvokeVerb('pintohome')"
+            ])
+
         #set orion project path
-        os.environ['ORION_PROJECT_PATH'] = self.root + "\\00_pipeline"
-        os.environ['ORION_PIPELINE_PATH'] = self.root 
+        os.environ['ORI_CONFIG_PATH'] = self.orion.get_config_path()
+        os.environ['ORI_ROOT_PATH'] = self.orion.get_root_dir()
+
+        env_json = os.path.join(self.json_path, "env_var.json")
+
+        if os.path.exists(env_json):
+
+            pref_data = self.orion.read_json(env_json)
+
+            env_var = pref_data.get("env_var") 
+            self.pref.set_pref_env_var(env_var)
+
+
+
+ 
 

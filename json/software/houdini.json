@@ -6,7 +6,7 @@
             "houdini_config": "60_config\\userPrefs\\{user}\\houdini"
         },
         "env_var": {
-            "HOUDINI_SPLASH_FILE": "P:\\all_work\\studentGroups\\ORION_CORPORATION\\60_config\\graphics\\houdini_splash.png",
-            "HOUDINI_PACKAGE_DIR": "P:\\all_work\\studentGroups\\ORION_CORPORATION\\60_config\\softwarePrefs\\houdini\\packages"
+            "HOUDINI_SPLASH_FILE": "60_config\\graphics\\houdini_splash.png",
+            "HOUDINI_PACKAGE_DIR": "60_config\\softwarePrefs\\houdini\\packages"
         }
 }
