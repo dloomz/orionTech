@@ -1,7 +1,10 @@
 {
         
     "env_var": {
-        "MAYA_APP_DIR": "60_config\\userPrefs\\{user}\\maya"
+        "MAYA_APP_DIR": "60_config\\userPrefs\\{user}\\maya",
+        "MAYA_SCRIPT_PATH": "60_config\\userPrefs\\{user}\\maya\\2026\\scripts",
+        "MAYA_MODULE_PATH": "60_config\\userPrefs\\{user}\\maya\\modules",
+        "MAYA_PLUG_IN_PATH": "60_config\\userPrefs\\{user}\\maya\\plug-ins"
     }
 
 }
