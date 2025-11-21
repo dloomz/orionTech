@@ -1,9 +1,9 @@
 import sys
 import os
 
-from utils.orionUtils import OrionUtils
-from utils.systemUtils import SystemUtils
-from utils.prefsUtils import PrefsUtils
+from core.orionUtils import OrionUtils
+from core.systemUtils import SystemUtils
+from core.prefsUtils import PrefsUtils
 
 orion_utils = OrionUtils()
 libs_path = orion_utils.get_libs_path()

@@ -3,7 +3,7 @@ import re
 import tkinter as tk
 from tkinter import filedialog, messagebox
 
-from utils.orionUtils import OrionUtils
+from core.orionUtils import OrionUtils
 orion_utils = OrionUtils()
 
 # --- Configuration ---

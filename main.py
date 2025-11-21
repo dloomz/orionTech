@@ -1,9 +1,9 @@
 import sys
 import os
 
-from utils.orionUtils import OrionUtils
-from utils.systemUtils import SystemUtils
-from utils.prefsUtils import PrefsUtils
+from core.orionUtils import OrionUtils
+from core.systemUtils import SystemUtils
+from core.prefsUtils import PrefsUtils
 from ui.orionTechUI import OrionTechUI
 
 orion_utils = OrionUtils()
