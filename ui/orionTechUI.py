@@ -29,14 +29,18 @@ class OrionTechUI(QWidget):
         self.apply_startup_settings()
 
     def init_ui(self):
-        
-        #PROD SEC
-        self.prod_tab = QWidget()
-        self.tabs.addTab(self.prod_tab, 'Production')
+        #SETUP MAIN WINDOW & TABS FIRST
+        self.setWindowTitle('OrionTech Prefs Manager')
+        self.setGeometry(100, 100, 400, 300)
 
+        self.layout = QVBoxLayout()
+        self.tabs = QTabWidget() # Initialize tab widget here
+
+        #PRODUCTION TAB
+        self.prod_tab = QWidget()
         self.prod_layout = QVBoxLayout()
 
-        # Shot Creation Interface
+        #shot Creation Interface
         self.shot_code_input = QLineEdit()
         self.shot_code_input.setPlaceholderText("Shot Code (e.g., sh010)")
         self.frame_start_input = QLineEdit()
@@ -55,21 +59,13 @@ class OrionTechUI(QWidget):
 
         self.prod_tab.setLayout(self.prod_layout)
         
-        self.setWindowTitle('OrionTech Prefs Manager')
-        self.setGeometry(100, 100, 400, 300)
-
-        self.layout = QVBoxLayout()
-        self.tabs = QTabWidget()
+        #PREFS TAB
         self.prefs_tab = QWidget()
-        self.settings_tab = QWidget()
-        self.tabs.addTab(self.prefs_tab, 'Prefs')
-        self.tabs.addTab(self.settings_tab, 'Settings')
-
-        # Prefs Tab
         self.prefs_layout = QVBoxLayout()
+        
         self.welcome_label = QLabel(f"Welcome, {self.current_user}")
 
-        # Add a dropdown to select the software
+        #dropdown to select the software
         self.software_selector = QComboBox()
         self.software_selector.addItems(self.orion_utils.software)
 
@@ -82,7 +78,8 @@ class OrionTechUI(QWidget):
         self.prefs_layout.addWidget(self.save_prefs_button)
         self.prefs_tab.setLayout(self.prefs_layout)
 
-        # Settings Tab
+        #SETTINGS TAB
+        self.settings_tab = QWidget()
         self.settings_layout = QVBoxLayout()
         self.dark_mode_checkbox = QCheckBox('Enable Windows Dark Mode')
         self.discord_checkbox = QCheckBox('Open Discord on Startup')
@@ -90,9 +87,15 @@ class OrionTechUI(QWidget):
         self.settings_layout.addWidget(self.discord_checkbox)
         self.settings_tab.setLayout(self.settings_layout)
 
+        #ADD ALL TABS TO MAIN WIDGET
+        self.tabs.addTab(self.prod_tab, 'Production')
+        self.tabs.addTab(self.prefs_tab, 'Prefs')
+        self.tabs.addTab(self.settings_tab, 'Settings')
+
         self.layout.addWidget(self.tabs)
         self.setLayout(self.layout)
 
+        #ONNECTIONS & DEFAULTS
         self.load_prefs_button.clicked.connect(self.load_prefs)
         self.save_prefs_button.clicked.connect(self.save_prefs)
         self.dark_mode_checkbox.stateChanged.connect(self.toggle_dark_mode)
