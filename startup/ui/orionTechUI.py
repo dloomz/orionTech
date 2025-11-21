@@ -11,8 +11,7 @@ libs_path = orion_utils.get_libs_path()
 if libs_path not in sys.path:
     sys.path.insert(0, libs_path)
 
-from PyQt5.QtWidgets import QApplication
-from PyQt5.QtWidgets import QApplication, QWidget, QLabel, QPushButton, QVBoxLayout, QCheckBox, QTabWidget, QMessageBox, QComboBox
+from PyQt5.QtWidgets import QApplication, QWidget, QLabel, QPushButton, QVBoxLayout, QCheckBox, QTabWidget, QMessageBox, QComboBox, QLineEdit
 from PyQt5.QtCore import Qt
 
 class OrionTechUI(QWidget):
@@ -30,6 +29,32 @@ class OrionTechUI(QWidget):
         self.apply_startup_settings()
 
     def init_ui(self):
+        
+        #PROD SEC
+        self.prod_tab = QWidget()
+        self.tabs.addTab(self.prod_tab, 'Production')
+
+        self.prod_layout = QVBoxLayout()
+
+        # Shot Creation Interface
+        self.shot_code_input = QLineEdit()
+        self.shot_code_input.setPlaceholderText("Shot Code (e.g., sh010)")
+        self.frame_start_input = QLineEdit()
+        self.frame_start_input.setPlaceholderText("Start Frame")
+        self.frame_end_input = QLineEdit()
+        self.frame_end_input.setPlaceholderText("End Frame")
+
+        self.create_shot_btn = QPushButton("Create / Update Shot")
+        self.create_shot_btn.clicked.connect(self.handle_create_shot)
+
+        self.prod_layout.addWidget(QLabel("Shot Management"))
+        self.prod_layout.addWidget(self.shot_code_input)
+        self.prod_layout.addWidget(self.frame_start_input)
+        self.prod_layout.addWidget(self.frame_end_input)
+        self.prod_layout.addWidget(self.create_shot_btn)
+
+        self.prod_tab.setLayout(self.prod_layout)
+        
         self.setWindowTitle('OrionTech Prefs Manager')
         self.setGeometry(100, 100, 400, 300)
 
@@ -75,6 +100,15 @@ class OrionTechUI(QWidget):
 
         self.dark_mode_checkbox.setChecked(self.settings.get('dark_mode', False))
         self.discord_checkbox.setChecked(self.settings.get('discord_on_startup', False))
+
+    def handle_create_shot(self):
+        code = self.shot_code_input.text()
+        start = int(self.frame_start_input.text())
+        end = int(self.frame_end_input.text())
+        
+        # Use your upgraded utils to talk to the DB
+        self.orion_utils.create_shot(code, start, end, self.current_user)
+        QMessageBox.information(self, "Success", f"Shot {code} logged in Database!")
 
     def apply_startup_settings(self):
 

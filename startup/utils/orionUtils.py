@@ -1,6 +1,8 @@
 import os
 import json
 import sys
+import sqlite3
+import uuid
 
 class OrionUtils():
     
@@ -50,6 +52,7 @@ class OrionUtils():
         #set the definite path for the JSON directory.
         self.json_path = os.path.join(self.root_dir, json_relative_path)
 
+        self.db_path = os.path.join(self.root_dir, "00_pipeline\\orionTech\\data\\project.db")
         libs_path = self.get_libs_path()
 
         if libs_path not in sys.path:
@@ -128,3 +131,83 @@ class OrionUtils():
             # Catch any other unexpected Python errors during the process
              print(f"An unexpected Python error occurred sending Discord notification: {e}")
              print(traceback.format_exc())
+             
+    def get_db_connection(self):
+        """Creates a connection to the SQLite DB"""
+        conn = sqlite3.connect(self.db_path)
+        #allows accessing columns by name (row['id']) instead of index
+        conn.row_factory = sqlite3.Row 
+        return conn
+
+    def get_shot(self, shot_code):
+        """Fetches shot data. Implements the 'Central Data' concept [cite: 1606]"""
+        conn = self.get_db_connection()
+        shot = conn.execute('SELECT * FROM shots WHERE code = ?', (shot_code,)).fetchone()
+        conn.close()
+        return shot
+
+    def create_shot(self, shot_code, start, end, user):
+        """Implements Shot Creation Logic [cite: 1667]"""
+        conn = self.get_db_connection()
+        shot_id = str(uuid.uuid4()) #generate unique ID
+        conn.execute(
+            'INSERT INTO shots (id, code, frame_start, frame_end, user_assigned) VALUES (?, ?, ?, ?, ?)',
+            (shot_id, shot_code, start, end, user)
+        )
+        conn.commit()
+        conn.close()
+        print(f"Shot {shot_code} created.")
+
+    def update_frame_range(self, shot_code, new_start, new_end):
+        """Implements 'Conflict Resolution' logic for ranges [cite: 1687]"""
+
+        conn = self.get_db_connection()
+        conn.execute(
+            'UPDATE shots SET frame_start = ?, frame_end = ? WHERE code = ?',
+            (new_start, new_end, shot_code)
+        )
+        conn.commit()
+        conn.close()
+
+    def get_all_assets(self):
+            """Returns a list of all available assets to show in UI"""
+            conn = self.get_db_connection()
+            assets = conn.execute('SELECT * FROM assets').fetchall()
+            conn.close()
+            return assets
+
+    def link_asset_to_shot(self, shot_code, asset_name):
+        """Links an asset to a shot based on the asset's name"""
+        conn = self.get_db_connection()
+        
+        #find the asset ID based on the name
+        asset = conn.execute('SELECT id FROM assets WHERE name = ?', (asset_name,)).fetchone()
+        
+        if asset:
+            asset_id = asset['id']
+            try:
+                conn.execute(
+                    'INSERT INTO shot_assets (shot_code, asset_id) VALUES (?, ?)',
+                    (shot_code, asset_id)
+                )
+                conn.commit()
+                print(f"Linked {asset_name} to {shot_code}")
+            except sqlite3.IntegrityError:
+                print(f"Asset {asset_name} is already linked to {shot_code}")
+        else:
+            print(f"Asset '{asset_name}' not found in database!")
+            
+        conn.close()
+
+    def get_shot_assets(self, shot_code):
+        """Returns a list of asset names associated with a shot"""
+        conn = self.get_db_connection()
+        query = '''
+            SELECT a.name, a.type 
+            FROM assets a
+            JOIN shot_assets sa ON a.id = sa.asset_id
+            WHERE sa.shot_code = ?
+        '''
+        assets = conn.execute(query, (shot_code,)).fetchall()
+        conn.close()
+        return assets
