@@ -1,4 +1,4 @@
-from utils.orionUtils import OrionUtils
+from core.config_manager import OrionUtils
 import os
 
 orion = OrionUtils()
