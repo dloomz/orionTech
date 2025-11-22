@@ -40,15 +40,19 @@ class OrionUtils():
     ]
 
     def __init__(self):
+        
         #DYNAMIC ROOT DETECTION
         #root based on where file is located
         current_script_path = os.path.abspath(__file__)
+        
         #go up two levels: core/ -> root/
-        self.root_dir = os.path.dirname(os.path.dirname(current_script_path))
+        self.pipeline_dir = os.path.dirname(os.path.dirname(current_script_path))
+        
+        self.project_path = os.path.dirname(self.root_dir)
 
         #DEFINE KEY PATHS
-        self.config_path = os.path.join(self.root_dir, "config")
-        self.data_path = os.path.join(self.root_dir, "data")
+        self.config_path = os.path.join(self.pipeline_dir, "config")
+        self.data_path = os.path.join(self.pipeline_dir, "data")
         self.db_path = os.path.join(self.data_path, "project.db")
         
         #LOAD CONFIG
@@ -65,11 +69,20 @@ class OrionUtils():
         self.webhook_url = config_data.get("discord_webhook_url", "")
         
         # Determine Home/Work Status
+        home_root = "O:\\"
+        work_root = "P:\\all_work\\studentGroups\\ORION_CORPORATION"
+        
         self.current_user = os.getlogin()
-        self.home_status = self.current_user not in self.usernames
+        
+        if self.current_user in self.usernames:
+            self.home_status = False  # At work
+            self.root_dir = work_root 
+        else:
+            self.home_status = True   # At home
+            self.root_dir = home_root  
 
         #SETUP LIBS
-        self.libs_path = os.path.join(self.root_dir, "libs") # Or config/libs depending on your prefs
+        self.libs_path = os.path.join(self.root_dir,"60_config", "libs") # Or config/libs depending on your prefs
         # Ensure libs path is importable
         if self.libs_path not in sys.path:
             sys.path.insert(0, self.libs_path)
@@ -78,6 +91,9 @@ class OrionUtils():
     
     def get_root_dir(self):
         return self.root_dir
+    
+    def is_at_home(self):
+        return self.home_status
 
     def read_json(self, file_path):
         try:
@@ -228,3 +244,11 @@ class OrionUtils():
             requests.post(self.webhook_url, json=data, headers=headers, timeout=5)
         except Exception as e:
             print(f"Discord notification failed: {e}")
+            
+if __name__ == "__main__":
+    
+    orion = OrionUtils()
+    try:
+        print("PATH:", orion.project_path)
+    except Exception as e:
+        print("Error during OrionUtils test:", e)

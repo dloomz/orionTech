@@ -29,7 +29,31 @@ class OrionTechUI(QWidget):
         self.tabs = QTabWidget() # Important: Init before adding tabs
 
         # --------------------------
-        # TAB 1: PRODUCTION
+        # TAB 1: PREFERENCES
+        # --------------------------
+        self.prefs_tab = QWidget()
+        self.prefs_layout = QVBoxLayout()
+        
+        self.welcome_label = QLabel(f"User: <b>{self.current_user}</b>")
+        self.software_selector = QComboBox()
+        self.software_selector.addItems(self.orion_utils.software)
+
+        self.load_prefs_button = QPushButton('Load Prefs')
+        self.load_prefs_button.clicked.connect(self.load_prefs)
+        
+        self.save_prefs_button = QPushButton('Save Prefs')
+        self.save_prefs_button.clicked.connect(self.save_prefs)
+
+        self.prefs_layout.addWidget(self.welcome_label)
+        self.prefs_layout.addWidget(QLabel("Select Software:"))
+        self.prefs_layout.addWidget(self.software_selector)
+        self.prefs_layout.addWidget(self.load_prefs_button)
+        self.prefs_layout.addWidget(self.save_prefs_button)
+        self.prefs_layout.addStretch()
+        self.prefs_tab.setLayout(self.prefs_layout)
+
+        # --------------------------
+        # TAB 2: PRODUCTION
         # --------------------------
         self.prod_tab = QWidget()
         self.prod_layout = QVBoxLayout()
@@ -100,29 +124,6 @@ class OrionTechUI(QWidget):
         self.prod_layout.addStretch()
         self.prod_tab.setLayout(self.prod_layout)
 
-        # --------------------------
-        # TAB 2: PREFERENCES
-        # --------------------------
-        self.prefs_tab = QWidget()
-        self.prefs_layout = QVBoxLayout()
-        
-        self.welcome_label = QLabel(f"User: <b>{self.current_user}</b>")
-        self.software_selector = QComboBox()
-        self.software_selector.addItems(self.orion_utils.software)
-
-        self.load_prefs_button = QPushButton('Load Prefs')
-        self.load_prefs_button.clicked.connect(self.load_prefs)
-        
-        self.save_prefs_button = QPushButton('Save Prefs')
-        self.save_prefs_button.clicked.connect(self.save_prefs)
-
-        self.prefs_layout.addWidget(self.welcome_label)
-        self.prefs_layout.addWidget(QLabel("Select Software:"))
-        self.prefs_layout.addWidget(self.software_selector)
-        self.prefs_layout.addWidget(self.load_prefs_button)
-        self.prefs_layout.addWidget(self.save_prefs_button)
-        self.prefs_layout.addStretch()
-        self.prefs_tab.setLayout(self.prefs_layout)
 
         # --------------------------
         # TAB 3: SETTINGS
@@ -147,8 +148,8 @@ class OrionTechUI(QWidget):
         self.discord_checkbox.setChecked(self.settings.get('discord_on_startup', False))
 
         # Add Tabs and Finalize
-        self.tabs.addTab(self.prod_tab, 'Production')
         self.tabs.addTab(self.prefs_tab, 'Prefs')
+        self.tabs.addTab(self.prod_tab, 'Production')
         self.tabs.addTab(self.settings_tab, 'Settings')
         
         self.layout.addWidget(self.tabs)

@@ -120,17 +120,27 @@ class SystemUtils:
 
     def env_setup(self):
 
-        path = [r"P:\all_work\studentGroups\ORION_CORPORATION", f"P:\\all_work\\studentGroups\\ORION_CORPORATION\\05_sandbox\\{self.current_user}"]
+        # path = [r"P:\all_work\studentGroups\ORION_CORPORATION", f"P:\\all_work\\studentGroups\\ORION_CORPORATION\\05_sandbox\\{self.current_user}"]
 
-        for p in path:
-            subprocess.run([
-                "powershell", "-Command",
-                f"($qa = New-Object -ComObject shell.application).Namespace('{p}').Self.InvokeVerb('pintohome')"
-            ])
+        # for p in path:
+        #     subprocess.run([
+        #         "powershell", "-Command",
+        #         f"($qa = New-Object -ComObject shell.application).Namespace('{p}').Self.InvokeVerb('pintohome')"
+        #     ])
 
         #set orion project path
-        os.environ['ORI_CONFIG_PATH'] = self.config_path
-        os.environ['ORI_ROOT_PATH'] = self.orion.get_root_dir()
+        
+        envs = [
+            ("ORI_CONFIG_PATH", self.config_path),
+            ("ORI_ROOT_PATH", self.orion.get_root_dir())
+        ]
+        
+        for var, val in envs:
+            command = f'setx {var} "{val}"'
+            subprocess.run(command, shell=True, check=False)
+        
+        # os.environ['ORI_CONFIG_PATH'] = self.config_path
+        # os.environ['ORI_ROOT_PATH'] = self.orion.get_root_dir()
 
         env_json = os.path.join(self.config_path, "env_var.json")
 
