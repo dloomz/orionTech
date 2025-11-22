@@ -130,14 +130,14 @@ class SystemUtils:
 
         #set orion project path
         
-        envs = [
-            ("ORI_CONFIG_PATH", self.config_path),
-            ("ORI_ROOT_PATH", self.orion.get_root_dir())
-        ]
+        # envs = [
+        #     ("ORI_CONFIG_PATH", self.config_path),
+        #     ("ORI_ROOT_PATH", self.orion.get_root_dir())
+        # ]
         
-        for var, val in envs:
-            command = f'setx {var} "{val}"'
-            subprocess.run(command, shell=True, check=False)
+        # for var, val in envs:
+        #     command = f'setx {var} "{val}"'
+        #     subprocess.run(command, shell=True, check=False)
         
         # os.environ['ORI_CONFIG_PATH'] = self.config_path
         # os.environ['ORI_ROOT_PATH'] = self.orion.get_root_dir()
