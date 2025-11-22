@@ -1,15 +1,32 @@
 import os
 import subprocess
 import sys
+from pathlib import Path
 from dotenv import load_dotenv
 
 def launch_maya():
     #custom paths
+    current_script_dir = Path(__file__).resolve().parent
+    env_path = current_script_dir.parent.parent / "data" / ".env"
+    
+    if env_path.exists():
+        load_dotenv(dotenv_path=env_path)
+    else:
+        print(f"WARNING: .env file not found at {env_path}")
     
     ROOT_PATH = "O:\\05_sandbox\\do23aaf "
-    
     print("ROOT PATH:", ROOT_PATH)
     #path to maya exe
+    MAYA_EXE = r"C:\Program Files\Autodesk\Maya2026\bin\maya.exe"
+
+    ORI_ROOT_PATH = os.environ.get("ORI_ROOT_PATH")
+    print("ORI_ROOT_PATH:", ORI_ROOT_PATH)
+
+    if not ORI_ROOT_PATH:
+        print("CRITICAL ERROR: ORI_ROOT_PATH is still missing. Check your .env file content.")
+        return
+
+    ROOT_PATH = "O:\\05_sandbox\\do23aaf " # You might want to replace this with ori_root if that was the goal
     MAYA_EXE = r"C:\Program Files\Autodesk\Maya2026\bin\maya.exe"
 
     #copy the current system environment
@@ -31,7 +48,7 @@ def launch_maya():
     icons_path = os.path.join(ROOT_PATH, "icons")
     env["XBMLANGPATH"] = icons_path + os.pathsep + env.get("XBMLANGPATH", "")
 
-    # env["MAYA_PROJECT"] = PROJECT_PATH
+    env["MAYA_PROJECT"] = ORI_ROOT_PATH
 
     print(f"Launching Maya from: {MAYA_EXE}")
     print(f"Loading tools from: {ROOT_PATH}")
