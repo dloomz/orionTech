@@ -1,17 +1,8 @@
 import sys
 import os
-
-from core.orionUtils import OrionUtils
-from core.systemUtils import SystemUtils
-from core.prefsUtils import PrefsUtils
-
-orion_utils = OrionUtils()
-libs_path = orion_utils.get_libs_path()
-
-if libs_path not in sys.path:
-    sys.path.insert(0, libs_path)
-
-from PyQt5.QtWidgets import QApplication, QWidget, QLabel, QPushButton, QVBoxLayout, QCheckBox, QTabWidget, QMessageBox, QComboBox, QLineEdit
+from PyQt5.QtWidgets import (QApplication, QWidget, QLabel, QPushButton, 
+                             QVBoxLayout, QHBoxLayout, QCheckBox, QTabWidget, 
+                             QMessageBox, QComboBox, QLineEdit, QFrame)
 from PyQt5.QtCore import Qt
 
 class OrionTechUI(QWidget):
@@ -22,6 +13,7 @@ class OrionTechUI(QWidget):
         self.system_utils = system_utils_inst
         self.prefs_utils = prefs_utils_inst
 
+        # Load user settings
         self.settings = self.prefs_utils.load_settings()
         self.current_user = os.getlogin()
 
@@ -29,119 +21,234 @@ class OrionTechUI(QWidget):
         self.apply_startup_settings()
 
     def init_ui(self):
-        #SETUP MAIN WINDOW & TABS FIRST
-        self.setWindowTitle('OrionTech Prefs Manager')
-        self.setGeometry(100, 100, 400, 300)
-
+        # WINDOW SETUP
+        self.setWindowTitle('OrionTech Pipeline Manager')
+        self.setGeometry(100, 100, 500, 600)
+        
         self.layout = QVBoxLayout()
-        self.tabs = QTabWidget() # Initialize tab widget here
+        self.tabs = QTabWidget() # Important: Init before adding tabs
 
-        #PRODUCTION TAB
+        # --------------------------
+        # TAB 1: PRODUCTION
+        # --------------------------
         self.prod_tab = QWidget()
         self.prod_layout = QVBoxLayout()
 
-        #shot Creation Interface
+        # A. Auto Create
+        next_code = self.orion_utils.get_next_shot_code()
+        self.lbl_next_shot = QLabel(f"Next Available Shot: <b>{next_code}</b>")
+        self.lbl_next_shot.setStyleSheet("font-size: 14px; color: #2ecc71;") 
+        
+        self.btn_auto_create = QPushButton(f"Auto-Create {next_code}")
+        self.btn_auto_create.clicked.connect(self.handle_auto_create)
+
+        self.prod_layout.addWidget(QLabel("<b>Quick Creation</b>"))
+        self.prod_layout.addWidget(self.lbl_next_shot)
+        self.prod_layout.addWidget(self.btn_auto_create)
+        
+        self.add_separator(self.prod_layout)
+
+        # B. Manual Create
+        self.prod_layout.addWidget(QLabel("<b>Manual Creation</b>"))
         self.shot_code_input = QLineEdit()
-        self.shot_code_input.setPlaceholderText("Shot Code (e.g., sh010)")
+        self.shot_code_input.setPlaceholderText("Custom Code (e.g. stc_0099)")
+        
+        frame_layout = QHBoxLayout()
         self.frame_start_input = QLineEdit()
-        self.frame_start_input.setPlaceholderText("Start Frame")
+        self.frame_start_input.setPlaceholderText("Start (1001)")
         self.frame_end_input = QLineEdit()
-        self.frame_end_input.setPlaceholderText("End Frame")
+        self.frame_end_input.setPlaceholderText("End (1100)")
+        frame_layout.addWidget(self.frame_start_input)
+        frame_layout.addWidget(self.frame_end_input)
 
-        self.create_shot_btn = QPushButton("Create / Update Shot")
-        self.create_shot_btn.clicked.connect(self.handle_create_shot)
+        self.create_shot_btn = QPushButton("Create Shot")
+        self.create_shot_btn.clicked.connect(self.handle_manual_create)
 
-        self.prod_layout.addWidget(QLabel("Shot Management"))
         self.prod_layout.addWidget(self.shot_code_input)
-        self.prod_layout.addWidget(self.frame_start_input)
-        self.prod_layout.addWidget(self.frame_end_input)
+        self.prod_layout.addLayout(frame_layout)
         self.prod_layout.addWidget(self.create_shot_btn)
 
-        self.prod_tab.setLayout(self.prod_layout)
+        self.add_separator(self.prod_layout)
+
+        # C. Manage Existing
+        self.prod_layout.addWidget(QLabel("<b>Manage Shots</b>"))
         
-        #PREFS TAB
+        self.shot_selector = QComboBox()
+        self.shot_selector.currentIndexChanged.connect(self.load_selected_shot_data)
+        self.prod_layout.addWidget(self.shot_selector)
+
+        edit_layout = QHBoxLayout()
+        self.edit_start_input = QLineEdit()
+        self.edit_start_input.setPlaceholderText("New Start")
+        self.edit_end_input = QLineEdit()
+        self.edit_end_input.setPlaceholderText("New End")
+        edit_layout.addWidget(self.edit_start_input)
+        edit_layout.addWidget(self.edit_end_input)
+        self.prod_layout.addLayout(edit_layout)
+
+        btn_layout = QHBoxLayout()
+        self.btn_update_shot = QPushButton("Update Frames")
+        self.btn_update_shot.clicked.connect(self.handle_update_shot)
+        self.btn_delete_shot = QPushButton("Delete Shot")
+        self.btn_delete_shot.setStyleSheet("background-color: #e74c3c; color: white;")
+        self.btn_delete_shot.clicked.connect(self.handle_delete_shot)
+        
+        btn_layout.addWidget(self.btn_update_shot)
+        btn_layout.addWidget(self.btn_delete_shot)
+        self.prod_layout.addLayout(btn_layout)
+
+        self.prod_layout.addStretch()
+        self.prod_tab.setLayout(self.prod_layout)
+
+        # --------------------------
+        # TAB 2: PREFERENCES
+        # --------------------------
         self.prefs_tab = QWidget()
         self.prefs_layout = QVBoxLayout()
         
-        self.welcome_label = QLabel(f"Welcome, {self.current_user}")
-
-        #dropdown to select the software
+        self.welcome_label = QLabel(f"User: <b>{self.current_user}</b>")
         self.software_selector = QComboBox()
         self.software_selector.addItems(self.orion_utils.software)
 
         self.load_prefs_button = QPushButton('Load Prefs')
+        self.load_prefs_button.clicked.connect(self.load_prefs)
+        
         self.save_prefs_button = QPushButton('Save Prefs')
+        self.save_prefs_button.clicked.connect(self.save_prefs)
 
         self.prefs_layout.addWidget(self.welcome_label)
+        self.prefs_layout.addWidget(QLabel("Select Software:"))
         self.prefs_layout.addWidget(self.software_selector)
         self.prefs_layout.addWidget(self.load_prefs_button)
         self.prefs_layout.addWidget(self.save_prefs_button)
+        self.prefs_layout.addStretch()
         self.prefs_tab.setLayout(self.prefs_layout)
 
-        #SETTINGS TAB
+        # --------------------------
+        # TAB 3: SETTINGS
+        # --------------------------
         self.settings_tab = QWidget()
         self.settings_layout = QVBoxLayout()
+        
         self.dark_mode_checkbox = QCheckBox('Enable Windows Dark Mode')
         self.discord_checkbox = QCheckBox('Open Discord on Startup')
+        
         self.settings_layout.addWidget(self.dark_mode_checkbox)
         self.settings_layout.addWidget(self.discord_checkbox)
+        self.settings_layout.addStretch()
         self.settings_tab.setLayout(self.settings_layout)
 
-        #ADD ALL TABS TO MAIN WIDGET
-        self.tabs.addTab(self.prod_tab, 'Production')
-        self.tabs.addTab(self.prefs_tab, 'Prefs')
-        self.tabs.addTab(self.settings_tab, 'Settings')
-
-        self.layout.addWidget(self.tabs)
-        self.setLayout(self.layout)
-
-        #ONNECTIONS & DEFAULTS
-        self.load_prefs_button.clicked.connect(self.load_prefs)
-        self.save_prefs_button.clicked.connect(self.save_prefs)
+        # Connections
         self.dark_mode_checkbox.stateChanged.connect(self.toggle_dark_mode)
         self.discord_checkbox.stateChanged.connect(self.toggle_discord_startup)
-
+        
+        # Set Defaults
         self.dark_mode_checkbox.setChecked(self.settings.get('dark_mode', False))
         self.discord_checkbox.setChecked(self.settings.get('discord_on_startup', False))
 
-    def handle_create_shot(self):
-        code = self.shot_code_input.text()
-        start = int(self.frame_start_input.text())
-        end = int(self.frame_end_input.text())
+        # Add Tabs and Finalize
+        self.tabs.addTab(self.prod_tab, 'Production')
+        self.tabs.addTab(self.prefs_tab, 'Prefs')
+        self.tabs.addTab(self.settings_tab, 'Settings')
         
-        # Use your upgraded utils to talk to the DB
-        self.orion_utils.create_shot(code, start, end, self.current_user)
-        QMessageBox.information(self, "Success", f"Shot {code} logged in Database!")
+        self.layout.addWidget(self.tabs)
+        self.setLayout(self.layout)
+
+        # Initial Load
+        self.refresh_shot_list()
+
+    # --- HELPERS ---
+    def add_separator(self, layout):
+        line = QFrame()
+        line.setFrameShape(QFrame.HLine)
+        line.setFrameShadow(QFrame.Sunken)
+        layout.addWidget(line)
 
     def apply_startup_settings(self):
-
-        dark_mode_enabled = self.settings.get('dark_mode', False)
-        if dark_mode_enabled:
+        if self.settings.get('dark_mode', False):
             self.system_utils.set_windows_dark_mode(True)
 
-    #Button Functions
-    def load_prefs(self):
+    # --- PRODUCTION HANDLERS ---
+    def handle_auto_create(self):
+        next_code = self.orion_utils.get_next_shot_code()
+        try:
+            self.orion_utils.create_shot(next_code, 1001, 1100, self.current_user)
+            QMessageBox.information(self, "Success", f"Created {next_code}")
+            self.refresh_ui_states()
+        except Exception as e:
+            QMessageBox.critical(self, "Error", str(e))
 
-        selected_software = self.software_selector.currentText()
-        self.prefs_utils.load_prefs(selected_software, self.current_user)
-        QMessageBox.information(self, "Success", "Preferences loaded!")
+    def handle_manual_create(self):
+        code = self.shot_code_input.text()
+        if not code: return
+        try:
+            s = int(self.frame_start_input.text())
+            e = int(self.frame_end_input.text())
+            self.orion_utils.create_shot(code, s, e, self.current_user)
+            QMessageBox.information(self, "Success", f"Created {code}")
+            self.refresh_ui_states()
+        except ValueError:
+            QMessageBox.warning(self, "Error", "Frames must be integers.")
+
+    def handle_update_shot(self):
+        code = self.shot_selector.currentData()
+        if not code: return
+        try:
+            s = int(self.edit_start_input.text())
+            e = int(self.edit_end_input.text())
+            if self.orion_utils.update_shot_frames(code, s, e):
+                QMessageBox.information(self, "Success", "Shot updated.")
+                self.refresh_shot_list()
+        except ValueError:
+            QMessageBox.warning(self, "Error", "Invalid frames.")
+
+    def handle_delete_shot(self):
+        code = self.shot_selector.currentData()
+        if not code: return
+        confirm = QMessageBox.question(self, "Delete", f"Delete {code} from Database?", QMessageBox.Yes|QMessageBox.No)
+        if confirm == QMessageBox.Yes:
+            if self.orion_utils.delete_shot(code):
+                QMessageBox.information(self, "Deleted", "Shot removed.")
+                self.refresh_ui_states()
+
+    def refresh_ui_states(self):
+        """Updates label and dropdown"""
+        next_code = self.orion_utils.get_next_shot_code()
+        self.lbl_next_shot.setText(f"Next Available Shot: <b>{next_code}</b>")
+        self.btn_auto_create.setText(f"Auto-Create {next_code}")
+        self.refresh_shot_list()
+
+    def refresh_shot_list(self):
+        self.shot_selector.blockSignals(True)
+        self.shot_selector.clear()
+        self.shot_selector.addItem("Select a Shot...", None)
+        for shot in self.orion_utils.get_all_shots():
+            label = f"{shot['code']} ({shot['frame_start']}-{shot['frame_end']})"
+            self.shot_selector.addItem(label, shot['code'])
+        self.shot_selector.blockSignals(False)
+
+    def load_selected_shot_data(self):
+        code = self.shot_selector.currentData()
+        if code:
+            shot = self.orion_utils.get_shot(code)
+            if shot:
+                self.edit_start_input.setText(str(shot['frame_start']))
+                self.edit_end_input.setText(str(shot['frame_end']))
+
+    # --- PREFS & SETTINGS HANDLERS ---
+    def load_prefs(self):
+        self.prefs_utils.load_prefs(self.software_selector.currentText(), self.current_user)
+        QMessageBox.information(self, "Success", "Preferences Loaded")
 
     def save_prefs(self):
-
-        selected_software = self.software_selector.currentText()
-        self.prefs_utils.save_prefs(selected_software, self.current_user)
-        QMessageBox.information(self, f"Save {selected_software.capitalize()} Prefs", "Preferences saved!")
+        self.prefs_utils.save_prefs(self.software_selector.currentText(), self.current_user)
+        QMessageBox.information(self, "Success", "Preferences Saved")
 
     def toggle_dark_mode(self, state):
-
-        is_checked = state == Qt.Checked
-        self.settings['dark_mode'] = is_checked
+        self.settings['dark_mode'] = (state == Qt.Checked)
         self.prefs_utils.save_settings(self.settings)
-        self.system_utils.set_windows_dark_mode(is_checked)
-
+        self.system_utils.set_windows_dark_mode(state == Qt.Checked)
 
     def toggle_discord_startup(self, state):
-
-        is_checked = state == Qt.Checked
-        self.settings['discord_on_startup'] = is_checked
+        self.settings['discord_on_startup'] = (state == Qt.Checked)
         self.prefs_utils.save_settings(self.settings)

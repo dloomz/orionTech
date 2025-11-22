@@ -10,7 +10,7 @@ class SystemUtils:
         self.orion = orion_utils_instance
         self.pref = pref_utils_instance
         self.root = self.orion.get_root_dir()
-        self.json_path = self.orion.get_json_path()
+        self.config_path = self.orion.config_path
         self.current_user = os.getlogin()
 
     def run_terminal_command(self, command):
@@ -129,10 +129,10 @@ class SystemUtils:
             ])
 
         #set orion project path
-        os.environ['ORI_CONFIG_PATH'] = self.orion.get_config_path()
+        os.environ['ORI_CONFIG_PATH'] = self.config_path
         os.environ['ORI_ROOT_PATH'] = self.orion.get_root_dir()
 
-        env_json = os.path.join(self.json_path, "env_var.json")
+        env_json = os.path.join(self.config_path, "env_var.json")
 
         if os.path.exists(env_json):
 

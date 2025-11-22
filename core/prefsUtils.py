@@ -8,238 +8,206 @@ class PrefsUtils:
     def __init__(self, orion_utils_instance):
         self.orion = orion_utils_instance      
         self.root_dir = self.orion.get_root_dir()
-        self.json_path = self.orion.get_json_path()
-        self.softwares = self.orion.read_config("software")
-        self.usernames = self.orion.read_config("usernames")
+        
+        # Updated paths to match new structure
+        self.config_folder = os.path.join(self.root_dir, "config")
+        self.software_config_path = os.path.join(self.config_folder, "software")
+        self.data_folder = os.path.join(self.root_dir, "data")
+        
+        # Load main config to get lists
+        main_config_file = os.path.join(self.config_folder, "config.json")
+        if os.path.exists(main_config_file):
+            data = self.orion.read_json(main_config_file)
+            self.softwares = data.get("software", [])
+            self.usernames = data.get("usernames", [])
+        else:
+            self.softwares = []
+            self.usernames = []
+
         self.current_user = os.getlogin()
         
     def is_user_recognized(self):
-        #Checks if the current user is in the recognized usernames list
+        """Checks if the current user is in the recognized usernames list"""
         return self.current_user in self.usernames
     
-    def set_pref_env_var(self, env_var, user = None):
-
+    def set_pref_env_var(self, env_var, user=None):
+        """Sets environment variables using setx"""
         variables = list(env_var.keys())
         raw_values = list(env_var.values())
-
-        values = []
-
-        for v in raw_values:
-
-            val = v.format(user=user if user else self.current_user)
-
-            if "60_config" in val:
-                val = os.path.join(self.root_dir, val)
-
-            values.append(val)
+        user_to_use = user if user else self.current_user
 
         for i in range(len(variables)):
             var = variables[i]
-            val = values[i]
+            raw_val = raw_values[i]
+
+            # Format string with user and resolve paths
+            val = raw_val.format(user=user_to_use)
+
+            # If the value looks like a relative path in our pipeline, make it absolute
+            if "60_config" in val or "00_pipeline" in val:
+                val = os.path.join(self.root_dir, val)
+
+            print(f"Setting ENV: {var} = {val}")
+            
+            # Use setx for permanent system changes (Windows)
             command = f'setx {var} "{val}"'
-            subprocess.run(command, shell=True, check=True)
+            subprocess.run(command, shell=True, check=False)
 
-    def save_prefs(self, software, user = None):
+    def get_software_config_file(self, software):
+        """Helper to get path to software json"""
+        return os.path.join(self.software_config_path, f"{software}.json")
 
-        pref_json = self.json_path + f"\\software\\{software}.json"
+    def save_prefs(self, software, user=None):
+        """Backs up local preferences to the server"""
+        pref_json = self.get_software_config_file(software)
+        if not os.path.exists(pref_json):
+            print(f"Config for {software} not found.")
+            return
+
         pref_data = self.orion.read_json(pref_json)
-    
-        src = pref_data["source"]
-        dst = pref_data["destination"]
+        src_config = pref_data.get("source", {})
+        dst_config = pref_data.get("destination", {})
         
+        # Handle Houdini specifically (files)
         if software == "houdini":
+            # Define Source (Local) and Destination (Server)
+            # Note: You might need to adjust these keys based on your houdini.json content
+            src_dir = src_config.get("houdini_pref", "C:\\Docs\\houdini20.5")
+            
+            dst_fmt = dst_config.get("houdini_config", "60_config\\userPrefs\\{user}\\houdini")
+            dst_dir = os.path.join(self.root_dir, dst_fmt.format(user=user if user else self.current_user))
 
-            src_paths = list(src.values())
+            if os.path.exists(src_dir):
+                if not os.path.exists(dst_dir):
+                    os.makedirs(dst_dir)
 
-            dst_config = dst["houdini_config"]
-            src_path = src["houdini_pref"]
-
-            dst_format_path = dst_config.format(user=user if user else self.current_user)
-            dst = os.path.join(self.root_dir, dst_format_path)
-
-            src_files = os.listdir(src_path)
-            for f in src_files:
-                src_file_paths = os.path.join(src_path, f)
-                root, extension = os.path.splitext(src_file_paths)
-
-                if extension == '.pref':
-                    if f != "jump.pref":
+                src_files = os.listdir(src_dir)
+                for f in src_files:
+                    if f.endswith(".pref") and f != "jump.pref":
+                        src_file = os.path.join(src_dir, f)
                         try:
-                            shutil.copy2(src_file_paths, dst)
-
-                        except shutil.SameFileError:
-                            print("Source and destination represents the same file.")
-
-                        except PermissionError:
-                            print("Permission denied.")
-
-                        except:
-                            print("Error occurred while copying file.")
-
-                    else:
-                        pass
-                else:
-                    pass
-
-        elif software == "nuke":
-            pass
-
-        else:
-            pref_json = self.json_path + f"\\software\\{software}.json"
-            pref_data = self.orion.read_json(pref_json)
-        
-            src = pref_data["source"]
-            dst = pref_data["destination"]
-            
-            src_paths = list(src.values())
-            dst_paths = []
-            
-            for s in src_paths:
-                path_sections = s.split("\\")
-                pref_configs = path_sections[-1]
-                
-                dst_path_raw = dst[f"{software}_config"]
-                dst_format = dst_path_raw.format(user=user if user else self.current_user)
-                dst_path = os.path.join(self.root_dir, dst_format, pref_configs)
-
-                dst_paths.append(dst_path)
-                
-            transfer_route = zip(src_paths, dst_paths)
-            
-            for r in transfer_route:
-                s_path, d_path = r
-                if not os.path.exists(s_path):
-                    print(f"Source path does not exist: {s_path}")
-                    continue
-                
-                try:
-                    os.makedirs(os.path.dirname(d_path), exist_ok=True)
-                    shutil.copytree(s_path, d_path, dirs_exist_ok=True)
-                    print(f"Successfully saved prefs from {s_path} to {d_path}")
-                except Exception as e:
-                    print(f"Error saving prefs from {s_path} to {d_path}: {e}")
-        
-    def load_prefs(self, software, user=None):
-        
-        if software == "houdini":
-
-            config_dir = self.orion.get_config_path()
-
-            houdini_path = "C:\\Docs\\houdini20.5"
-            jump_path_src = os.path.join(config_dir, "softwarePrefs","houdini","jump.pref")
-            jump_path_dst = os.path.join(houdini_path, "jump.pref")
-
-            try:
-                shutil.copyfile(jump_path_src, jump_path_dst)
-            except:
-                print("an error has occured")
-
-            pref_json = self.json_path + f"\\software\\{software}.json"
-
-            if os.path.exists(pref_json):
-
-                pref_data = self.orion.read_json(pref_json)
-                env_var = pref_data.get("env_var") 
-                
-                if env_var:
-                    self.set_pref_env_var(env_var)
-
-                else:
-                    print(f"No 'env_var' key found in {software}.json, skipping environment variable setup.")
-
-
-        elif software == "nuke":
-
-            pref_json = self.json_path + f"\\software\\{software}.json"
-
-            if os.path.exists(pref_json):
-
-                pref_data = self.orion.read_json(pref_json)
-                env_var = pref_data.get("env_var") 
-                
-                if env_var:
-                    self.set_pref_env_var(env_var)
-
-                else:
-                    print(f"No 'env_var' key found in {software}.json, skipping environment variable setup.")
-
-        else:
-            
-            pref_json = self.json_path + f"\\software\\{software}.json"
-
-            if os.path.exists(pref_json):
-
-                pref_data = self.orion.read_json(pref_json)
-                env_var = pref_data.get("env_var") 
-                
-                if env_var:
-
-                    self.set_pref_env_var(env_var)
-
-                else:
-                    print(f"No 'env_var' key found in {software}.json, skipping environment variable setup.")
-
-                src = pref_data.get("destination")
-                dst = pref_data.get("source")   
-
-                if src and dst:
-
-                    dst_paths = list(dst.values())
-                    src_paths = []
-                    
-                    for d in dst_paths:
-                        path_sections = d.split("\\")
-                        pref_configs = path_sections[-1]
-
-                        src_path_raw = src[f"{software}_config"]
-                        src_format = src_path_raw.format(user=user if user else self.current_user, config = pref_configs)
-                        src_path = os.path.join(self.root_dir, src_format)
-                        
-                        print(src_path)
-                        src_paths.append(src_path)
-                        
-                    transfer_route = zip(src_paths, dst_paths)
-                    
-                    for r in transfer_route:
-                        print(r)
-                        s_path, d_path = r
-                        if not os.path.exists(s_path):
-                            print(f"Source path does not exist: {s_path}")
-                            continue
-                        
-                        try:
-                            os.makedirs(os.path.dirname(d_path), exist_ok=True)
-                            shutil.copytree(s_path, d_path, dirs_exist_ok=True)
-                            print(f"Successfully saved prefs from {s_path} to {d_path}")
+                            shutil.copy2(src_file, dst_dir)
+                            print(f"Saved {f}")
                         except Exception as e:
-                            print(f"Error saving prefs from {s_path} to {d_path}: {e}")  
-                            
-                else:
-                    pass
+                            print(f"Error copying {f}: {e}")
+        
+        # Handle Folder-based software (Maya, etc.)
+        elif software != "nuke": # Nuke usually handled via env vars only
+            src_paths = list(src_config.values())
             
+            for s_path in src_paths:
+                # Determine folder name
+                folder_name = os.path.basename(s_path)
+                
+                # Destination on server
+                dst_key = f"{software}_config" # e.g. maya_config
+                if dst_key in dst_config:
+                    dst_fmt = dst_config[dst_key]
+                    dst_final = os.path.join(self.root_dir, dst_fmt.format(user=user if user else self.current_user), folder_name)
+                    
+                    if os.path.exists(s_path):
+                        try:
+                            if os.path.exists(dst_final):
+                                shutil.rmtree(dst_final) # Clear old backup to ensure sync
+                            shutil.copytree(s_path, dst_final)
+                            print(f"Saved folder {s_path} to {dst_final}")
+                        except Exception as e:
+                            print(f"Error saving {s_path}: {e}")
+
+    def load_prefs(self, software, user=None):
+        """Loads preferences from server to local machine"""
+        user_to_use = user if user else self.current_user
+        pref_json = self.get_software_config_file(software)
+
+        if not os.path.exists(pref_json):
+            print(f"Config for {software} not found.")
+            return
+
+        pref_data = self.orion.read_json(pref_json)
+        
+        # 1. Set Environment Variables
+        env_var = pref_data.get("env_var")
+        if env_var:
+            self.set_pref_env_var(env_var, user_to_use)
+        
+        # 2. Copy Files (Server -> Local)
+        src_config = pref_data.get("destination") # Server is source for loading
+        dst_config = pref_data.get("source")      # Local is dest for loading
+
+        if not src_config or not dst_config:
+            return
+
+        if software == "houdini":
+            # Specific logic for Houdini jump.pref
+            # Note: In your new structure, ensure path exists
+            jump_src = os.path.join(self.root_dir, "60_config", "softwarePrefs", "houdini", "jump.pref")
+            jump_dst = os.path.join("C:\\Docs\\houdini20.5", "jump.pref") # Hardcoded based on your old file
+            
+            if os.path.exists(jump_src):
+                try:
+                    shutil.copyfile(jump_src, jump_dst)
+                    print("Loaded jump.pref")
+                except Exception as e:
+                    print(f"Error loading jump.pref: {e}")
+
+        elif software != "nuke":
+
+            server_paths_map = src_config # This holds "maya_config": "path/to/server"
+            local_paths_map = dst_config  # This holds "maya_pref": "C:/Docs/..."
+            
+            # We need to map specific keys if they exist, or iterate
+            # Simplified logic assuming keys align somewhat or we just iterate values
+            
+            #retrieve server base path
+            server_base_key = f"{software}_config"
+            if server_base_key in server_paths_map:
+                server_fmt = server_paths_map[server_base_key]
+                server_root = os.path.join(self.root_dir, server_fmt.format(user=user_to_use))
+                
+                if os.path.exists(server_root):
+                    #iterate over local destinations
+                    for local_path in local_paths_map.values():
+                        folder_name = os.path.basename(local_path)
+                        server_source = os.path.join(server_root, folder_name)
+                        
+                        if os.path.exists(server_source):
+                            try:
+                                #copytree with dirs_exist_ok=True 
+                                os.makedirs(os.path.dirname(local_path), exist_ok=True)
+                                shutil.copytree(server_source, local_path, dirs_exist_ok=True)
+                                print(f"Loaded prefs from {server_source} to {local_path}")
+                            except Exception as e:
+                                print(f"Error loading prefs to {local_path}: {e}")
+
+    # --- SETTINGS HANDLING ---
+
     def get_settings_path(self, user):
-        #Gets the path to the user_settings.json file
-        settings_path = os.path.join(self.root_dir, f"60_config\\userPrefs\\{user}\\user_settings.json")
-        return settings_path
+        """Gets path to user settings json. Updated to use 'data' folder."""
+        #data/user_prefs/{user}/settings.json
+        return os.path.join(self.data_folder, "user_prefs", user, "settings.json")
 
     def load_settings(self):
-        #Loads settings from user_settings.json
+        """Loads user settings (Dark Mode, etc.)"""
         settings_path = self.get_settings_path(self.current_user)
-        try:
+        
+        if os.path.exists(settings_path):
             return self.orion.read_json(settings_path)
-        except FileNotFoundError:
-            # If the file doesn't exist, create with default values
-            default_settings = {
+        else:
+            #Default Settings
+            return {
                 "dark_mode": False,
                 "wacom_fix": False,
                 "discord_on_startup": False
             }
-            self.save_settings(default_settings)
-            return default_settings
 
     def save_settings(self, data):
-        #Saves data to the user_settings.json file
+        """Saves user settings to disk"""
         settings_path = self.get_settings_path(self.current_user)
-        os.makedirs(os.path.dirname(settings_path), exist_ok=True) # Ensure directory exists
-        with open(settings_path, 'w') as f:
-            json.dump(data, f, indent=4)
+        
+        try:
+            os.makedirs(os.path.dirname(settings_path), exist_ok=True)
+            with open(settings_path, 'w') as f:
+                json.dump(data, f, indent=4)
+            print("Settings saved.")
+        except Exception as e:
+            print(f"Failed to save settings: {e}")

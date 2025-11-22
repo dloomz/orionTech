@@ -3,211 +3,228 @@ import json
 import sys
 import sqlite3
 import uuid
+import re
+import traceback
+import requests
+import shutil
 
 class OrionUtils():
     
+    # Standard Folder Structure for new shots
+    SHOT_SUBFOLDERS = [
+        "ANIM/PUBLISH",
+        "ANIM/WORK",
+        "COMP/Apps/Nuke/Scripts",
+        "COMP/Apps/Hiero/Templates",
+        "COMP/Apps/Photoshop",
+        "COMP/Apps/Syntheyes",
+        "COMP/Apps/Mocha_Pro",
+        "COMP/Plates/Source",
+        "COMP/Plates/Comp",
+        "COMP/Prep/Denoise",
+        "COMP/Review/IMG",
+        "COMP/Review/VID",
+        "COMP/Tools",
+        "FX/PUBLISH",
+        "FX/WORK",
+        "LIGHTING/WORK",
+        "LIGHTING/PUBLISH",
+        "ROTO/WORK",
+        "ROTO/PUBLISH",
+        "MATCHMOVE/WORK",
+        "MATCHMOVE/PUBLISH",
+        "CAMERA/WORK",
+        "CAMERA/PUBLISH",
+        "3D_RENDERS",
+        "2D_RENDERS",
+    ]
+
     def __init__(self):
-        #define all the possible paths and variables
-        logged_in_user = os.getlogin()
-        home_root = "O:\\"
-        work_root = "P:\\all_work\\studentGroups\\ORION_CORPORATION"
-        json_relative_path = "00_pipeline\\orionTech\\json"
-        config_filename = "config.json"
+        #DYNAMIC ROOT DETECTION
+        #root based on where file is located
+        current_script_path = os.path.abspath(__file__)
+        #go up two levels: core/ -> root/
+        self.root_dir = os.path.dirname(os.path.dirname(current_script_path))
 
-        # absolute paths to the config file for both at-home and at-work 
-        work_config_path = os.path.join(work_root, json_relative_path, config_filename)
-        home_config_path = os.path.join(home_root, json_relative_path, config_filename)
+        #DEFINE KEY PATHS
+        self.config_path = os.path.join(self.root_dir, "config")
+        self.data_path = os.path.join(self.root_dir, "data")
+        self.db_path = os.path.join(self.data_path, "project.db")
         
-        # check which config file exists on system
-        config_data = None
-        if os.path.exists(work_config_path):
-            self.root_dir = work_root
-            config_data = self.read_json(work_config_path)
-        elif os.path.exists(home_config_path):
-            self.root_dir = home_root
-            config_data = self.read_json(home_config_path)
+        #LOAD CONFIG
+        config_file = os.path.join(self.config_path, "config.json")
+        if os.path.exists(config_file):
+            config_data = self.read_json(config_file)
         else:
-            raise FileNotFoundError(f"Configuration file not found. Checked in {work_config_path} and {home_config_path}")
 
-        #assign the usernames and software lists
+            print(f"Warning: Config not found at {config_file}")
+            config_data = {}
+
         self.usernames = config_data.get("usernames", [])
         self.software = config_data.get("software", [])
         self.webhook_url = config_data.get("discord_webhook_url", "")
         
-        #user is at home based on whether username is in list
-        # If the user is in the list, they are at work
-        if logged_in_user in self.usernames:
-            self.home_status = False  # At work
-            self.root_dir = work_root 
-        else:
-            self.home_status = True   # At home
-            self.root_dir = home_root  
-        
-        #set the definite path for the config directory.
-        self.config_path = os.path.join(self.root_dir, "60_config")
+        # Determine Home/Work Status
+        self.current_user = os.getlogin()
+        self.home_status = self.current_user not in self.usernames
 
-        #set the definite path for the graphics directory.
-        self.graphic_path = os.path.join(self.config_path, "graphics")
+        #SETUP LIBS
+        self.libs_path = os.path.join(self.root_dir, "libs") # Or config/libs depending on your prefs
+        # Ensure libs path is importable
+        if self.libs_path not in sys.path:
+            sys.path.insert(0, self.libs_path)
 
-        #set the definite path for the JSON directory.
-        self.json_path = os.path.join(self.root_dir, json_relative_path)
-
-        self.db_path = os.path.join(self.root_dir, "00_pipeline\\orionTech\\data\\project.db")
-        libs_path = self.get_libs_path()
-
-        if libs_path not in sys.path:
-            sys.path.insert(0, libs_path)
-
-        import requests
-
-
-    def is_at_home(self):
-        #Returns True if the user is 'at home', False otherwise
-        return self.home_status
+    # --- UTILITY METHODS ---
     
     def get_root_dir(self):
-        #Returns the determined root directory path
-        return self.root_dir     
-    
-    def get_json_path(self):
-        #Returns the full path to the json directory
-        return self.json_path
-    
-    def get_config_path(self):
-        #Returns the full path to config
-        return self.config_path
-         
-    def get_graphic_path(self):
-        #Returns the full path to config
-        return self.graphic_path
-
-    def get_libs_path(self):
-        
-        config_path = self.get_config_path()
-        self.libs_path = os.path.join(config_path, 'libs')
-
-        return self.libs_path
+        return self.root_dir
 
     def read_json(self, file_path):
-        #Reads a JSON file from given absolute path
-        with open(file_path) as f:
-            data = json.load(f)
-        return data
-    
-    def read_config(self, key):
-        #Reads a specific key from the config.json file
-        config_path = os.path.join(self.json_path, "config.json")
-        config_data = self.read_json(config_path)
-        return config_data.get(key, None)
-
-    def send_discord_notification(self, message):
-        """Sends a message directly to the Discord webhook URL using the requests library."""
-
-        if not self.webhook_url:
-            print("Discord webhook URL not found in config.json. Skipping notification.")
-            return
-
-        # Structure the data as required by Discord webhooks
-        data = {"content": message} 
-        headers = {"Content-Type": "application/json"} # Standard header
-
         try:
-            # Use requests.post - it handles JSON conversion automatically with the 'json' argument
-            result = requests.post(self.webhook_url, json=data, headers=headers, timeout=10) # Added timeout
-
-            # Check for HTTP errors (like 403, 404, 500 etc.)
-            result.raise_for_status() 
-
-            print(f"Successfully sent Discord notification via requests (Code: {result.status_code}).")
-
-        except requests.exceptions.RequestException as e: 
-            # Catch errors specifically from the requests library (network issues, timeouts, bad status codes)
-            print(f"Failed to send Discord notification via requests: {e}")
-            # If there's a response body with the error, print it
-            if e.response is not None:
-                print(f"Response Status Code: {e.response.status_code}")
-                print(f"Response Content: {e.response.text}")
+            with open(file_path, 'r') as f:
+                return json.load(f)
         except Exception as e:
-            # Catch any other unexpected Python errors during the process
-             print(f"An unexpected Python error occurred sending Discord notification: {e}")
-             print(traceback.format_exc())
-             
+            print(f"Error reading JSON {file_path}: {e}")
+            return {}
+            
+    def get_libs_path(self):
+        return self.libs_path
+
+    # --- DATABASE METHODS ---
+
     def get_db_connection(self):
         """Creates a connection to the SQLite DB"""
+        if not os.path.exists(self.db_path):
+            raise FileNotFoundError(f"Database not found at {self.db_path}. Run init_db.py first.")
+            
         conn = sqlite3.connect(self.db_path)
-        #allows accessing columns by name (row['id']) instead of index
-        conn.row_factory = sqlite3.Row 
+        conn.row_factory = sqlite3.Row  # Allows accessing columns by name
+        conn.execute("PRAGMA foreign_keys = ON") # Enforce integrity
         return conn
 
-    def get_shot(self, shot_code):
-        """Fetches shot data. Implements the 'Central Data' concept [cite: 1606]"""
+    def get_all_shots(self):
+        """Returns a list of all shots, sorted by code."""
         conn = self.get_db_connection()
-        shot = conn.execute('SELECT * FROM shots WHERE code = ?', (shot_code,)).fetchone()
-        conn.close()
-        return shot
+        try:
+            shots = conn.execute('SELECT * FROM shots ORDER BY code').fetchall()
+            return shots
+        finally:
+            conn.close()
+
+    def get_shot(self, shot_code):
+        """Fetches a single shot's data."""
+        conn = self.get_db_connection()
+        try:
+            shot = conn.execute('SELECT * FROM shots WHERE code = ?', (shot_code,)).fetchone()
+            return shot
+        finally:
+            conn.close()
+
+    # --- SHOT CREATION & MANAGEMENT ---
+
+    def get_next_shot_code(self):
+        """Scans the file system (40_shots) to find the next logical shot number."""
+        shots_root = os.path.join(self.root_dir, '40_shots')
+        
+        if not os.path.exists(shots_root):
+            return "stc_0010"
+
+        highest_num = 0
+        shot_pattern = re.compile(r'^stc_(\d{4})$')
+        
+        try:
+            for item in os.listdir(shots_root):
+                if os.path.isdir(os.path.join(shots_root, item)):
+                    match = shot_pattern.match(item)
+                    if match:
+                        num = int(match.group(1))
+                        if num > highest_num:
+                            highest_num = num
+        except Exception as e:
+            print(f"Error scanning shots directory: {e}")
+            return "stc_0010"
+
+        next_num = highest_num + 10
+        return f"stc_{next_num:04d}"
+
+    def create_shot_structure(self, shot_code):
+        """Generates folder structure on disk."""
+        shots_root = os.path.join(self.root_dir, '40_shots')
+        shot_path = os.path.join(shots_root, shot_code)
+
+        if not os.path.exists(shot_path):
+            os.makedirs(shot_path)
+            
+        for subfolder in self.SHOT_SUBFOLDERS:
+            full_path = os.path.join(shot_path, subfolder.replace('/', os.sep))
+            if not os.path.exists(full_path):
+                os.makedirs(full_path)
+        
+        return shot_path
 
     def create_shot(self, shot_code, start, end, user):
-        """Implements Shot Creation Logic [cite: 1667]"""
+        """Creates Shot in Database AND File System."""
         conn = self.get_db_connection()
-        shot_id = str(uuid.uuid4()) #generate unique ID
-        conn.execute(
-            'INSERT INTO shots (id, code, frame_start, frame_end, user_assigned) VALUES (?, ?, ?, ?, ?)',
-            (shot_id, shot_code, start, end, user)
-        )
-        conn.commit()
-        conn.close()
-        print(f"Shot {shot_code} created.")
-
-    def update_frame_range(self, shot_code, new_start, new_end):
-        """Implements 'Conflict Resolution' logic for ranges [cite: 1687]"""
-
-        conn = self.get_db_connection()
-        conn.execute(
-            'UPDATE shots SET frame_start = ?, frame_end = ? WHERE code = ?',
-            (new_start, new_end, shot_code)
-        )
-        conn.commit()
-        conn.close()
-
-    def get_all_assets(self):
-            """Returns a list of all available assets to show in UI"""
-            conn = self.get_db_connection()
-            assets = conn.execute('SELECT * FROM assets').fetchall()
+        try:
+            shot_id = str(uuid.uuid4())
+            conn.execute(
+                'INSERT INTO shots (id, code, frame_start, frame_end, user_assigned) VALUES (?, ?, ?, ?, ?)',
+                (shot_id, shot_code, start, end, user)
+            )
+            conn.commit()
+            print(f"DB: Shot {shot_code} logged.")
+        except sqlite3.IntegrityError:
+            print(f"DB: Shot {shot_code} already exists in DB, creating missing folders only.")
+        finally:
             conn.close()
-            return assets
 
-    def link_asset_to_shot(self, shot_code, asset_name):
-        """Links an asset to a shot based on the asset's name"""
-        conn = self.get_db_connection()
-        
-        #find the asset ID based on the name
-        asset = conn.execute('SELECT id FROM assets WHERE name = ?', (asset_name,)).fetchone()
-        
-        if asset:
-            asset_id = asset['id']
-            try:
-                conn.execute(
-                    'INSERT INTO shot_assets (shot_code, asset_id) VALUES (?, ?)',
-                    (shot_code, asset_id)
-                )
-                conn.commit()
-                print(f"Linked {asset_name} to {shot_code}")
-            except sqlite3.IntegrityError:
-                print(f"Asset {asset_name} is already linked to {shot_code}")
-        else:
-            print(f"Asset '{asset_name}' not found in database!")
-            
-        conn.close()
+        # Create physical folders
+        self.create_shot_structure(shot_code)
 
-    def get_shot_assets(self, shot_code):
-        """Returns a list of asset names associated with a shot"""
+    def update_shot_frames(self, shot_code, new_start, new_end):
+        """Updates frame range in DB."""
         conn = self.get_db_connection()
-        query = '''
-            SELECT a.name, a.type 
-            FROM assets a
-            JOIN shot_assets sa ON a.id = sa.asset_id
-            WHERE sa.shot_code = ?
-        '''
-        assets = conn.execute(query, (shot_code,)).fetchall()
-        conn.close()
-        return assets
+        try:
+            conn.execute(
+                'UPDATE shots SET frame_start = ?, frame_end = ? WHERE code = ?',
+                (new_start, new_end, shot_code)
+            )
+            conn.commit()
+            return True
+        except Exception as e:
+            print(f"Error updating shot: {e}")
+            return False
+        finally:
+            conn.close()
+                 
+
+    def delete_shot(self, shot_code):
+        """Deletes a shot from DB (Folders are kept for safety)."""
+        conn = self.get_db_connection()
+        shots_root = os.path.join(self.root_dir, '40_shots')
+        shot_path = os.path.join(shots_root, shot_code)
+        
+        try:
+            shutil.rmtree(shot_path, ignore_errors=False)
+            conn.execute('DELETE FROM shot_assets WHERE shot_code = ?', (shot_code,))
+            conn.execute('DELETE FROM shots WHERE code = ?', (shot_code,))
+            conn.commit()
+            return True
+        except Exception as e:
+            print(f"Error deleting shot: {e}")
+            return False
+        finally:
+            conn.close()
+
+    # --- NOTIFICATIONS ---
+
+    def send_discord_notification(self, message):
+        if not self.webhook_url:
+            return
+        
+        data = {"content": message}
+        headers = {"Content-Type": "application/json"}
+        try:
+            requests.post(self.webhook_url, json=data, headers=headers, timeout=5)
+        except Exception as e:
+            print(f"Discord notification failed: {e}")
