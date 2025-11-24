@@ -52,7 +52,7 @@ class OrionTechUI(QWidget):
         self.lbl_apps_header = QLabel("<b>Software Launchers</b>")
         self.apps_layout.addWidget(self.lbl_apps_header)
 
-        # Maya Launcher
+        #Maya Launcher
         self.btn_launch_maya = QPushButton("Launch Maya 2026")
         self.btn_launch_maya.setMinimumHeight(50)
         #button styling
@@ -68,9 +68,30 @@ class OrionTechUI(QWidget):
                 background-color: #87C8D4;
             }
         """)
+        
+        #Nuke Launcher
+        self.btn_launch_nuke = QPushButton("Launch Nuke")
+        self.btn_launch_nuke.setMinimumHeight(50)
+        #button styling
+        self.btn_launch_nuke.setStyleSheet("""
+            QPushButton {
+                background-color: #F2DC61; 
+                color: black; 
+                font-weight: bold; 
+                font-size: 14px;
+                border-radius: 5px;
+            }
+            QPushButton:hover {
+                background-color: #FFEF9E;
+            }
+        """)
+        
         self.btn_launch_maya.clicked.connect(self.handle_launch_maya)
+        #self.btn_launch_nuke.clicked.connect(self.handle_launch_nuke)
         
         self.apps_layout.addWidget(self.btn_launch_maya)
+        self.apps_layout.addWidget(self.btn_launch_nuke)
+        
         self.apps_layout.addStretch() # Pushes everything up
         self.apps_tab.setLayout(self.apps_layout)
 
