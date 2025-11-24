@@ -1,0 +1,302 @@
+import os
+import json
+import sys
+import sqlite3
+import uuid
+import re
+import traceback
+import shutil
+
+class OrionUtils():
+    
+    #folder struc new shots
+    SHOT_SUBFOLDERS = [
+        "ANIM/PUBLISH",
+        "ANIM/WORK",
+        "COMP/Apps/Nuke/Scripts",
+        "COMP/Apps/Hiero/Templates",
+        "COMP/Apps/Photoshop",
+        "COMP/Apps/Syntheyes",
+        "COMP/Apps/Mocha_Pro",
+        "COMP/Plates/Source",
+        "COMP/Plates/Comp",
+        "COMP/Prep/Denoise",
+        "COMP/Review/IMG",
+        "COMP/Review/VID",
+        "COMP/Tools",
+        "FX/PUBLISH",
+        "FX/WORK",
+        "LIGHTING/WORK",
+        "LIGHTING/PUBLISH",
+        "ROTO/WORK",
+        "ROTO/PUBLISH",
+        "MATCHMOVE/WORK",
+        "MATCHMOVE/PUBLISH",
+        "CAMERA/WORK",
+        "CAMERA/PUBLISH",
+        "3D_RENDERS",
+        "2D_RENDERS",
+    ]
+
+    def __init__(self):
+        
+        #DYNAMIC ROOT DETECTION
+        #root based on where file is located
+        current_script_path = os.path.abspath(__file__)
+        
+        #go up two levels: core/ -> root/
+        self.pipeline_dir = os.path.dirname(os.path.dirname(current_script_path))
+        self.project_path = os.path.dirname(self.pipeline_dir)
+
+        #DEFINE KEY PATHS
+        self.config_path = os.path.join(self.pipeline_dir, "config")
+        self.data_path = os.path.join(self.pipeline_dir, "data")
+        self.db_path = os.path.join(self.data_path, "project.db")
+        self.env_file = os.path.join(self.data_path, ".env")
+        
+        #LOAD .ENV
+        self.load_env_file()
+
+        self.webhook_url = os.environ.get("ORI_DISCORD_WEBHOOK", "")
+        self.fps = int(os.environ.get("ORI_FPS", "24"))
+        
+        raw_users = os.environ.get("ORI_USERNAME", "")
+        self.usernames = [u.strip() for u in raw_users.split(",") if u.strip()]
+        
+        raw_software = os.environ.get("ORI_SOFTWARE", "")
+        self.software = [s.strip() for s in raw_software.split(",") if s.strip()]
+        
+        project_root = os.environ.get("ORI_ROOT_PATH", "")
+        if project_root and os.path.exists(project_root):
+            self.root_dir = project_root
+        else:
+            # Fallback logic if .env path is missing or invalid
+            print(f"Warning: ORI_ROOT_PATH ({project_root}) not found. Using fallback detection.")
+            home_root = "O:\\"
+            work_root = "P:\\all_work\\studentGroups\\ORION_CORPORATION"
+            self.current_user = os.getlogin()
+            
+            if self.current_user in self.usernames:
+                self.root_dir = work_root 
+            else:
+                self.root_dir = home_root
+        
+        # Determine Home/Work Status
+        home_root = "O:\\"
+        work_root = "P:\\all_work\\studentGroups\\ORION_CORPORATION"
+        
+        self.current_user = os.getlogin()
+        
+        if self.current_user in self.usernames:
+            self.home_status = False  # At work
+            self.root_dir = work_root 
+        else:
+            self.home_status = True   # At home
+            self.root_dir = home_root  
+
+        #SETUP LIBS
+        self.libs_path = os.path.join(self.root_dir,"60_config", "libs") # Or config/libs depending on your prefs
+        # Ensure libs path is importable
+        if self.libs_path not in sys.path:
+            sys.path.insert(0, self.libs_path)
+
+        try:
+            import requests
+        except:
+            print("ORION WARNING: Unable to load requests module, discord functions will fail.")
+
+    def load_env_file(self):
+        
+            #parse .env file and set os.environ, avoid dotenv package
+            if not os.path.exists(self.env_file):
+                print(f"Warning: .env file not found at {self.env_file}")
+                return
+
+            try:
+                with open(self.env_file, "r") as f:
+                    for line in f:
+                        #strip whitespace
+                        line = line.strip()
+                        #skip comments/empty lines
+                        if not line or line.startswith("#"):
+                            continue
+                        
+                        #split at the first '='
+                        if "=" in line:
+                            key, value = line.split("=", 1)
+                            #remove quotes if present
+                            value = value.strip().strip("'").strip('"')
+                            os.environ[key.strip()] = value
+            except Exception as e:
+                print(f"Failed to parse .env file: {e}")
+
+    # --- UTILITY METHODS ---
+    
+    def get_root_dir(self):
+        return self.root_dir
+    
+    def is_at_home(self):
+        return self.home_status
+
+    def read_json(self, file_path):
+        try:
+            with open(file_path, 'r') as f:
+                return json.load(f)
+        except Exception as e:
+            print(f"Error reading JSON {file_path}: {e}")
+            return {}
+            
+    def get_libs_path(self):
+        return self.libs_path
+
+    # --- DATABASE METHODS ---
+
+    def get_db_connection(self):
+        """Creates a connection to the SQLite DB"""
+        if not os.path.exists(self.db_path):
+            raise FileNotFoundError(f"Database not found at {self.db_path}. Run init_db.py first.")
+            
+        conn = sqlite3.connect(self.db_path)
+        conn.row_factory = sqlite3.Row  # Allows accessing columns by name
+        conn.execute("PRAGMA foreign_keys = ON") # Enforce integrity
+        return conn
+
+    def get_all_shots(self):
+        """Returns a list of all shots, sorted by code."""
+        conn = self.get_db_connection()
+        try:
+            shots = conn.execute('SELECT * FROM shots ORDER BY code').fetchall()
+            return shots
+        finally:
+            conn.close()
+
+    def get_shot(self, shot_code):
+        """Fetches a single shot's data."""
+        conn = self.get_db_connection()
+        try:
+            shot = conn.execute('SELECT * FROM shots WHERE code = ?', (shot_code,)).fetchone()
+            return shot
+        finally:
+            conn.close()
+
+    # --- SHOT CREATION & MANAGEMENT ---
+
+    def get_next_shot_code(self):
+        """Scans the file system (40_shots) to find the next logical shot number."""
+        shots_root = os.path.join(self.root_dir, '40_shots')
+        
+        if not os.path.exists(shots_root):
+            return "stc_0010"
+
+        highest_num = 0
+        shot_pattern = re.compile(r'^stc_(\d{4})$')
+        
+        try:
+            for item in os.listdir(shots_root):
+                if os.path.isdir(os.path.join(shots_root, item)):
+                    match = shot_pattern.match(item)
+                    if match:
+                        num = int(match.group(1))
+                        if num > highest_num:
+                            highest_num = num
+        except Exception as e:
+            print(f"Error scanning shots directory: {e}")
+            return "stc_0010"
+
+        next_num = highest_num + 10
+        return f"stc_{next_num:04d}"
+
+    def create_shot_structure(self, shot_code):
+        """Generates folder structure on disk."""
+        shots_root = os.path.join(self.root_dir, '40_shots')
+        shot_path = os.path.join(shots_root, shot_code)
+
+        if not os.path.exists(shot_path):
+            os.makedirs(shot_path)
+            
+        for subfolder in self.SHOT_SUBFOLDERS:
+            full_path = os.path.join(shot_path, subfolder.replace('/', os.sep))
+            if not os.path.exists(full_path):
+                os.makedirs(full_path)
+        
+        return shot_path
+
+    def create_shot(self, shot_code, start, end, user):
+        """Creates Shot in Database AND File System."""
+        conn = self.get_db_connection()
+        try:
+            shot_id = str(uuid.uuid4())
+            conn.execute(
+                'INSERT INTO shots (id, code, frame_start, frame_end, user_assigned) VALUES (?, ?, ?, ?, ?)',
+                (shot_id, shot_code, start, end, user)
+            )
+            conn.commit()
+            print(f"DB: Shot {shot_code} logged.")
+        except sqlite3.IntegrityError:
+            print(f"DB: Shot {shot_code} already exists in DB, creating missing folders only.")
+        finally:
+            conn.close()
+
+        # Create physical folders
+        self.create_shot_structure(shot_code)
+
+    def update_shot_frames(self, shot_code, new_start, new_end):
+        """Updates frame range in DB."""
+        conn = self.get_db_connection()
+        try:
+            conn.execute(
+                'UPDATE shots SET frame_start = ?, frame_end = ? WHERE code = ?',
+                (new_start, new_end, shot_code)
+            )
+            conn.commit()
+            return True
+        except Exception as e:
+            print(f"Error updating shot: {e}")
+            return False
+        finally:
+            conn.close()
+                 
+
+    def delete_shot(self, shot_code):
+        """Deletes a shot from DB (Folders are kept for safety)."""
+        conn = self.get_db_connection()
+        shots_root = os.path.join(self.root_dir, '40_shots')
+        shot_path = os.path.join(shots_root, shot_code)
+        
+        try:
+            shutil.rmtree(shot_path, ignore_errors=False)
+            conn.execute('DELETE FROM shot_assets WHERE shot_code = ?', (shot_code,))
+            conn.execute('DELETE FROM shots WHERE code = ?', (shot_code,))
+            conn.commit()
+            return True
+        except Exception as e:
+            print(f"Error deleting shot: {e}")
+            return False
+        finally:
+            conn.close()
+
+    # --- NOTIFICATIONS ---
+
+    def send_discord_notification(self, message):
+        if not self.webhook_url:
+            return
+        
+        data = {"content": message}
+        headers = {"Content-Type": "application/json"}
+        try:
+            requests.post(self.webhook_url, json=data, headers=headers, timeout=5)
+        except Exception as e:
+            print(f"Discord notification failed: {e}")
+            
+if __name__ == "__main__":
+    
+    orion = OrionUtils()
+    try:
+        print(orion.pipeline_dir)
+        print(orion.config_path)
+        print(orion.data_path)
+        print(orion.db_path)
+        print(orion.env_file)
+        
+    except Exception as e:
+        print(f"An error occurred: {e}")

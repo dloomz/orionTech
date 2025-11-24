@@ -17,7 +17,7 @@ def __main__(*args):
             deadline_plugin.LogInfo("Orion Discord notifications disabled for this job.")
             return
 
-        from utils.orionUtils import OrionUtils
+        from core.orionUtils import OrionUtils
 
         job_name = job.JobName
         user = job.JobUserName
