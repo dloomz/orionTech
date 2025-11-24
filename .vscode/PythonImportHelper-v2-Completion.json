@@ -1,0 +1,588 @@
+[
+    {
+        "label": "print_function",
+        "importPath": "__future__",
+        "description": "__future__",
+        "isExtraImport": true,
+        "detail": "__future__",
+        "documentation": {}
+    },
+    {
+        "label": "nuke",
+        "kind": 6,
+        "isExtraImport": true,
+        "importPath": "nuke",
+        "description": "nuke",
+        "detail": "nuke",
+        "documentation": {}
+    },
+    {
+        "label": "nukescripts",
+        "kind": 6,
+        "isExtraImport": true,
+        "importPath": "nukescripts",
+        "description": "nukescripts",
+        "detail": "nukescripts",
+        "documentation": {}
+    },
+    {
+        "label": "os",
+        "kind": 6,
+        "isExtraImport": true,
+        "importPath": "os",
+        "description": "os",
+        "detail": "os",
+        "documentation": {}
+    },
+    {
+        "label": "subprocess",
+        "kind": 6,
+        "isExtraImport": true,
+        "importPath": "subprocess",
+        "description": "subprocess",
+        "detail": "subprocess",
+        "documentation": {}
+    },
+    {
+        "label": "traceback",
+        "kind": 6,
+        "isExtraImport": true,
+        "importPath": "traceback",
+        "description": "traceback",
+        "detail": "traceback",
+        "documentation": {}
+    },
+    {
+        "label": "NamedTemporaryFile",
+        "importPath": "tempfile",
+        "description": "tempfile",
+        "isExtraImport": true,
+        "detail": "tempfile",
+        "documentation": {}
+    },
+    {
+        "label": "locale",
+        "kind": 6,
+        "isExtraImport": true,
+        "importPath": "locale",
+        "description": "locale",
+        "detail": "locale",
+        "documentation": {}
+    },
+    {
+        "label": "sys",
+        "kind": 6,
+        "isExtraImport": true,
+        "importPath": "sys",
+        "description": "sys",
+        "detail": "sys",
+        "documentation": {}
+    },
+    {
+        "label": "time",
+        "kind": 6,
+        "isExtraImport": true,
+        "importPath": "time",
+        "description": "time",
+        "detail": "time",
+        "documentation": {}
+    },
+    {
+        "label": "json",
+        "kind": 6,
+        "isExtraImport": true,
+        "importPath": "json",
+        "description": "json",
+        "detail": "json",
+        "documentation": {}
+    },
+    {
+        "label": "sqlite3",
+        "kind": 6,
+        "isExtraImport": true,
+        "importPath": "sqlite3",
+        "description": "sqlite3",
+        "detail": "sqlite3",
+        "documentation": {}
+    },
+    {
+        "label": "uuid",
+        "kind": 6,
+        "isExtraImport": true,
+        "importPath": "uuid",
+        "description": "uuid",
+        "detail": "uuid",
+        "documentation": {}
+    },
+    {
+        "label": "re",
+        "kind": 6,
+        "isExtraImport": true,
+        "importPath": "re",
+        "description": "re",
+        "detail": "re",
+        "documentation": {}
+    },
+    {
+        "label": "requests",
+        "kind": 6,
+        "isExtraImport": true,
+        "importPath": "requests",
+        "description": "requests",
+        "detail": "requests",
+        "documentation": {}
+    },
+    {
+        "label": "shutil",
+        "kind": 6,
+        "isExtraImport": true,
+        "importPath": "shutil",
+        "description": "shutil",
+        "detail": "shutil",
+        "documentation": {}
+    },
+    {
+        "label": "datetime",
+        "importPath": "datetime",
+        "description": "datetime",
+        "isExtraImport": true,
+        "detail": "datetime",
+        "documentation": {}
+    },
+    {
+        "label": "ctypes",
+        "kind": 6,
+        "isExtraImport": true,
+        "importPath": "ctypes",
+        "description": "ctypes",
+        "detail": "ctypes",
+        "documentation": {}
+    },
+    {
+        "label": "winreg",
+        "kind": 6,
+        "isExtraImport": true,
+        "importPath": "winreg",
+        "description": "winreg",
+        "detail": "winreg",
+        "documentation": {}
+    },
+    {
+        "label": "mari",
+        "kind": 6,
+        "isExtraImport": true,
+        "importPath": "mari",
+        "description": "mari",
+        "detail": "mari",
+        "documentation": {}
+    },
+    {
+        "label": "Path",
+        "importPath": "pathlib",
+        "description": "pathlib",
+        "isExtraImport": true,
+        "detail": "pathlib",
+        "documentation": {}
+    },
+    {
+        "label": "load_dotenv",
+        "importPath": "dotenv",
+        "description": "dotenv",
+        "isExtraImport": true,
+        "detail": "dotenv",
+        "documentation": {}
+    },
+    {
+        "label": "maya.cmds",
+        "kind": 6,
+        "isExtraImport": true,
+        "importPath": "maya.cmds",
+        "description": "maya.cmds",
+        "detail": "maya.cmds",
+        "documentation": {}
+    },
+    {
+        "label": "QApplication",
+        "importPath": "PyQt5.QtWidgets",
+        "description": "PyQt5.QtWidgets",
+        "isExtraImport": true,
+        "detail": "PyQt5.QtWidgets",
+        "documentation": {}
+    },
+    {
+        "label": "QWidget",
+        "importPath": "PyQt5.QtWidgets",
+        "description": "PyQt5.QtWidgets",
+        "isExtraImport": true,
+        "detail": "PyQt5.QtWidgets",
+        "documentation": {}
+    },
+    {
+        "label": "QLabel",
+        "importPath": "PyQt5.QtWidgets",
+        "description": "PyQt5.QtWidgets",
+        "isExtraImport": true,
+        "detail": "PyQt5.QtWidgets",
+        "documentation": {}
+    },
+    {
+        "label": "QPushButton",
+        "importPath": "PyQt5.QtWidgets",
+        "description": "PyQt5.QtWidgets",
+        "isExtraImport": true,
+        "detail": "PyQt5.QtWidgets",
+        "documentation": {}
+    },
+    {
+        "label": "QVBoxLayout",
+        "importPath": "PyQt5.QtWidgets",
+        "description": "PyQt5.QtWidgets",
+        "isExtraImport": true,
+        "detail": "PyQt5.QtWidgets",
+        "documentation": {}
+    },
+    {
+        "label": "QHBoxLayout",
+        "importPath": "PyQt5.QtWidgets",
+        "description": "PyQt5.QtWidgets",
+        "isExtraImport": true,
+        "detail": "PyQt5.QtWidgets",
+        "documentation": {}
+    },
+    {
+        "label": "QCheckBox",
+        "importPath": "PyQt5.QtWidgets",
+        "description": "PyQt5.QtWidgets",
+        "isExtraImport": true,
+        "detail": "PyQt5.QtWidgets",
+        "documentation": {}
+    },
+    {
+        "label": "QTabWidget",
+        "importPath": "PyQt5.QtWidgets",
+        "description": "PyQt5.QtWidgets",
+        "isExtraImport": true,
+        "detail": "PyQt5.QtWidgets",
+        "documentation": {}
+    },
+    {
+        "label": "QMessageBox",
+        "importPath": "PyQt5.QtWidgets",
+        "description": "PyQt5.QtWidgets",
+        "isExtraImport": true,
+        "detail": "PyQt5.QtWidgets",
+        "documentation": {}
+    },
+    {
+        "label": "QComboBox",
+        "importPath": "PyQt5.QtWidgets",
+        "description": "PyQt5.QtWidgets",
+        "isExtraImport": true,
+        "detail": "PyQt5.QtWidgets",
+        "documentation": {}
+    },
+    {
+        "label": "QLineEdit",
+        "importPath": "PyQt5.QtWidgets",
+        "description": "PyQt5.QtWidgets",
+        "isExtraImport": true,
+        "detail": "PyQt5.QtWidgets",
+        "documentation": {}
+    },
+    {
+        "label": "QFrame",
+        "importPath": "PyQt5.QtWidgets",
+        "description": "PyQt5.QtWidgets",
+        "isExtraImport": true,
+        "detail": "PyQt5.QtWidgets",
+        "documentation": {}
+    },
+    {
+        "label": "QApplication",
+        "importPath": "PyQt5.QtWidgets",
+        "description": "PyQt5.QtWidgets",
+        "isExtraImport": true,
+        "detail": "PyQt5.QtWidgets",
+        "documentation": {}
+    },
+    {
+        "label": "Qt",
+        "importPath": "PyQt5.QtCore",
+        "description": "PyQt5.QtCore",
+        "isExtraImport": true,
+        "detail": "PyQt5.QtCore",
+        "documentation": {}
+    },
+    {
+        "label": "tkinter",
+        "kind": 6,
+        "isExtraImport": true,
+        "importPath": "tkinter",
+        "description": "tkinter",
+        "detail": "tkinter",
+        "documentation": {}
+    },
+    {
+        "label": "filedialog",
+        "importPath": "tkinter",
+        "description": "tkinter",
+        "isExtraImport": true,
+        "detail": "tkinter",
+        "documentation": {}
+    },
+    {
+        "label": "messagebox",
+        "importPath": "tkinter",
+        "description": "tkinter",
+        "isExtraImport": true,
+        "detail": "tkinter",
+        "documentation": {}
+    },
+    {
+        "label": "OrionUtils",
+        "importPath": "core.orionUtils",
+        "description": "core.orionUtils",
+        "isExtraImport": true,
+        "detail": "core.orionUtils",
+        "documentation": {}
+    },
+    {
+        "label": "OrionUtils",
+        "importPath": "core.orionUtils",
+        "description": "core.orionUtils",
+        "isExtraImport": true,
+        "detail": "core.orionUtils",
+        "documentation": {}
+    },
+    {
+        "label": "SystemUtils",
+        "importPath": "core.systemUtils",
+        "description": "core.systemUtils",
+        "isExtraImport": true,
+        "detail": "core.systemUtils",
+        "documentation": {}
+    },
+    {
+        "label": "PrefsUtils",
+        "importPath": "core.prefsUtils",
+        "description": "core.prefsUtils",
+        "isExtraImport": true,
+        "detail": "core.prefsUtils",
+        "documentation": {}
+    },
+    {
+        "label": "OrionTechUI",
+        "importPath": "ui.orionTechUI",
+        "description": "ui.orionTechUI",
+        "isExtraImport": true,
+        "detail": "ui.orionTechUI",
+        "documentation": {}
+    },
+    {
+        "label": "OrionSubmitDialog",
+        "kind": 6,
+        "importPath": "deadline.nuke.orionNukeSubmitter",
+        "description": "deadline.nuke.orionNukeSubmitter",
+        "peekOfCode": "class OrionSubmitDialog(nukescripts.PythonPanel):\n    def __init__(self, pools, groups, max_priority):\n        super(OrionSubmitDialog, self).__init__(\"Orion Nuke Submitter\", \"com.orion.nukesubmit\")\n        self.setMinimumSize(550, 500)\n        # --- Job Details ---\n        self.tab_job = nuke.Tab_Knob(\"Job\", \"Job Options\")\n        self.addKnob(self.tab_job)\n        self.jobName = nuke.String_Knob(\"jobName\", \"Job Name:\")\n        self.addKnob(self.jobName)\n        self.jobName.setTooltip(\"The name for the Deadline job.\")",
+        "detail": "deadline.nuke.orionNukeSubmitter",
+        "documentation": {}
+    },
+    {
+        "label": "get_deadline_command",
+        "kind": 2,
+        "importPath": "deadline.nuke.orionNukeSubmitter",
+        "description": "deadline.nuke.orionNukeSubmitter",
+        "peekOfCode": "def get_deadline_command():\n    \"\"\"Finds the deadlinecommand executable.\"\"\"\n    #force path due to error\n    forced_path = r\"C:\\Program Files\\Thinkbox\\Deadline10\\bin\\deadlinecommand.exe\" \n    print(f\"DEBUG: Attempting to use forced path: {forced_path}\") \n    if os.path.exists(forced_path):\n        print(f\"DEBUG: Forced path exists.\")\n        return forced_path\n    else:\n         print(f\"ERROR: Forced path does not exist: {forced_path}\")",
+        "detail": "deadline.nuke.orionNukeSubmitter",
+        "documentation": {}
+    },
+    {
+        "label": "call_deadline_command",
+        "kind": 2,
+        "importPath": "deadline.nuke.orionNukeSubmitter",
+        "description": "deadline.nuke.orionNukeSubmitter",
+        "peekOfCode": "def call_deadline_command(arguments, hide_window=True):\n    \"\"\"Executes deadlinecommand with given arguments.\"\"\"\n    deadline_command = get_deadline_command()\n    command = [deadline_command] + arguments\n    startupinfo = None\n    if hide_window and os.name == 'nt':\n        startupinfo = subprocess.STARTUPINFO()\n        startupinfo.dwFlags |= subprocess.STARTF_USESHOWWINDOW\n    try:\n        proc = subprocess.Popen(command, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE, startupinfo=startupinfo, universal_newlines=True)",
+        "detail": "deadline.nuke.orionNukeSubmitter",
+        "documentation": {}
+    },
+    {
+        "label": "submit_to_orion_deadline",
+        "kind": 2,
+        "importPath": "deadline.nuke.orionNukeSubmitter",
+        "description": "deadline.nuke.orionNukeSubmitter",
+        "peekOfCode": "def submit_to_orion_deadline():\n    #check if script is saved\n    root = nuke.root()\n    script_path = root.name()\n    if script_path == 'Root':\n        nuke.message(\"Please save your Nuke script before submitting.\")\n        return\n    #save current changes\n    if root.modified():\n        nuke.scriptSave()",
+        "detail": "deadline.nuke.orionNukeSubmitter",
+        "documentation": {}
+    },
+    {
+        "label": "add_orion_menu",
+        "kind": 2,
+        "importPath": "deadline.nuke.orionNukeSubmitter",
+        "description": "deadline.nuke.orionNukeSubmitter",
+        "peekOfCode": "def add_orion_menu():\n    \"\"\"Adds the Orion Submitter to the Nuke Render menu.\"\"\"\n    try:\n        menu_bar = nuke.menu(\"Nuke\")\n        render_menu = menu_bar.findItem(\"Render\")\n        if render_menu:\n            render_menu.addCommand(\"Orion/Submit Nuke to Deadline\", submit_to_orion_deadline)\n        else:\n            #fallback if Render menu doesn't exist\n             menu_bar.addCommand(\"Orion/Submit Nuke to Deadline\", submit_to_orion_deadline)",
+        "detail": "deadline.nuke.orionNukeSubmitter",
+        "documentation": {}
+    },
+    {
+        "label": "ORION_STARTUP_PATH",
+        "kind": 5,
+        "importPath": "deadline.nuke.orionNukeSubmitter",
+        "description": "deadline.nuke.orionNukeSubmitter",
+        "peekOfCode": "ORION_STARTUP_PATH = \"P:\\\\all_work\\\\studentGroups\\\\ORION_CORPORATION\\\\00_pipeline\\\\orionTech\\\\startup\"\nEVENT_SCRIPT_DIR = \"P:\\\\all_work\\\\studentGroups\\\\ORION_CORPORATION\\\\00_pipeline\\\\orionTech\\\\deadline\\\\nuke\"\ndef get_deadline_command():\n    \"\"\"Finds the deadlinecommand executable.\"\"\"\n    #force path due to error\n    forced_path = r\"C:\\Program Files\\Thinkbox\\Deadline10\\bin\\deadlinecommand.exe\" \n    print(f\"DEBUG: Attempting to use forced path: {forced_path}\") \n    if os.path.exists(forced_path):\n        print(f\"DEBUG: Forced path exists.\")\n        return forced_path",
+        "detail": "deadline.nuke.orionNukeSubmitter",
+        "documentation": {}
+    },
+    {
+        "label": "EVENT_SCRIPT_DIR",
+        "kind": 5,
+        "importPath": "deadline.nuke.orionNukeSubmitter",
+        "description": "deadline.nuke.orionNukeSubmitter",
+        "peekOfCode": "EVENT_SCRIPT_DIR = \"P:\\\\all_work\\\\studentGroups\\\\ORION_CORPORATION\\\\00_pipeline\\\\orionTech\\\\deadline\\\\nuke\"\ndef get_deadline_command():\n    \"\"\"Finds the deadlinecommand executable.\"\"\"\n    #force path due to error\n    forced_path = r\"C:\\Program Files\\Thinkbox\\Deadline10\\bin\\deadlinecommand.exe\" \n    print(f\"DEBUG: Attempting to use forced path: {forced_path}\") \n    if os.path.exists(forced_path):\n        print(f\"DEBUG: Forced path exists.\")\n        return forced_path\n    else:",
+        "detail": "deadline.nuke.orionNukeSubmitter",
+        "documentation": {}
+    },
+    {
+        "label": "ORION_UTILS_DIR",
+        "kind": 5,
+        "importPath": "deadline.nuke.orion_nuke_on_job_fail",
+        "description": "deadline.nuke.orion_nuke_on_job_fail",
+        "peekOfCode": "ORION_UTILS_DIR = \"P:\\\\all_work\\\\studentGroups\\\\ORION_CORPORATION\\\\00_pipeline\\\\orionTech\\\\startup\"\nif ORION_UTILS_DIR not in sys.path:\n    sys.path.append(ORION_UTILS_DIR)\ndef __main__(*args):\n    deadline_plugin = args[0]\n    job = deadline_plugin.GetJob()\n    try:\n        notify_enabled_str = job.GetJobExtraInfoKeyValueWithDefault(\"OrionDiscordNotify\", \"false\")\n        if notify_enabled_str.lower() != 'true':\n            deadline_plugin.LogInfo(\"Orion Discord notifications disabled for this job.\")",
+        "detail": "deadline.nuke.orion_nuke_on_job_fail",
+        "documentation": {}
+    },
+    {
+        "label": "ORION_UTILS_DIR",
+        "kind": 5,
+        "importPath": "deadline.nuke.orion_nuke_on_job_finish",
+        "description": "deadline.nuke.orion_nuke_on_job_finish",
+        "peekOfCode": "ORION_UTILS_DIR = \"P:\\\\all_work\\\\studentGroups\\\\ORION_CORPORATION\\\\00_pipeline\\\\orionTech\\\\startup\"\nif ORION_UTILS_DIR not in sys.path:\n    sys.path.append(ORION_UTILS_DIR)\ndef __main__(*args):\n    deadline_plugin = args[0]\n    job = deadline_plugin.GetJob()\n    try:\n        notify_enabled_str = job.GetJobExtraInfoKeyValueWithDefault(\"OrionDiscordNotify\", \"false\")\n        if notify_enabled_str.lower() != 'true':\n            deadline_plugin.LogInfo(\"Orion Discord notifications disabled for this job.\")",
+        "detail": "deadline.nuke.orion_nuke_on_job_finish",
+        "documentation": {}
+    },
+    {
+        "label": "ORION_UTILS_DIR",
+        "kind": 5,
+        "importPath": "deadline.nuke.orion_nuke_on_job_start",
+        "description": "deadline.nuke.orion_nuke_on_job_start",
+        "peekOfCode": "ORION_UTILS_DIR = \"P:\\\\all_work\\\\studentGroups\\\\ORION_CORPORATION\\\\00_pipeline\\\\orionTech\\\\startup\" \n# ---\nif ORION_UTILS_DIR not in sys.path:\n    sys.path.append(ORION_UTILS_DIR)\ndef __main__(*args):\n    deadline_plugin = args[0]\n    job = deadline_plugin.GetJob()\n    try:\n        #check if notifications are enabled via ExtraInfoKeyValue\n        notify_enabled_str = job.GetJobExtraInfoKeyValueWithDefault(\"OrionDiscordNotify\", \"false\")",
+        "detail": "deadline.nuke.orion_nuke_on_job_start",
+        "documentation": {}
+    },
+    {
+        "label": "OrionUtils",
+        "kind": 6,
+        "importPath": "core.orionUtils",
+        "description": "core.orionUtils",
+        "peekOfCode": "class OrionUtils():\n    #folder struc new shots\n    SHOT_SUBFOLDERS = [\n        \"ANIM/PUBLISH\",\n        \"ANIM/WORK\",\n        \"COMP/Apps/Nuke/Scripts\",\n        \"COMP/Apps/Hiero/Templates\",\n        \"COMP/Apps/Photoshop\",\n        \"COMP/Apps/Syntheyes\",\n        \"COMP/Apps/Mocha_Pro\",",
+        "detail": "core.orionUtils",
+        "documentation": {}
+    },
+    {
+        "label": "PrefsUtils",
+        "kind": 6,
+        "importPath": "core.prefsUtils",
+        "description": "core.prefsUtils",
+        "peekOfCode": "class PrefsUtils:\n    def __init__(self, orion_utils_instance):\n        self.orion = orion_utils_instance      \n        self.root_dir = self.orion.get_root_dir()\n        #updated paths\n        self.config_folder = os.path.join(self.root_dir, \"config\")\n        self.software_config_path = os.path.join(self.config_folder, \"software\")\n        self.data_folder = os.path.join(self.root_dir, \"data\")\n        # Load main config to get lists\n        self.softwares = self.orion.software",
+        "detail": "core.prefsUtils",
+        "documentation": {}
+    },
+    {
+        "label": "SystemUtils",
+        "kind": 6,
+        "importPath": "core.systemUtils",
+        "description": "core.systemUtils",
+        "peekOfCode": "class SystemUtils:\n    def __init__(self, orion_utils_instance, pref_utils_instance):\n        self.orion = orion_utils_instance\n        self.pref = pref_utils_instance\n        self.root = self.orion.get_root_dir()\n        self.config_path = self.orion.config_path\n        self.current_user = os.getlogin()\n    def run_terminal_command(self, command):\n        \"\"\"\n        Runs a command in the terminal.",
+        "detail": "core.systemUtils",
+        "documentation": {}
+    },
+    {
+        "label": "launch_maya",
+        "kind": 2,
+        "importPath": "dcc.maya.maya_launcher",
+        "description": "dcc.maya.maya_launcher",
+        "peekOfCode": "def launch_maya():\n    #custom paths\n    current_script_dir = Path(__file__).resolve().parent\n    env_path = current_script_dir.parent.parent / \"data\" / \".env\"\n    if env_path.exists():\n        load_dotenv(dotenv_path=env_path)\n    else:\n        print(f\"WARNING: .env file not found at {env_path}\")\n    ROOT_PATH = \"O:\\\\05_sandbox\\\\do23aaf \"\n    print(\"ROOT PATH:\", ROOT_PATH)",
+        "detail": "dcc.maya.maya_launcher",
+        "documentation": {}
+    },
+    {
+        "label": "og_maya_plugin_path",
+        "kind": 5,
+        "importPath": "dcc.maya.userSetup",
+        "description": "dcc.maya.userSetup",
+        "peekOfCode": "og_maya_plugin_path = str(os.getenv(\"MAYA_PLUG_IN_PATH\"))\n'''CODE FROM https://www.regnareb.com/pro/2018/01/improve-maya-usability/'''\nif not cmds.optionVar(exists=\"firstLaunch\"):\n    # Force Auto load all plugins to False\n    pluginList = cmds.pluginInfo(query=True, listPlugins=True) or []\n    for plugin in pluginList:\n        cmds.pluginInfo(plugin, edit=True, autoload=False)\n    cmds.undoInfo(state=True, infinity=True)\n    cmds.optionVar(iv=(\"undoIsInfinite\", 1))\n    cmds.optionVar(iv=(\"isIncrementalSaveEnabled\", 1))",
+        "detail": "dcc.maya.userSetup",
+        "documentation": {}
+    },
+    {
+        "label": "os.environ['MAYA_PLUG_IN_PATH']",
+        "kind": 5,
+        "importPath": "dcc.maya.userSetup",
+        "description": "dcc.maya.userSetup",
+        "peekOfCode": "os.environ['MAYA_PLUG_IN_PATH'] = 'C:/Docs/maya/2026/plug-ins;C:/Docs/maya/plug-ins'\ncmds.loadPlugin( allPlugins=True )\n#restore original plug in path\nos.environ['MAYA_PLUG_IN_PATH'] = og_maya_plugin_path\n#ensure maya usd is loaded\nmayaUsdPlugin = \"mayaUsdPlugin\"\nif not cmds.pluginInfo(mayaUsdPlugin, query=True, loaded=True):\n    try:\n        cmds.loadPlugin(mayaUsdPlugin)\n    except RuntimeError:",
+        "detail": "dcc.maya.userSetup",
+        "documentation": {}
+    },
+    {
+        "label": "os.environ['MAYA_PLUG_IN_PATH']",
+        "kind": 5,
+        "importPath": "dcc.maya.userSetup",
+        "description": "dcc.maya.userSetup",
+        "peekOfCode": "os.environ['MAYA_PLUG_IN_PATH'] = og_maya_plugin_path\n#ensure maya usd is loaded\nmayaUsdPlugin = \"mayaUsdPlugin\"\nif not cmds.pluginInfo(mayaUsdPlugin, query=True, loaded=True):\n    try:\n        cmds.loadPlugin(mayaUsdPlugin)\n    except RuntimeError:\n        pass",
+        "detail": "dcc.maya.userSetup",
+        "documentation": {}
+    },
+    {
+        "label": "mayaUsdPlugin",
+        "kind": 5,
+        "importPath": "dcc.maya.userSetup",
+        "description": "dcc.maya.userSetup",
+        "peekOfCode": "mayaUsdPlugin = \"mayaUsdPlugin\"\nif not cmds.pluginInfo(mayaUsdPlugin, query=True, loaded=True):\n    try:\n        cmds.loadPlugin(mayaUsdPlugin)\n    except RuntimeError:\n        pass",
+        "detail": "dcc.maya.userSetup",
+        "documentation": {}
+    },
+    {
+        "label": "OrionTechUI",
+        "kind": 6,
+        "importPath": "ui.orionTechUI",
+        "description": "ui.orionTechUI",
+        "peekOfCode": "class OrionTechUI(QWidget):\n    def __init__(self, orion_utils_inst, system_utils_inst, prefs_utils_inst):\n        super().__init__()\n        self.orion_utils = orion_utils_inst\n        self.system_utils = system_utils_inst\n        self.prefs_utils = prefs_utils_inst\n        # Load user settings\n        self.settings = self.prefs_utils.load_settings()\n        self.current_user = os.getlogin()\n        self.init_ui()",
+        "detail": "ui.orionTechUI",
+        "documentation": {}
+    },
+    {
+        "label": "ShotCreatorApp",
+        "kind": 6,
+        "importPath": "scripts.shot_creator",
+        "description": "scripts.shot_creator",
+        "peekOfCode": "class ShotCreatorApp:\n    def __init__(self, root):\n        self.root = root\n        self.root.title(\"Orion Shot Creator\")\n        self.root.geometry(\"450x300\")\n        # We will set this later, after the UI is built\n        self.project_root = \"\"\n        # --- UI Widgets (No changes in this section) ---\n        frame_root = tk.Frame(root, padx=10, pady=10)\n        frame_root.pack(fill='x')",
+        "detail": "scripts.shot_creator",
+        "documentation": {}
+    },
+    {
+        "label": "orion_utils",
+        "kind": 5,
+        "importPath": "scripts.shot_creator",
+        "description": "scripts.shot_creator",
+        "peekOfCode": "orion_utils = OrionUtils()\n# --- Configuration ---\nSHOT_SUBFOLDERS = [\n    \"ANIM\",\n    \"COMP/Apps/Nuke/Scripts\",\n    \"COMP/Apps/Hiero/Templates\",\n    \"COMP/Apps/Photoshop\",\n    \"COMP/Apps/Syntheyes\",\n    \"COMP/Apps/Mocha_Pro\",\n    \"COMP/Plates/Source\",",
+        "detail": "scripts.shot_creator",
+        "documentation": {}
+    },
+    {
+        "label": "SHOT_SUBFOLDERS",
+        "kind": 5,
+        "importPath": "scripts.shot_creator",
+        "description": "scripts.shot_creator",
+        "peekOfCode": "SHOT_SUBFOLDERS = [\n    \"ANIM\",\n    \"COMP/Apps/Nuke/Scripts\",\n    \"COMP/Apps/Hiero/Templates\",\n    \"COMP/Apps/Photoshop\",\n    \"COMP/Apps/Syntheyes\",\n    \"COMP/Apps/Mocha_Pro\",\n    \"COMP/Plates/Source\",\n    \"COMP/Plates/Comp\",\n    \"COMP/Prep/Denoise\",",
+        "detail": "scripts.shot_creator",
+        "documentation": {}
+    },
+    {
+        "label": "ROOT_DIR",
+        "kind": 5,
+        "importPath": "main",
+        "description": "main",
+        "peekOfCode": "ROOT_DIR = os.path.dirname(os.path.abspath(__file__))\n#add this root to python path so can import \nif ROOT_DIR not in sys.path:\n    sys.path.insert(0, ROOT_DIR)\n#IMPORTS\nfrom core.orionUtils import OrionUtils\nfrom core.systemUtils import SystemUtils\nfrom core.prefsUtils import PrefsUtils\nfrom ui.orionTechUI import OrionTechUI\nfrom PyQt5.QtWidgets import QApplication",
+        "detail": "main",
+        "documentation": {}
+    }
+]

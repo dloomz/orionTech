@@ -10,7 +10,7 @@ import shutil
 
 class OrionUtils():
     
-    # Standard Folder Structure for new shots
+    #folder struc new shots
     SHOT_SUBFOLDERS = [
         "ANIM/PUBLISH",
         "ANIM/WORK",
@@ -47,26 +47,40 @@ class OrionUtils():
         
         #go up two levels: core/ -> root/
         self.pipeline_dir = os.path.dirname(os.path.dirname(current_script_path))
-        
-        self.project_path = os.path.dirname(self.root_dir)
+        self.project_path = os.path.dirname(self.pipeline_dir)
 
         #DEFINE KEY PATHS
         self.config_path = os.path.join(self.pipeline_dir, "config")
         self.data_path = os.path.join(self.pipeline_dir, "data")
         self.db_path = os.path.join(self.data_path, "project.db")
+        self.env_file = os.path.join(self.data_path, ".env")
         
-        #LOAD CONFIG
-        config_file = os.path.join(self.config_path, "config.json")
-        if os.path.exists(config_file):
-            config_data = self.read_json(config_file)
+        #LOAD .ENV
+        self.load_env_file()
+
+        self.webhook_url = os.environ.get("ORI_DISCORD_WEBHOOK", "")
+        self.fps = int(os.environ.get("ORI_FPS", "24"))
+        
+        raw_users = os.environ.get("ORI_USERNAME", "")
+        self.usernames = [u.strip() for u in raw_users.split(",") if u.strip()]
+        
+        raw_software = os.environ.get("ORI_SOFTWARE", "")
+        self.software = [s.strip() for s in raw_software.split(",") if s.strip()]
+        
+        project_root = os.environ.get("ORI_ROOT_PATH", "")
+        if project_root and os.path.exists(project_root):
+            self.root_dir = project_root
         else:
-
-            print(f"Warning: Config not found at {config_file}")
-            config_data = {}
-
-        self.usernames = config_data.get("usernames", [])
-        self.software = config_data.get("software", [])
-        self.webhook_url = config_data.get("discord_webhook_url", "")
+            # Fallback logic if .env path is missing or invalid
+            print(f"Warning: ORI_ROOT_PATH ({project_root}) not found. Using fallback detection.")
+            home_root = "O:\\"
+            work_root = "P:\\all_work\\studentGroups\\ORION_CORPORATION"
+            self.current_user = os.getlogin()
+            
+            if self.current_user in self.usernames:
+                self.root_dir = work_root 
+            else:
+                self.root_dir = home_root
         
         # Determine Home/Work Status
         home_root = "O:\\"
@@ -86,6 +100,31 @@ class OrionUtils():
         # Ensure libs path is importable
         if self.libs_path not in sys.path:
             sys.path.insert(0, self.libs_path)
+
+    def load_env_file(self):
+        
+            #parse .env file and set os.environ, avoid dotenv package
+            if not os.path.exists(self.env_file):
+                print(f"Warning: .env file not found at {self.env_file}")
+                return
+
+            try:
+                with open(self.env_file, "r") as f:
+                    for line in f:
+                        #strip whitespace
+                        line = line.strip()
+                        #skip comments/empty lines
+                        if not line or line.startswith("#"):
+                            continue
+                        
+                        #split at the first '='
+                        if "=" in line:
+                            key, value = line.split("=", 1)
+                            #remove quotes if present
+                            value = value.strip().strip("'").strip('"')
+                            os.environ[key.strip()] = value
+            except Exception as e:
+                print(f"Failed to parse .env file: {e}")
 
     # --- UTILITY METHODS ---
     
@@ -249,6 +288,11 @@ if __name__ == "__main__":
     
     orion = OrionUtils()
     try:
-        print("PATH:", orion.project_path)
+        print(orion.pipeline_dir)
+        print(orion.config_path)
+        print(orion.data_path)
+        print(orion.db_path)
+        print(orion.env_file)
+        
     except Exception as e:
-        print("Error during OrionUtils test:", e)
+        print(f"An error occurred: {e}")

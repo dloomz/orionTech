@@ -9,20 +9,14 @@ class PrefsUtils:
         self.orion = orion_utils_instance      
         self.root_dir = self.orion.get_root_dir()
         
-        # Updated paths to match new structure
+        #updated paths
         self.config_folder = os.path.join(self.root_dir, "config")
         self.software_config_path = os.path.join(self.config_folder, "software")
         self.data_folder = os.path.join(self.root_dir, "data")
         
         # Load main config to get lists
-        main_config_file = os.path.join(self.config_folder, "config.json")
-        if os.path.exists(main_config_file):
-            data = self.orion.read_json(main_config_file)
-            self.softwares = data.get("software", [])
-            self.usernames = data.get("usernames", [])
-        else:
-            self.softwares = []
-            self.usernames = []
+        self.softwares = self.orion.software
+        self.usernames = self.orion.usernames
 
         self.current_user = os.getlogin()
         

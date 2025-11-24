@@ -22,7 +22,7 @@ if __name__ == '__main__':
     system_utils = SystemUtils(orion_utils, prefs_utils)
 
     #run env
-    system_utils.env_setup()
+    # system_utils.env_setup()
 
     #start UI
     app = QApplication(sys.argv)
