@@ -1,5 +1,12 @@
 import sys
 import os
+from core.orionUtils import OrionUtils
+
+orion_utils = OrionUtils()
+
+if orion_utils.libs_path not in sys.path:
+        sys.path.insert(0, orion_utils.libs_path)
+
 from PyQt5.QtWidgets import (QApplication, QWidget, QLabel, QPushButton, 
                              QVBoxLayout, QHBoxLayout, QCheckBox, QTabWidget, 
                              QMessageBox, QComboBox, QLineEdit, QFrame)
@@ -51,14 +58,14 @@ class OrionTechUI(QWidget):
         #button styling
         self.btn_launch_maya.setStyleSheet("""
             QPushButton {
-                background-color: #388E3C; 
+                background-color: #63B2BF; 
                 color: white; 
                 font-weight: bold; 
                 font-size: 14px;
                 border-radius: 5px;
             }
             QPushButton:hover {
-                background-color: #4CAF50;
+                background-color: #87C8D4;
             }
         """)
         self.btn_launch_maya.clicked.connect(self.handle_launch_maya)

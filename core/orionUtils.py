@@ -5,7 +5,6 @@ import sqlite3
 import uuid
 import re
 import traceback
-import requests
 import shutil
 
 class OrionUtils():
@@ -100,6 +99,11 @@ class OrionUtils():
         # Ensure libs path is importable
         if self.libs_path not in sys.path:
             sys.path.insert(0, self.libs_path)
+
+        try:
+            import requests
+        except:
+            print("ORION WARNING: Unable to load requests module, discord functions will fail.")
 
     def load_env_file(self):
         
