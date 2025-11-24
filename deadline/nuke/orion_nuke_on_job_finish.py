@@ -2,7 +2,7 @@ import sys
 import time
 import traceback
 
-ORION_UTILS_DIR = "P:\\all_work\\studentGroups\\ORION_CORPORATION\\00_pipeline\\orionTech\\startup"
+ORION_UTILS_DIR = "P:\\all_work\\studentGroups\\ORION_CORPORATION\\00_pipeline\\orionTech"
 
 if ORION_UTILS_DIR not in sys.path:
     sys.path.append(ORION_UTILS_DIR)

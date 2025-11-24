@@ -19,6 +19,13 @@ try:
 except ImportError as e:
     print(f"Warning: Could not import maya_launcher: {e}")
     launch_maya = None
+    
+try:
+
+    from dcc.nuke.nuke_launcher import launch_nuke
+except ImportError as e:
+    print(f"Warning: Could not import nuke_launcher: {e}")
+    launch_nuke = None
 
 class OrionTechUI(QWidget):
     def __init__(self, orion_utils_inst, system_utils_inst, prefs_utils_inst):
@@ -87,7 +94,7 @@ class OrionTechUI(QWidget):
         """)
         
         self.btn_launch_maya.clicked.connect(self.handle_launch_maya)
-        #self.btn_launch_nuke.clicked.connect(self.handle_launch_nuke)
+        self.btn_launch_nuke.clicked.connect(self.handle_launch_nuke)
         
         self.apps_layout.addWidget(self.btn_launch_maya)
         self.apps_layout.addWidget(self.btn_launch_nuke)
@@ -239,6 +246,19 @@ class OrionTechUI(QWidget):
                 QMessageBox.critical(self, "Launch Error", f"An error occurred while launching Maya:\n{e}")
         else:
             QMessageBox.warning(self, "Launcher Missing", "Could not import 'dcc.maya.maya_launcher'.\nCheck if the file exists.")
+            
+    def handle_launch_nuke(self):
+        """Executes the custom Nuke Launcher"""
+        if launch_nuke:
+            try:
+                print("Starting Nuke Launcher...")
+                # Optionally minimize the UI while launching
+                # self.showMinimized() 
+                launch_nuke()
+            except Exception as e:
+                QMessageBox.critical(self, "Launch Error", f"An error occurred while launching Nuke:\n{e}")
+        else:
+            QMessageBox.warning(self, "Launcher Missing", "Could not import 'dcc.nuke.nuke_launcher'.\nCheck if the file exists.")
 
     def add_separator(self, layout):
         line = QFrame()

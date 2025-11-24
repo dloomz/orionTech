@@ -2,7 +2,7 @@ import sys
 import traceback
 
 #path to the directory containing orionUtils.py
-ORION_UTILS_DIR = "P:\\all_work\\studentGroups\\ORION_CORPORATION\\00_pipeline\\orionTech\\startup" 
+ORION_UTILS_DIR = "P:\\all_work\\studentGroups\\ORION_CORPORATION\\00_pipeline\\orionTech" 
 # ---
 
 if ORION_UTILS_DIR not in sys.path:

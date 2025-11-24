@@ -150,8 +150,3 @@ class SystemUtils:
 
             env_var = pref_data.get("env_var") 
             self.pref.set_pref_env_var(env_var)
-
-
-
- 
-

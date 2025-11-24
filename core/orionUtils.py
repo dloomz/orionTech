@@ -93,17 +93,8 @@ class OrionUtils():
         else:
             self.home_status = True   # At home
             self.root_dir = home_root  
-
-        #SETUP LIBS
-        self.libs_path = os.path.join(self.root_dir,"60_config", "libs") # Or config/libs depending on your prefs
-        # Ensure libs path is importable
-        if self.libs_path not in sys.path:
-            sys.path.insert(0, self.libs_path)
-
-        try:
-            import requests
-        except:
-            print("ORION WARNING: Unable to load requests module, discord functions will fail.")
+            
+        self.libs_path = os.path.join(self.root_dir,"60_config", "libs") 
 
     def load_env_file(self):
         
@@ -278,6 +269,16 @@ class OrionUtils():
     # --- NOTIFICATIONS ---
 
     def send_discord_notification(self, message):
+
+        # Ensure libs path is importable
+        if self.libs_path not in sys.path:
+            sys.path.insert(0, self.libs_path)
+
+        try:
+            import requests
+        except:
+            print("ORION WARNING: Unable to load requests module, discord functions will fail.")
+        
         if not self.webhook_url:
             return
         
