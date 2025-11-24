@@ -5,6 +5,14 @@ from PyQt5.QtWidgets import (QApplication, QWidget, QLabel, QPushButton,
                              QMessageBox, QComboBox, QLineEdit, QFrame)
 from PyQt5.QtCore import Qt
 
+#IMPORT CUSTOM LAUNCHERS
+try:
+
+    from dcc.maya.maya_launcher import launch_maya
+except ImportError as e:
+    print(f"Warning: Could not import maya_launcher: {e}")
+    launch_maya = None
+
 class OrionTechUI(QWidget):
     def __init__(self, orion_utils_inst, system_utils_inst, prefs_utils_inst):
         super().__init__()
@@ -23,34 +31,41 @@ class OrionTechUI(QWidget):
     def init_ui(self):
         # WINDOW SETUP
         self.setWindowTitle('OrionTech Pipeline Manager')
-        self.setGeometry(100, 100, 500, 600)
+        self.setGeometry(100, 100, 600, 650) 
         
         self.layout = QVBoxLayout()
-        self.tabs = QTabWidget() # Important: Init before adding tabs
+        self.tabs = QTabWidget() 
 
         # --------------------------
-        # TAB 1: PREFERENCES
+        # TAB 1: APPS 
         # --------------------------
-        self.prefs_tab = QWidget()
-        self.prefs_layout = QVBoxLayout()
-        
-        self.welcome_label = QLabel(f"User: <b>{self.current_user}</b>")
-        self.software_selector = QComboBox()
-        self.software_selector.addItems(self.orion_utils.software)
+        self.apps_tab = QWidget()
+        self.apps_layout = QVBoxLayout()
 
-        self.load_prefs_button = QPushButton('Load Prefs')
-        self.load_prefs_button.clicked.connect(self.load_prefs)
-        
-        self.save_prefs_button = QPushButton('Save Prefs')
-        self.save_prefs_button.clicked.connect(self.save_prefs)
+        self.lbl_apps_header = QLabel("<b>Software Launchers</b>")
+        self.apps_layout.addWidget(self.lbl_apps_header)
 
-        self.prefs_layout.addWidget(self.welcome_label)
-        self.prefs_layout.addWidget(QLabel("Select Software:"))
-        self.prefs_layout.addWidget(self.software_selector)
-        self.prefs_layout.addWidget(self.load_prefs_button)
-        self.prefs_layout.addWidget(self.save_prefs_button)
-        self.prefs_layout.addStretch()
-        self.prefs_tab.setLayout(self.prefs_layout)
+        # Maya Launcher
+        self.btn_launch_maya = QPushButton("Launch Maya 2026")
+        self.btn_launch_maya.setMinimumHeight(50)
+        #button styling
+        self.btn_launch_maya.setStyleSheet("""
+            QPushButton {
+                background-color: #388E3C; 
+                color: white; 
+                font-weight: bold; 
+                font-size: 14px;
+                border-radius: 5px;
+            }
+            QPushButton:hover {
+                background-color: #4CAF50;
+            }
+        """)
+        self.btn_launch_maya.clicked.connect(self.handle_launch_maya)
+        
+        self.apps_layout.addWidget(self.btn_launch_maya)
+        self.apps_layout.addStretch() # Pushes everything up
+        self.apps_tab.setLayout(self.apps_layout)
 
         # --------------------------
         # TAB 2: PRODUCTION
@@ -124,9 +139,32 @@ class OrionTechUI(QWidget):
         self.prod_layout.addStretch()
         self.prod_tab.setLayout(self.prod_layout)
 
+        # --------------------------
+        # TAB 3: PREFERENCES
+        # --------------------------
+        self.prefs_tab = QWidget()
+        self.prefs_layout = QVBoxLayout()
+        
+        self.welcome_label = QLabel(f"User: <b>{self.current_user}</b>")
+        self.software_selector = QComboBox()
+        self.software_selector.addItems(self.orion_utils.software)
+
+        self.load_prefs_button = QPushButton('Load Prefs')
+        self.load_prefs_button.clicked.connect(self.load_prefs)
+        
+        self.save_prefs_button = QPushButton('Save Prefs')
+        self.save_prefs_button.clicked.connect(self.save_prefs)
+
+        self.prefs_layout.addWidget(self.welcome_label)
+        self.prefs_layout.addWidget(QLabel("Select Software:"))
+        self.prefs_layout.addWidget(self.software_selector)
+        self.prefs_layout.addWidget(self.load_prefs_button)
+        self.prefs_layout.addWidget(self.save_prefs_button)
+        self.prefs_layout.addStretch()
+        self.prefs_tab.setLayout(self.prefs_layout)
 
         # --------------------------
-        # TAB 3: SETTINGS
+        # TAB 4: SETTINGS
         # --------------------------
         self.settings_tab = QWidget()
         self.settings_layout = QVBoxLayout()
@@ -148,8 +186,9 @@ class OrionTechUI(QWidget):
         self.discord_checkbox.setChecked(self.settings.get('discord_on_startup', False))
 
         # Add Tabs and Finalize
-        self.tabs.addTab(self.prefs_tab, 'Prefs')
+        self.tabs.addTab(self.apps_tab, 'Apps') # Added Apps as first tab
         self.tabs.addTab(self.prod_tab, 'Production')
+        self.tabs.addTab(self.prefs_tab, 'Prefs')
         self.tabs.addTab(self.settings_tab, 'Settings')
         
         self.layout.addWidget(self.tabs)
@@ -158,7 +197,21 @@ class OrionTechUI(QWidget):
         # Initial Load
         self.refresh_shot_list()
 
-    # --- HELPERS ---
+    # --- HANDLERS ---
+
+    def handle_launch_maya(self):
+        """Executes the custom Maya Launcher"""
+        if launch_maya:
+            try:
+                print("Starting Maya Launcher...")
+                # Optionally minimize the UI while launching
+                # self.showMinimized() 
+                launch_maya()
+            except Exception as e:
+                QMessageBox.critical(self, "Launch Error", f"An error occurred while launching Maya:\n{e}")
+        else:
+            QMessageBox.warning(self, "Launcher Missing", "Could not import 'dcc.maya.maya_launcher'.\nCheck if the file exists.")
+
     def add_separator(self, layout):
         line = QFrame()
         line.setFrameShape(QFrame.HLine)
