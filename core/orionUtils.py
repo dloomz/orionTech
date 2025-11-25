@@ -151,6 +151,27 @@ class OrionUtils():
         conn.row_factory = sqlite3.Row  # Allows accessing columns by name
         conn.execute("PRAGMA foreign_keys = ON") # Enforce integrity
         return conn
+    
+    def get_shot_thread_id(self, shot_code):
+        """Fetches the Discord Thread ID for a specific shot from the DB."""
+        conn = self.get_db_connection()
+        try:
+            # Safety check for column existence
+            cursor = conn.execute("PRAGMA table_info(shots)")
+            columns = [info[1] for info in cursor.fetchall()]
+            
+            if "discord_thread_id" not in columns:
+                return None
+
+            row = conn.execute('SELECT discord_thread_id FROM shots WHERE code = ?', (shot_code,)).fetchone()
+            if row and row['discord_thread_id']:
+                return row['discord_thread_id']
+            return None
+        except Exception as e:
+            print(f"DB Error fetching thread ID: {e}")
+            return None
+        finally:
+            conn.close()
 
     def get_all_shots(self):
         """Returns a list of all shots, sorted by code."""
@@ -289,6 +310,87 @@ class OrionUtils():
         except Exception as e:
             print(f"Discord notification failed: {e}")
             
+    # # --- ORION DISCORD INTEGRATION ---
+
+    # def get_shot_thread_id(self, shot_code):
+    #     """Fetches the Discord Thread ID for a specific shot."""
+    #     conn = self.get_db_connection()
+    #     try:
+    #         # Safety check for column existence
+    #         cursor = conn.execute("PRAGMA table_info(shots)")
+    #         columns = [info[1] for info in cursor.fetchall()]
+            
+    #         if "discord_thread_id" not in columns:
+    #             return None
+
+    #         row = conn.execute('SELECT discord_thread_id FROM shots WHERE code = ?', (shot_code,)).fetchone()
+    #         if row and row['discord_thread_id']:
+    #             return row['discord_thread_id']
+    #         return None
+    #     except Exception as e:
+    #         print(f"DB Error fetching thread ID: {e}")
+    #         return None
+    #     finally:
+    #         conn.close()
+
+    # def send_discord_notification(self, message, file_path=None, thread_name=None, thread_id=None):
+    #     """
+    #     Sends a message to Discord using ORI_DISCORD_SHOT_WEBHOOK.
+    #     """
+    #     # Ensure libs path is importable
+    #     if self.libs_path not in sys.path:
+    #         sys.path.insert(0, self.libs_path)
+
+    #     try:
+    #         import requests
+    #     except ImportError:
+    #         print("ORION WARNING: Unable to load requests module. Discord features disabled.")
+    #         return
+        
+    #     # --- UPDATED VARIABLE NAME ---
+    #     webhook_url = os.environ.get("ORI_DISCORD_SHOT_WEBHOOK", "")
+        
+    #     if not webhook_url:
+    #         print("ORION WARNING: ORI_DISCORD_SHOT_WEBHOOK not found in .env")
+    #         return
+        
+    #     url = webhook_url
+    #     if thread_id:
+    #         url = f"{webhook_url}?thread_id={thread_id}"
+    #         thread_name = None # Cannot use both
+
+    #     payload = {
+    #         "content": message,
+    #         "username": "Orion Bot"
+    #     }
+
+    #     if thread_name:
+    #         payload["thread_name"] = thread_name
+
+    #     try:
+    #         if file_path and os.path.exists(file_path):
+    #             with open(file_path, "rb") as f:
+    #                 # 'payload_json' allows sending JSON data + file in one multipart request
+    #                 files = {
+    #                     "file": (os.path.basename(file_path), f, "application/octet-stream")
+    #                 }
+    #                 data = {
+    #                     "payload_json": json.dumps(payload)
+    #                 }
+    #                 print(f"Discord: Uploading {os.path.basename(file_path)}...")
+    #                 response = requests.post(url, data=data, files=files, timeout=60)
+    #         else:
+    #             headers = {"Content-Type": "application/json"}
+    #             response = requests.post(url, json=payload, headers=headers, timeout=10)
+
+    #         if response.status_code in [200, 201, 204]:
+    #             print("Discord Notification Sent Successfully.")
+    #         else:
+    #             print(f"Discord Error {response.status_code}: {response.text}")
+
+    #     except Exception as e:
+    #         print(f"Discord notification failed: {e}")
+            
 if __name__ == "__main__":
     
     orion = OrionUtils()
@@ -301,3 +403,5 @@ if __name__ == "__main__":
         
     except Exception as e:
         print(f"An error occurred: {e}")
+
+    

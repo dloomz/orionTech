@@ -10,8 +10,8 @@ class PrefsUtils:
         self.root_dir = self.orion.get_root_dir()
         
         #updated paths
-        self.config_folder = os.path.join(self.root_dir, "config")
-        self.software_config_path = os.path.join(self.config_folder, "software")
+        self.config_folder = os.path.join(self.root_dir, "60_config")
+        self.software_config_path = os.path.join(self.config_folder, "dcc_configs")
         self.data_folder = os.path.join(self.root_dir, "data")
         
         # Load main config to get lists
@@ -119,59 +119,61 @@ class PrefsUtils:
 
         pref_data = self.orion.read_json(pref_json)
         
-        # 1. Set Environment Variables
-        env_var = pref_data.get("env_var")
-        if env_var:
-            self.set_pref_env_var(env_var, user_to_use)
-        
-        # 2. Copy Files (Server -> Local)
-        src_config = pref_data.get("destination") # Server is source for loading
-        dst_config = pref_data.get("source")      # Local is dest for loading
+        #copy files
+        src_config = pref_data.get("source") 
+        dst_path = pref_data.get("destination")      
 
-        if not src_config or not dst_config:
+        if not src_config or not dst_path:
             return
 
-        if software == "houdini":
-            # Specific logic for Houdini jump.pref
-            # Note: In your new structure, ensure path exists
-            jump_src = os.path.join(self.root_dir, "60_config", "softwarePrefs", "houdini", "jump.pref")
-            jump_dst = os.path.join("C:\\Docs\\houdini20.5", "jump.pref") # Hardcoded based on your old file
-            
-            if os.path.exists(jump_src):
+        src_path = os.path.join(self.root_dir, src_config.format(user=user_to_use))
+
+        if os.path.exists(src_path):
                 try:
-                    shutil.copyfile(jump_src, jump_dst)
-                    print("Loaded jump.pref")
+                    shutil.copytree(src_path, dst_path, dirs_exist_ok=True)
+                    print(f"Copied prefs from: {src_path} to {dst_path}")
                 except Exception as e:
-                    print(f"Error loading jump.pref: {e}")
+                    print(f"Error copying prefs from: {src_path} to {dst_path}: {e}")
 
-        elif software != "nuke":
+        # if software == "houdini":
+        #     jump_src = os.path.join(self.root_dir, "60_config", "softwarePrefs", "houdini", "jump.pref")
+        #     jump_dst = os.path.join("C:\\Docs\\houdini20.5", "jump.pref") 
+            
+        #     if os.path.exists(jump_src):
+        #         try:
+        #             shutil.copyfile(jump_src, jump_dst)
+        #             print("Loaded jump.pref")
+        #         except Exception as e:
+        #             print(f"Error loading jump.pref: {e}")
 
-            server_paths_map = src_config # This holds "maya_config": "path/to/server"
-            local_paths_map = dst_config  # This holds "maya_pref": "C:/Docs/..."
+        # elif software != "nuke":
+
+        #     server_paths_map = src_config # This holds "maya_config": "path/to/server"
+        #     local_paths_map = dst_config  # This holds "maya_pref": "C:/Docs/..."
             
-            # We need to map specific keys if they exist, or iterate
-            # Simplified logic assuming keys align somewhat or we just iterate values
+        #     # We need to map specific keys if they exist, or iterate
+        #     # Simplified logic assuming keys align somewhat or we just iterate values
             
-            #retrieve server base path
-            server_base_key = f"{software}_config"
-            if server_base_key in server_paths_map:
-                server_fmt = server_paths_map[server_base_key]
-                server_root = os.path.join(self.root_dir, server_fmt.format(user=user_to_use))
+        #     #retrieve server base path
+        #     server_base_key = f"{software}_config"
+        #     if server_base_key in server_paths_map:
+        #         server_fmt = server_paths_map[server_base_key]
+        #         server_root = os.path.join(self.root_dir, server_fmt.format(user=user_to_use))
                 
-                if os.path.exists(server_root):
-                    #iterate over local destinations
-                    for local_path in local_paths_map.values():
-                        folder_name = os.path.basename(local_path)
-                        server_source = os.path.join(server_root, folder_name)
+        #         if os.path.exists(server_root):
+        #             #iterate over local destinations
+        #             for local_path in local_paths_map.values():
+        #                 folder_name = os.path.basename(local_path)
+        #                 server_source = os.path.join(server_root, folder_name)
                         
-                        if os.path.exists(server_source):
-                            try:
-                                #copytree with dirs_exist_ok=True 
-                                os.makedirs(os.path.dirname(local_path), exist_ok=True)
-                                shutil.copytree(server_source, local_path, dirs_exist_ok=True)
-                                print(f"Loaded prefs from {server_source} to {local_path}")
-                            except Exception as e:
-                                print(f"Error loading prefs to {local_path}: {e}")
+        #                 if os.path.exists(server_source):
+        #                     try:
+        #                         #copytree with dirs_exist_ok=True 
+        #                         os.makedirs(os.path.dirname(local_path), exist_ok=True)
+        #                         shutil.copytree(server_source, local_path, dirs_exist_ok=True)
+        #                         print(f"Loaded prefs from {server_source} to {local_path}")
+        #                     except Exception as e:
+        #                         print(f"Error loading prefs to {local_path}: {e}")
 
     # --- SETTINGS HANDLING ---
 
@@ -205,3 +207,13 @@ class PrefsUtils:
             print("Settings saved.")
         except Exception as e:
             print(f"Failed to save settings: {e}")
+            
+if __name__ == "__main__":
+    
+    import orionUtils
+    import prefsUtils
+    
+    orion = orionUtils.OrionUtils()
+    prefs = prefsUtils.PrefsUtils(orion)
+    
+    prefs.load_prefs("maya")

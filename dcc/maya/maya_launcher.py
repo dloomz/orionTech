@@ -21,8 +21,15 @@ def launch_maya():
         print(f"Error details: {e}")
         return
     
-    orion = OrionUtils()
+    try:
+        from core.prefsUtils import PrefsUtils
+    except ImportError as e:
+        print(f"CRITICAL ERROR: Could not import PrefsUtils. Checked path: {pipeline_root}")
+        print(f"Error details: {e}")
+        return
     
+    orion = OrionUtils()
+
     ORI_PROJECT_PATH = orion.get_root_dir()
     print(f"Pipeline Root Detected: {ORI_PROJECT_PATH}")
 
@@ -47,7 +54,13 @@ def launch_maya():
     env = os.environ.copy()
     
     #PYTHONPATH: python find scripts in your 'scripts' folder
-    env["PYTHONPATH"] = os.path.join(ROOT_PATH, "scripts") + os.pathsep + env.get("PYTHONPATH", "")
+    MAYA_SCRIPT_PATH = os.path.join(ROOT_PATH, "scripts")
+    ORI_LIBS_PATH = os.path.join(ORI_ROOT_PATH, "60_config", "libs")
+    
+    all_maya_paths = [MAYA_SCRIPT_PATH, ORI_LIBS_PATH]
+    ORI_MAYA_PATHS = os.pathsep.join(all_maya_paths)
+
+    env["PYTHONPATH"] = ORI_MAYA_PATHS + os.pathsep + env.get("PYTHONPATH", "")
 
     #MAYA paths
     env["MAYA_SHELF_PATH"] = os.path.join(ROOT_PATH, "shelves") + os.pathsep + env.get("MAYA_SHELF_PATH", "")
@@ -81,8 +94,11 @@ def launch_maya():
     env["MAYA_PROJECT"] = ORI_PROJECT_PATH
     env["ORI_PROJECT_PATH"] = ORI_PROJECT_PATH
 
+    pref = PrefsUtils(orion)
+    pref.load_prefs("maya", user)
+    
+
     # launch Maya with the modified environment
-    # subprocess.Popen allows the script to finish while Maya keeps running
     try:
         subprocess.Popen([MAYA_EXE], env=env)
     except FileNotFoundError:
@@ -92,3 +108,10 @@ def launch_maya():
 
 if __name__ == "__main__":
     launch_maya()
+
+
+#import syncsketchGUI.actions
+#syncsketchGUI.actions.install_shelf()
+
+# import syncsketchGUI.actions
+# syncsketchGUI.actions.build_menu()

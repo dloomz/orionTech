@@ -93,29 +93,29 @@ class OrionTechUI(QWidget):
             }
         """)
         
-        #Houdini Launcher
-        self.btn_launch_houdini = QPushButton("Launch Houdini")
-        self.btn_launch_houdini.setMinimumHeight(50)
-        #button styling
-        self.btn_launch_houdini.setStyleSheet("""
-            QPushButton {
-                background-color: #FC9749; 
-                color: white; 
-                font-weight: bold; 
-                font-size: 14px;
-                border-radius: 5px;
-            }
-            QPushButton:hover {
-                background-color: #FFB37D;
-            }
-        """)
+        # #Houdini Launcher
+        # self.btn_launch_houdini = QPushButton("Launch Houdini")
+        # self.btn_launch_houdini.setMinimumHeight(50)
+        # #button styling
+        # self.btn_launch_houdini.setStyleSheet("""
+        #     QPushButton {
+        #         background-color: #FC9749; 
+        #         color: white; 
+        #         font-weight: bold; 
+        #         font-size: 14px;
+        #         border-radius: 5px;
+        #     }
+        #     QPushButton:hover {
+        #         background-color: #FFB37D;
+        #     }
+        # """)
         
         self.btn_launch_maya.clicked.connect(self.handle_launch_maya)
         self.btn_launch_nuke.clicked.connect(self.handle_launch_nuke)
         
         self.apps_layout.addWidget(self.btn_launch_maya)
         self.apps_layout.addWidget(self.btn_launch_nuke)
-        self.apps_layout.addWidget(self.btn_launch_houdini)
+        # self.apps_layout.addWidget(self.btn_launch_houdini)
         
         self.apps_layout.addStretch() # Pushes everything up
         self.apps_tab.setLayout(self.apps_layout)
@@ -192,29 +192,29 @@ class OrionTechUI(QWidget):
         self.prod_layout.addStretch()
         self.prod_tab.setLayout(self.prod_layout)
 
-        # --------------------------
-        # TAB 3: PREFERENCES
-        # --------------------------
-        self.prefs_tab = QWidget()
-        self.prefs_layout = QVBoxLayout()
+        # # --------------------------
+        # # TAB 3: PREFERENCES
+        # # --------------------------
+        # self.prefs_tab = QWidget()
+        # self.prefs_layout = QVBoxLayout()
         
-        self.welcome_label = QLabel(f"User: <b>{self.current_user}</b>")
-        self.software_selector = QComboBox()
-        self.software_selector.addItems(self.orion_utils.software)
+        # self.welcome_label = QLabel(f"User: <b>{self.current_user}</b>")
+        # self.software_selector = QComboBox()
+        # self.software_selector.addItems(self.orion_utils.software)
 
-        self.load_prefs_button = QPushButton('Load Prefs')
-        self.load_prefs_button.clicked.connect(self.load_prefs)
+        # self.load_prefs_button = QPushButton('Load Prefs')
+        # self.load_prefs_button.clicked.connect(self.load_prefs)
         
-        self.save_prefs_button = QPushButton('Save Prefs')
-        self.save_prefs_button.clicked.connect(self.save_prefs)
+        # self.save_prefs_button = QPushButton('Save Prefs')
+        # self.save_prefs_button.clicked.connect(self.save_prefs)
 
-        self.prefs_layout.addWidget(self.welcome_label)
-        self.prefs_layout.addWidget(QLabel("Select Software:"))
-        self.prefs_layout.addWidget(self.software_selector)
-        self.prefs_layout.addWidget(self.load_prefs_button)
-        self.prefs_layout.addWidget(self.save_prefs_button)
-        self.prefs_layout.addStretch()
-        self.prefs_tab.setLayout(self.prefs_layout)
+        # self.prefs_layout.addWidget(self.welcome_label)
+        # self.prefs_layout.addWidget(QLabel("Select Software:"))
+        # self.prefs_layout.addWidget(self.software_selector)
+        # self.prefs_layout.addWidget(self.load_prefs_button)
+        # self.prefs_layout.addWidget(self.save_prefs_button)
+        # self.prefs_layout.addStretch()
+        # self.prefs_tab.setLayout(self.prefs_layout)
 
         # --------------------------
         # TAB 4: SETTINGS
@@ -241,7 +241,7 @@ class OrionTechUI(QWidget):
         # Add Tabs and Finalize
         self.tabs.addTab(self.apps_tab, 'Apps') # Added Apps as first tab
         self.tabs.addTab(self.prod_tab, 'Production')
-        self.tabs.addTab(self.prefs_tab, 'Prefs')
+        # self.tabs.addTab(self.prefs_tab, 'Prefs')
         self.tabs.addTab(self.settings_tab, 'Settings')
         
         self.layout.addWidget(self.tabs)
@@ -356,18 +356,21 @@ class OrionTechUI(QWidget):
                 self.edit_end_input.setText(str(shot['frame_end']))
 
     # --- PREFS & SETTINGS HANDLERS ---
-    def load_prefs(self):
-        self.prefs_utils.load_prefs(self.software_selector.currentText(), self.current_user)
-        QMessageBox.information(self, "Success", "Preferences Loaded")
+    # def load_prefs(self):
+    #     self.prefs_utils.load_prefs(self.software_selector.currentText(), self.current_user)
+    #     QMessageBox.information(self, "Success", "Preferences Loaded")
 
-    def save_prefs(self):
-        self.prefs_utils.save_prefs(self.software_selector.currentText(), self.current_user)
-        QMessageBox.information(self, "Success", "Preferences Saved")
+    # def save_prefs(self):
+    #     self.prefs_utils.save_prefs(self.software_selector.currentText(), self.current_user)
+    #     QMessageBox.information(self, "Success", "Preferences Saved")
 
     def toggle_dark_mode(self, state):
         self.settings['dark_mode'] = (state == Qt.Checked)
         self.prefs_utils.save_settings(self.settings)
         self.system_utils.set_windows_dark_mode(state == Qt.Checked)
+        
+        #C:\Windows\Resources\Themes\aero.theme
+        #C:\Windows\Resources\Themes\dark.theme
 
     def toggle_discord_startup(self, state):
         self.settings['discord_on_startup'] = (state == Qt.Checked)

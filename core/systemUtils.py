@@ -2,6 +2,7 @@ import os
 from datetime import datetime
 import subprocess
 import ctypes
+import time
 import winreg
 
 class SystemUtils:
@@ -40,50 +41,78 @@ class SystemUtils:
 
         #enabled (bool): True to enable dark mode, False for light mode.
 
+        #C:\Windows\Resources\Themes\aero.theme
+        #C:\Windows\Resources\Themes\dark.theme
+
+        light_path = r"C:\Windows\Resources\Themes\aero.theme"
+        dark_path = r"C:\Windows\Resources\Themes\dark.theme"
+
+
         if enabled == True:
-            if os.name != 'nt' or winreg is None:
-                print("Dark mode control is only supported on Windows.")
-                return
-
-            try:
-                # The registry key that controls theme settings
-                key_path = r'Software\Microsoft\Windows\CurrentVersion\Themes\Personalize'
-                
-                reg_key = winreg.CreateKey(winreg.HKEY_CURRENT_USER, key_path)
-                winreg.SetValueEx(reg_key, "AppsUseLightTheme", 0, winreg.REG_DWORD, 0)
-                winreg.SetValueEx(reg_key, "SystemUsesLightTheme", 0, winreg.REG_DWORD, 0)
-                winreg.CloseKey(reg_key)
-
-                print(f"Windows dark mode set to: {enabled}")
             
-            except FileNotFoundError:
-                print("Could not find the reg key for theme.")
+            try:
+                
+                os.startfile(dark_path)
+                time.sleep(0.45)
+                subprocess.run("taskkill /IM SystemSettings.exe /F", shell=True)
+                
+                # subprocess.run(["rundll32.exe",
+                #                 "themeui.dll,OpenTheme",
+                #                 dark_path], check=True)
+                
             except Exception as e:
-                print(f"An error occurred while changing the theme: {e}")
+                print(f"An error occurred: {e}") 
+            
+            # if os.name != 'nt' or winreg is None:
+            #     print("Dark mode control is only supported on Windows.")
+            #     return
 
-            os.system("taskkill /f /im explorer.exe")
-            subprocess.Popen("explorer.exe")
+            # try:
+            #     # The registry key that controls theme settings
+            #     key_path = r'Software\Microsoft\Windows\CurrentVersion\Themes\Personalize'
+                
+            #     reg_key = winreg.CreateKey(winreg.HKEY_CURRENT_USER, key_path)
+            #     winreg.SetValueEx(reg_key, "AppsUseLightTheme", 0, winreg.REG_DWORD, 0)
+            #     winreg.SetValueEx(reg_key, "SystemUsesLightTheme", 0, winreg.REG_DWORD, 0)
+            #     winreg.CloseKey(reg_key)
+
+            #     print(f"Windows dark mode set to: {enabled}")
+            
+            # except FileNotFoundError:
+            #     print("Could not find the reg key for theme.")
+            # except Exception as e:
+            #     print(f"An error occurred while changing the theme: {e}")
+
+            # os.system("taskkill /f /im explorer.exe")
+            # subprocess.Popen("explorer.exe")
             
         else:
 
             try:
-                # The registry key that controls theme settings
-                key_path = r'Software\Microsoft\Windows\CurrentVersion\Themes\Personalize'
+                
+                os.startfile(light_path)
+                time.sleep(0.45)
+                subprocess.run("taskkill /IM SystemSettings.exe /F", shell=True)
+                # subprocess.run(["rundll32.exe",
+                #                 "themeui.dll,OpenTheme",
+                #                 light_path], check=True)
+                # # The registry key that controls theme settings
+                # key_path = r'Software\Microsoft\Windows\CurrentVersion\Themes\Personalize'
 
-                reg_key = winreg.CreateKey(winreg.HKEY_CURRENT_USER, key_path)
+                # reg_key = winreg.CreateKey(winreg.HKEY_CURRENT_USER, key_path)
         
-                is_app_light = winreg.QueryValueEx(reg_key, "AppsUseLightTheme")
-                is_sys_light = winreg.QueryValueEx(reg_key, "SystemUsesLightTheme")
+                # is_app_light = winreg.QueryValueEx(reg_key, "AppsUseLightTheme")
+                # is_sys_light = winreg.QueryValueEx(reg_key, "SystemUsesLightTheme")
 
-                if is_app_light and is_sys_light == 0:
-                    winreg.SetValueEx(reg_key, "AppsUseLightTheme", 1, winreg.REG_DWORD, 1)
-                    winreg.SetValueEx(reg_key, "SystemUsesLightTheme", 1, winreg.REG_DWORD, 1)
+                # if is_app_light and is_sys_light == 0:
+                #     winreg.SetValueEx(reg_key, "AppsUseLightTheme", 1, winreg.REG_DWORD, 1)
+                #     winreg.SetValueEx(reg_key, "SystemUsesLightTheme", 1, winreg.REG_DWORD, 1)
 
-                else:
-                    pass
+                # else:
+                #     pass
             
-            except:
-                pass
+            except Exception as e:
+                print(f"An error occurred: {e}") 
             
     def add_line_to_file(self, file_path, line_to_add):
 
