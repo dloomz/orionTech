@@ -3,7 +3,6 @@ from datetime import datetime
 import subprocess
 import ctypes
 import time
-import winreg
 
 class SystemUtils:
 
