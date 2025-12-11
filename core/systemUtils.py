@@ -1,8 +1,10 @@
 import os
 from datetime import datetime
+import webbrowser
 import subprocess
 import ctypes
 import time
+import shutil
 
 class SystemUtils:
 
@@ -46,69 +48,22 @@ class SystemUtils:
         light_path = r"C:\Windows\Resources\Themes\aero.theme"
         dark_path = r"C:\Windows\Resources\Themes\dark.theme"
 
-
         if enabled == True:
             
             try:
-                
                 os.startfile(dark_path)
                 time.sleep(0.45)
                 subprocess.run("taskkill /IM SystemSettings.exe /F", shell=True)
-                
-                # subprocess.run(["rundll32.exe",
-                #                 "themeui.dll,OpenTheme",
-                #                 dark_path], check=True)
-                
+                             
             except Exception as e:
                 print(f"An error occurred: {e}") 
-            
-            # if os.name != 'nt' or winreg is None:
-            #     print("Dark mode control is only supported on Windows.")
-            #     return
-
-            # try:
-            #     # The registry key that controls theme settings
-            #     key_path = r'Software\Microsoft\Windows\CurrentVersion\Themes\Personalize'
-                
-            #     reg_key = winreg.CreateKey(winreg.HKEY_CURRENT_USER, key_path)
-            #     winreg.SetValueEx(reg_key, "AppsUseLightTheme", 0, winreg.REG_DWORD, 0)
-            #     winreg.SetValueEx(reg_key, "SystemUsesLightTheme", 0, winreg.REG_DWORD, 0)
-            #     winreg.CloseKey(reg_key)
-
-            #     print(f"Windows dark mode set to: {enabled}")
-            
-            # except FileNotFoundError:
-            #     print("Could not find the reg key for theme.")
-            # except Exception as e:
-            #     print(f"An error occurred while changing the theme: {e}")
-
-            # os.system("taskkill /f /im explorer.exe")
-            # subprocess.Popen("explorer.exe")
             
         else:
 
             try:
-                
                 os.startfile(light_path)
                 time.sleep(0.45)
                 subprocess.run("taskkill /IM SystemSettings.exe /F", shell=True)
-                # subprocess.run(["rundll32.exe",
-                #                 "themeui.dll,OpenTheme",
-                #                 light_path], check=True)
-                # # The registry key that controls theme settings
-                # key_path = r'Software\Microsoft\Windows\CurrentVersion\Themes\Personalize'
-
-                # reg_key = winreg.CreateKey(winreg.HKEY_CURRENT_USER, key_path)
-        
-                # is_app_light = winreg.QueryValueEx(reg_key, "AppsUseLightTheme")
-                # is_sys_light = winreg.QueryValueEx(reg_key, "SystemUsesLightTheme")
-
-                # if is_app_light and is_sys_light == 0:
-                #     winreg.SetValueEx(reg_key, "AppsUseLightTheme", 1, winreg.REG_DWORD, 1)
-                #     winreg.SetValueEx(reg_key, "SystemUsesLightTheme", 1, winreg.REG_DWORD, 1)
-
-                # else:
-                #     pass
             
             except Exception as e:
                 print(f"An error occurred: {e}") 
@@ -145,30 +100,30 @@ class SystemUtils:
 
         return files_modified
 
+    def open_window(self, site, enabled: bool):
+        
+        chrome = r"C:\Program Files\Google\Chrome\Application\chrome.exe"
+        webbrowser.register('chrome', None, 
+                        webbrowser.BackgroundBrowser(chrome))
+        
+        if enabled == True:
+            webbrowser.get('chrome').open(site)
+            
+        else:
+            pass
+
+    def wacom_fix(self, enabled: bool):
+        
+        if enabled == True:
+            WACOM_PATH = r"P:\all_work\studentGroups\ORION_CORPORATION\60_config\wacom\ORION.wacomprefs"
+            
+            CMD = f"powershell -c \"{WACOM_PATH}\""
+            subprocess.run(CMD, shell=True)
+            
+        else:
+            pass
 
     def env_setup(self):
-
-        # path = [r"P:\all_work\studentGroups\ORION_CORPORATION", f"P:\\all_work\\studentGroups\\ORION_CORPORATION\\05_sandbox\\{self.current_user}"]
-
-        # for p in path:
-        #     subprocess.run([
-        #         "powershell", "-Command",
-        #         f"($qa = New-Object -ComObject shell.application).Namespace('{p}').Self.InvokeVerb('pintohome')"
-        #     ])
-
-        #set orion project path
-        
-        # envs = [
-        #     ("ORI_CONFIG_PATH", self.config_path),
-        #     ("ORI_ROOT_PATH", self.orion.get_root_dir())
-        # ]
-        
-        # for var, val in envs:
-        #     command = f'setx {var} "{val}"'
-        #     subprocess.run(command, shell=True, check=False)
-        
-        # os.environ['ORI_CONFIG_PATH'] = self.config_path
-        # os.environ['ORI_ROOT_PATH'] = self.orion.get_root_dir()
 
         env_json = os.path.join(self.config_path, "env_var.json")
 

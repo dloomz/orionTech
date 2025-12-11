@@ -119,8 +119,11 @@ if os.path.exists(GIZMO_DIR):
                         topMenu.addCommand(menu_path, f'nuke.createNode("{gizmo_name}")')
 
 #ROOT SET-UP
-nuke.knobDefault("Root.format", "UHD_4K")
-nuke.Root()['format'].setValue('UHD_4K')
+
+ORI_2K = "2560 1440 ORION_2K"
+nuke.addFormat( ORI_2K )
+nuke.knobDefault("Root.format", "ORION_2K")
+nuke.Root()['format'].setValue("ORION_2K")
 nuke.Root()['fps'].setValue(24)
 
 

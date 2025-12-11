@@ -224,19 +224,23 @@ class OrionTechUI(QWidget):
         
         self.dark_mode_checkbox = QCheckBox('Enable Windows Dark Mode')
         self.discord_checkbox = QCheckBox('Open Discord on Startup')
+        self.wacom_checkbox = QCheckBox('Wacom Fix')
         
         self.settings_layout.addWidget(self.dark_mode_checkbox)
         self.settings_layout.addWidget(self.discord_checkbox)
+        self.settings_layout.addWidget(self.wacom_checkbox)
         self.settings_layout.addStretch()
         self.settings_tab.setLayout(self.settings_layout)
 
         # Connections
         self.dark_mode_checkbox.stateChanged.connect(self.toggle_dark_mode)
         self.discord_checkbox.stateChanged.connect(self.toggle_discord_startup)
+        self.wacom_checkbox.stateChanged.connect(self.wacom_fix)
         
         # Set Defaults
         self.dark_mode_checkbox.setChecked(self.settings.get('dark_mode', False))
         self.discord_checkbox.setChecked(self.settings.get('discord_on_startup', False))
+        self.wacom_checkbox.setChecked(self.settings.get('wacom_fix', False))
 
         # Add Tabs and Finalize
         self.tabs.addTab(self.apps_tab, 'Apps') # Added Apps as first tab
@@ -369,9 +373,16 @@ class OrionTechUI(QWidget):
         self.prefs_utils.save_settings(self.settings)
         self.system_utils.set_windows_dark_mode(state == Qt.Checked)
         
-        #C:\Windows\Resources\Themes\aero.theme
-        #C:\Windows\Resources\Themes\dark.theme
 
     def toggle_discord_startup(self, state):
         self.settings['discord_on_startup'] = (state == Qt.Checked)
         self.prefs_utils.save_settings(self.settings)
+        
+        discord_path = "https://discord.com/login"
+        self.system_utils.open_window(discord_path, state == Qt.Checked)
+        
+    def wacom_fix(self, state):
+        
+        self.settings['wacom_fix'] = (state == Qt.Checked)
+        self.prefs_utils.save_settings(self.settings)
+        self.system_utils.wacom_fix(state == Qt.Checked)
