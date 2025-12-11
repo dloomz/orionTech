@@ -2,6 +2,7 @@ import os
 import subprocess
 import sys
 from pathlib import Path
+import shutil
 
 def launch_nuke():
     
@@ -10,6 +11,8 @@ def launch_nuke():
     #custom paths
     current_script_dir = Path(__file__).resolve().parent
     pipeline_root = current_script_dir.parent.parent
+    
+    print(pipeline_root)
     
     if str(pipeline_root) not in sys.path:
         sys.path.append(str(pipeline_root))
@@ -32,6 +35,7 @@ def launch_nuke():
     
     #path to maya exe
     NUKE_EXE = r"C:\Program Files\Nuke16.0v2\Nuke16.0.exe"
+    FLAG = "--nukex"
 
     ORI_ROOT_PATH = os.environ.get("ORI_ROOT_PATH")
     print("ORI_ROOT_PATH:", ORI_ROOT_PATH)
@@ -41,10 +45,18 @@ def launch_nuke():
         return
 
     ROOT_PATH = os.path.join(ORI_ROOT_PATH, "60_config", "softwarePrefs", "nuke") 
+    PIPELINE_PATH = os.path.join(ORI_ROOT_PATH, "00_pipeline", "orionTech")
     USER_PATH = os.path.join(ORI_ROOT_PATH, "60_config", "userPrefs", f"{user}", "nuke")
-    OCIO_PATH = r"\\monster\projects\all_work\studentGroups\ORION_CORPORATION\60_config\colorManagement\aces_1.2\config.ocio"
-
-    #ocio = \\monster\projects\all_work\studentGroups\ORION_CORPORATION\60_config\colorManagement\aces_1.2\config.ocio
+    
+    WORKSPACE_SRC = os.path.join(USER_PATH, "Workspaces")
+    WORKSPACE_DST = f"C:\\Users\\{user}\\.nuke\\Workspaces\\Nuke"
+    
+    try:
+        shutil.copytree(WORKSPACE_SRC, WORKSPACE_DST, dirs_exist_ok=True)
+    except Exception as e:
+        print(f"Unable to copy workspaces: {e}")
+    
+    # OCIO_PATH = r"P:\all_work\studentGroups\ORION_CORPORATION\60_config\colorManagement\aces_1.2\config.ocio"
 
     BASE_PLUGINS_PATH = os.path.join(ORI_ROOT_PATH, "60_config", "softwarePrefs", "nuke", "plugins")
     NEW_PLUGINS_PATH = [BASE_PLUGINS_PATH]
@@ -67,10 +79,11 @@ def launch_nuke():
     
     env["PYTHONPATH"] = os.path.join(ROOT_PATH, "python") + os.pathsep + env.get("PYTHONPATH", "")
     env["NUKE_PATH"] = ORI_NUKE_PATHS 
-    os.environ['OCIO'] = OCIO_PATH
+    env['ORI_PIPELINE_PATH'] = PIPELINE_PATH
+    # os.environ['OCIO'] = OCIO_PATH
 
     try:
-        subprocess.Popen([NUKE_EXE], env=env)
+        subprocess.Popen([NUKE_EXE, FLAG], env=env)
     except FileNotFoundError:
         print("Error: Nuke executable not found. Check the NUKE_EXE path.")
     except Exception as e:

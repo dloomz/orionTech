@@ -192,6 +192,8 @@ def submit_to_orion_deadline():
     use_nukex = dialog.useNukeX.value()
     submit_scene = dialog.submitSceneFile.value()
     discord_notify = dialog.discordNotify.value()
+    ######################################################
+    orion_ocio = r"\\monster\projects\all_work\studentGroups\ORION_CORPORATION\60_config\colorManagement\aces_1.2\config.ocio"
 
     #basic validation 
     if not frame_list:
@@ -228,6 +230,9 @@ def submit_to_orion_deadline():
         job_file_handle.write(f"Frames={frame_list}\n")
         job_file_handle.write(f"ChunkSize={chunk_size}\n")
         job_file_handle.write(f"UserName={os.environ.get('USERNAME', 'unknown')}\n") #get username
+        
+        #OCIO TEST
+        job_file_handle.write(f"EnvironmentKeyValue2=OCIO={orion_ocio}\n")
 
         #add discord notification setup if enabled
         if discord_notify:
@@ -297,16 +302,26 @@ def submit_to_orion_deadline():
 def add_orion_menu():
     """Adds the Orion Submitter to the Nuke Render menu."""
     try:
-        menu_bar = nuke.menu("Nuke")
-        render_menu = menu_bar.findItem("Render")
-        if render_menu:
-            render_menu.addCommand("Orion/Submit Nuke to Deadline", submit_to_orion_deadline)
+        mainMenu = nuke.menu("Nuke")
+        if mainMenu:
+            orionMenu = mainMenu.addMenu("ORION")
+            orionMenu.addCommand("Render/Submit to Deadline", submit_to_orion_deadline)
         else:
-            #fallback if Render menu doesn't exist
-             menu_bar.addCommand("Orion/Submit Nuke to Deadline", submit_to_orion_deadline)
+            #fallback
+             mainMenu.addCommand("Orion/Submit Nuke to Deadline", submit_to_orion_deadline)
         print("Orion Nuke Submitter added to Render menu.")
     except Exception as e:
         print(f"Failed to add Orion menu item: {e}")
+        
+    #     render_menu = menu_bar.findItem("Render")
+    #     if render_menu:
+    #         render_menu.addCommand("Orion/Submit Nuke to Deadline", submit_to_orion_deadline)
+    #     else:
+    #         #fallback if Render menu doesn't exist
+    #          menu_bar.addCommand("Orion/Submit Nuke to Deadline", submit_to_orion_deadline)
+    #     print("Orion Nuke Submitter added to Render menu.")
+    # except Exception as e:
+    #     print(f"Failed to add Orion menu item: {e}")
 
 # Run when Nuke starts (e.g., in menu.py)
 # add_orion_menu()

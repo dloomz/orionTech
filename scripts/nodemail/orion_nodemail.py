@@ -6,7 +6,6 @@ import tempfile
 from datetime import datetime
 from pathlib import Path
 
-#PySide6 is standard for Nuke 13+
 from PySide6 import QtWidgets, QtCore, QtGui
 
 try:
@@ -73,7 +72,7 @@ class MailItem(QtWidgets.QWidget):
         self.lbl_from = QtWidgets.QLabel(f"<b>From:</b> {self.sender}")
         info_layout.addWidget(self.lbl_from)
 
-        #format time slightly better if possible
+        #format time better 
         try:
             dt = datetime.fromisoformat(self.timestamp)
             pretty_time = dt.strftime("%Y-%m-%d %H:%M")
@@ -118,89 +117,16 @@ class MailItem(QtWidgets.QWidget):
 
 #MAIN WINDOW CLASS
 class NodeMailUI(QtWidgets.QMainWindow):
-    # def __init__(self, parent=None):
-        # super().__init__(parent)
-
-        # #pipeline setup
-        # # current_script_dir = Path(__file__).resolve().parent
-        # # self.pipeline_root = current_script_dir.parent.parent
-        
-        # # self.pipeline_root ="P:/all_work/studentGroups/ORION_CORPORATION/00_pipeline/orionTech"
-        # # print(f"Pipeline Root: {self.pipeline_root}")
-    
-        # # if str(self.pipeline_root) not in sys.path:
-        # #     sys.path.append(str(self.pipeline_root))
-
-        # # try:
-        # #     from core.orionUtils import OrionUtils
-        # # except ImportError as e:
-        # #     print(f"CRITICAL ERROR: Could not import OrionUtils.")
-        # #     return
-
-        # #PATH FIX ATTEMPT-
-        # # current_script_dir = Path(__file__).resolve().parent
-        # # self.pipeline_root = current_script_dir.parent.parent
-        
-        # # pipeline_path_str = str(self.pipeline_root)
-        
-        # pipeline_path_str = r"P:\all_work\studentGroups\ORION_CORPORATION\00_pipeline\orionTech"
-
-        # #INSERT INSTEAD OF APPEND TO PRIORITIZE
-        # if pipeline_path_str not in sys.path:
-        #     sys.path.insert(0, pipeline_path_str)
-        # else:
-        #     #move to front
-        #     sys.path.remove(pipeline_path_str)
-        #     sys.path.insert(0, pipeline_path_str)
-
-        # try:
-        #     from core.orionUtils import OrionUtils
-        #     print(f"OrionUtils imported successfully from: {pipeline_path_str}")
-        # except ImportError as e:
-        #     print("---------------------------------------------------")
-        #     print(f"CRITICAL ERROR: Could not import OrionUtils.")
-        #     print(f"Attempted to look in: {pipeline_path_str}")
-        #     print(f"Error details: {e}")
-        #     print("---------------------------------------------------")
-        #     return
-
-        # self.orion = OrionUtils()
-        
-        # root_path = self.orion.get_root_dir()
-        # self.nodemail_path = os.path.join(root_path, "60_config", "nodemail")
-        
-        # #ensure mail folder exists
-        # if not os.path.exists(self.nodemail_path):
-        #     try:
-        #         os.makedirs(self.nodemail_path)
-        #     except:
-        #         pass
-
-        # usernames = self.orion.get_usernames()
-        # self.user = os.getenv("USERNAME")
-
-        # self.setObjectName("NodeMailWindow")
-        # self.setWindowTitle(f"NodeMail - Logged in as: {self.user}")
-        # self.setMinimumWidth(800)
-        # self.setMinimumHeight(500)
-
-        # self.current_selected_item = None
-        
-        # self.build_ui(usernames)
-        
-        # #refresh on startup
-        # self.update_selection_display()
-        # self.refresh_inbox()
-
     def __init__(self, parent=None):
         super().__init__(parent)
 
-        # --- PATH SETUP & IMPORT FIX ---
-        current_script_dir = Path(__file__).resolve().parent
-        # Go up two levels: scripts/nodemail -> scripts -> orionTech
-        self.pipeline_root = current_script_dir.parent.parent
+        #PATH SETUP AND IMPORT FIX 
+        # current_script_dir = Path(__file__).resolve().parent
+        os.environ.get("ORI_PIPELINE_PATH")
+        self.pipeline_root = os.environ.get("ORI_PIPELINE_PATH")
+        # self.pipeline_root = current_script_dir.parent.parent
         
-        # Define the exact path to orionUtils.py
+        #exact path to orionUtils.py
         utils_path = os.path.join(str(self.pipeline_root), "core", "orionUtils.py")
 
         if not os.path.exists(utils_path):
@@ -211,15 +137,15 @@ class NodeMailUI(QtWidgets.QMainWindow):
             return
 
         try:
-            # DIRECT LOAD: Bypass 'sys.path' confusion by loading the file directly
+            #DIRECT LOAD: Bypass 'sys.path', load the file directly
             import importlib.util
             
-            # Create a unique name for this module so it doesn't clash with 'core'
+            #unique module name 
             spec = importlib.util.spec_from_file_location("orion_core_utils_direct", utils_path)
             orion_module = importlib.util.module_from_spec(spec)
             spec.loader.exec_module(orion_module)
             
-            # Initialize the class from the loaded module
+            #init class
             self.orion = orion_module.OrionUtils()
             print(f"OrionUtils loaded successfully from: {utils_path}")
 
@@ -232,7 +158,6 @@ class NodeMailUI(QtWidgets.QMainWindow):
             print("---------------------------------------------------")
             return
         
-        # --- CONTINUE WITH NORMAL SETUP ---
         root_path = self.orion.get_root_dir()
         self.nodemail_path = os.path.join(root_path, "60_config", "nodemail")
         
@@ -265,7 +190,7 @@ class NodeMailUI(QtWidgets.QMainWindow):
         
         self.tab_widget = QtWidgets.QTabWidget()
         
-        # --- TAB 1 INCOMING ---
+        #TAB 1 INCOMING
         update_tab = QtWidgets.QWidget()
         update_layout = QtWidgets.QVBoxLayout(update_tab)
         self.tab_widget.addTab(update_tab, "Inbox")
@@ -306,7 +231,7 @@ class NodeMailUI(QtWidgets.QMainWindow):
         update_layout.addWidget(self.scroll_window)
         update_layout.addLayout(button_layout)
         
-        # --- RIGHT COLUMN (OUTGOING) ---
+        #RIGHT COLUMN (OUTGOING) 
         right_layout = QtWidgets.QVBoxLayout()
         
         #refresh selection button
@@ -364,7 +289,7 @@ class NodeMailUI(QtWidgets.QMainWindow):
     def refresh_inbox(self):
         """Scans the nodemail directory for JSON files matching the current user."""
         
-        #clear current list (except the stretch at the end)
+        #clear current list 
         while self.inbox_vbox.count() > 1:
             item = self.inbox_vbox.takeAt(0)
             widget = item.widget()
@@ -397,7 +322,7 @@ class NodeMailUI(QtWidgets.QMainWindow):
                 print(f"Error reading mail file {f}: {e}")
 
         if found_count == 0:
-            #TODO: no mail msg
+            #TODO: no mail msg (empty mailbox)
             pass
 
     def handle_mail_click(self, clicked_item):
