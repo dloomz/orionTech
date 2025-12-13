@@ -1,0 +1,62 @@
+{
+  "enable" : true,
+  "show" : true,
+  "load_package_once" : true,
+  "env": [
+		{
+            "HOUDINI_NO_ENV_FILE" : "1"
+        },
+		{
+            "HOUDINI_ACCESS_METHOD" : "3"
+        },
+        {
+            "PDG_USE_PDGNET" : "0"
+        },
+        {
+            "HOUDINI_NO_LEGACY_MENUS" : "1"
+        },
+        {
+            "HOUDINI_DSO_ERROR": "0"
+        },
+		{
+            "HOUDINI_PACKAGE_VERBOSE": "1"
+        },
+        {
+            "HOUDINI_BUFFEREDSAVE": "1"
+        },
+		{
+            "KARMA_XPU_MAX_TEXTURE_RES" : "8192"
+        },
+        {
+            "KARMA_XPU_MAX_UDIM_U" : "90"
+        },
+		{
+            "KARMA_XPU_MAX_UDIM_V" : "90"
+        },
+		{
+            "HOUDINI_DISABLE_OPENFX_DEFAULT_PATH" : "1"
+        },
+        {
+            "HOUDINI_TOOLBAR_PATH" : "C:/Docs/houdini20.5/toolbar"
+        },
+		{
+            "HOUDINI_DESKTOP_DIR" : "C:/Docs/houdini20.5/desktop"
+        },
+        {
+            "HOUDINI_OTLSCAN_PATH" : "C:/Docs/scripts/Houdini/otls"
+        },
+		{
+            "HOUDINI_PATH": "C:/Docs/scripts/Houdini"
+        },
+		{
+            "HOUDINI_PATH": "C:/Docs/scripts/Houdini/apexgraph"
+        },		
+		{
+            "HOUDINI_CUSTOM_RECIPE_DIR": "C:/Docs/scripts/Houdini/recipes"
+        },
+		{
+            "HOUDINI_CUSTOM_RECIPE_LIBRARY": "customRecipes"
+        },
+        
+  ]
+}

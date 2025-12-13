@@ -1,0 +1,8 @@
+{
+  "enable" : true,
+  "show" : true,
+  "load_package_once" : true,
+  "env": [
+	{"OCIO" : "${OCIO-P:/all_work/studentGroups/ORION_CORPORATION/60_config/colorManagement/aces_1.2/config.ocio}"}
+  ]
+}

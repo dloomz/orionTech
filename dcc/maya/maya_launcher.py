@@ -48,7 +48,6 @@ def launch_maya():
         return
 
     ROOT_PATH = os.path.join(ORI_ROOT_PATH, "60_config", "softwarePrefs", "maya") 
-    MAYA_EXE = r"C:\Program Files\Autodesk\Maya2026\bin\maya.exe"
 
     #copy the current system environment
     env = os.environ.copy()

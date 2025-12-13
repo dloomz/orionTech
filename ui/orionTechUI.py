@@ -26,6 +26,13 @@ try:
 except ImportError as e:
     print(f"Warning: Could not import nuke_launcher: {e}")
     launch_nuke = None
+    
+try:
+
+    from dcc.houdini.houdini_launcher import launch_houdini
+except ImportError as e:
+    print(f"Warning: Could not import houdini_launcher: {e}")
+    launch_houdini = None
 
 class OrionTechUI(QWidget):
     def __init__(self, orion_utils_inst, system_utils_inst, prefs_utils_inst):
@@ -94,28 +101,29 @@ class OrionTechUI(QWidget):
         """)
         
         # #Houdini Launcher
-        # self.btn_launch_houdini = QPushButton("Launch Houdini")
-        # self.btn_launch_houdini.setMinimumHeight(50)
-        # #button styling
-        # self.btn_launch_houdini.setStyleSheet("""
-        #     QPushButton {
-        #         background-color: #FC9749; 
-        #         color: white; 
-        #         font-weight: bold; 
-        #         font-size: 14px;
-        #         border-radius: 5px;
-        #     }
-        #     QPushButton:hover {
-        #         background-color: #FFB37D;
-        #     }
-        # """)
+        self.btn_launch_houdini = QPushButton("Launch Houdini")
+        self.btn_launch_houdini.setMinimumHeight(50)
+        #button styling
+        self.btn_launch_houdini.setStyleSheet("""
+            QPushButton {
+                background-color: #FC9749; 
+                color: white; 
+                font-weight: bold; 
+                font-size: 14px;
+                border-radius: 5px;
+            }
+            QPushButton:hover {
+                background-color: #FFB37D;
+            }
+        """)
         
         self.btn_launch_maya.clicked.connect(self.handle_launch_maya)
         self.btn_launch_nuke.clicked.connect(self.handle_launch_nuke)
+        self.btn_launch_houdini.clicked.connect(self.handle_launch_houdini)
         
         self.apps_layout.addWidget(self.btn_launch_maya)
         self.apps_layout.addWidget(self.btn_launch_nuke)
-        # self.apps_layout.addWidget(self.btn_launch_houdini)
+        self.apps_layout.addWidget(self.btn_launch_houdini)
         
         self.apps_layout.addStretch() # Pushes everything up
         self.apps_tab.setLayout(self.apps_layout)
@@ -281,6 +289,19 @@ class OrionTechUI(QWidget):
                 QMessageBox.critical(self, "Launch Error", f"An error occurred while launching Nuke:\n{e}")
         else:
             QMessageBox.warning(self, "Launcher Missing", "Could not import 'dcc.nuke.nuke_launcher'.\nCheck if the file exists.")
+            
+    def handle_launch_houdini(self):
+        """Executes the custom Houdini Launcher"""
+        if launch_houdini:
+            try:
+                print("Starting Houdini Launcher...")
+                # Optionally minimize the UI while launching
+                # self.showMinimized() 
+                launch_houdini()
+            except Exception as e:
+                QMessageBox.critical(self, "Launch Error", f"An error occurred while launching Houdini:\n{e}")
+        else:
+            QMessageBox.warning(self, "Launcher Missing", "Could not import 'dcc.houdini.houdini_launcher'.\nCheck if the file exists.")
 
     def add_separator(self, layout):
         line = QFrame()
