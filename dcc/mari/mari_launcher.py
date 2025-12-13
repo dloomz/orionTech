@@ -3,7 +3,7 @@ import subprocess
 import sys
 from pathlib import Path
 
-def launch_houdini():
+def launch_mari():
     
     user = os.getlogin()
     
@@ -37,8 +37,8 @@ def launch_houdini():
         print("CRITICAL ERROR: ORI_PROJECT_PATH not found. Check your data/.env file.")
         return
     
-    #path to houdini exe
-    HOUDINI_EXE = r"C:\Program Files\Side Effects Software\Houdini 20.5.584\bin\houdini.exe"
+    #path to mari exe
+    MARI_EXE = r"C:\Program Files\Mari7.1v2\Bundle\bin\Mari7.1v2.exe"
 
     ORI_ROOT_PATH = os.environ.get("ORI_ROOT_PATH")
     print("ORI_ROOT_PATH:", ORI_ROOT_PATH)
@@ -47,33 +47,17 @@ def launch_houdini():
         print("CRITICAL ERROR: ORI_ROOT_PATH is still missing. Check your .env file content.")
         return
 
-    ROOT_PATH = os.path.join(ORI_ROOT_PATH, "60_config", "softwarePrefs", "houdini")
+    ROOT_PATH = os.path.join(ORI_ROOT_PATH, "60_config", "softwarePrefs", "mari")
     PIPELINE_PATH = os.path.join(ORI_ROOT_PATH, "00_pipeline", "orionTech")
-    PACKAGE_PATH = os.path.join(ROOT_PATH, "packages")
 
-    #copy the current system environment
-    env = os.environ.copy()
-    
-    env['ORI_PIPELINE_PATH'] = PIPELINE_PATH
-    env["HOUDINI_PACKAGE_DIR"] = PACKAGE_PATH + os.pathsep + env.get("HOUDINI_PACKAGE_DIR", "")
-    env["HOUDINI_USER_PREF_DIR"] = f"P:/all_work/studentGroups/ORION_CORPORATION/60_config/userPrefs/{user}/prefs/houdini__HVER__"
-    
-    # #PYTHONPATH: python find scripts in your 'scripts' folder
-    # HOUDINI_SCRIPT_PATH = os.path.join(ROOT_PATH, "scripts")
-    # ORI_LIBS_PATH = os.path.join(ORI_ROOT_PATH, "60_config", "libs")
-    
-    # all_houdini_paths = [HOUDINI_SCRIPT_PATH, ORI_LIBS_PATH]
-    # ORI_HOUDINI_PATHS = os.pathsep.join(all_houdini_paths)
 
-    # env["PYTHONPATH"] = ORI_HOUDINI_PATHS + os.pathsep + env.get("PYTHONPATH", "")
-    
-    # launch Houdini with the modified environment
+
     try:
-        subprocess.Popen([HOUDINI_EXE], env=env)
+        subprocess.Popen([MARI_EXE], env=env)
     except FileNotFoundError:
-        print("Error: Houdini executable not found. Check the HOUDINI_EXE path.")
+        print("Error: Mari executable not found. Check the MARI_EXE path.")
     except Exception as e:
         print(f"An error occurred: {e}")
 
 if __name__ == "__main__":
-    launch_houdini()
+    launch_mari()

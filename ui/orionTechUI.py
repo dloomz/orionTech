@@ -100,7 +100,7 @@ class OrionTechUI(QWidget):
             }
         """)
         
-        # #Houdini Launcher
+        #Houdini Launcher
         self.btn_launch_houdini = QPushButton("Launch Houdini")
         self.btn_launch_houdini.setMinimumHeight(50)
         #button styling
@@ -117,6 +117,23 @@ class OrionTechUI(QWidget):
             }
         """)
         
+        #Mari Launcher
+        self.btn_launch_mari = QPushButton("Launch Mari")
+        self.btn_launch_mari.setMinimumHeight(50)
+        #button styling
+        self.btn_launch_mari.setStyleSheet("""
+            QPushButton {
+                background-color: black; 
+                color: #F2DC61; 
+                font-weight: bold; 
+                font-size: 14px;
+                border-radius: 5px;
+            }
+            QPushButton:hover {
+                background-color: #FFB37D;
+            }
+        """)
+        
         self.btn_launch_maya.clicked.connect(self.handle_launch_maya)
         self.btn_launch_nuke.clicked.connect(self.handle_launch_nuke)
         self.btn_launch_houdini.clicked.connect(self.handle_launch_houdini)
@@ -124,6 +141,7 @@ class OrionTechUI(QWidget):
         self.apps_layout.addWidget(self.btn_launch_maya)
         self.apps_layout.addWidget(self.btn_launch_nuke)
         self.apps_layout.addWidget(self.btn_launch_houdini)
+        self.apps_layout.addWidget(self.btn_launch_mari)
         
         self.apps_layout.addStretch() # Pushes everything up
         self.apps_tab.setLayout(self.apps_layout)

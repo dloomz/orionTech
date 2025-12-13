@@ -3,15 +3,17 @@ import json
 import os
 import glob
 import tempfile
+import base64
 from datetime import datetime
 from pathlib import Path
 
-from PySide6 import QtWidgets, QtCore, QtGui
+from PySide2 import QtWidgets, QtCore, QtGui
 
 try:
-    import nuke
-except ImportError:
-    nuke = None
+    import hou
+except (ImportError, Exception) as e:
+    print(e)
+    hou = None
 
 #MAIL ITEM WIDGET
 class MailItem(QtWidgets.QWidget):
@@ -23,12 +25,12 @@ class MailItem(QtWidgets.QWidget):
         self.filename = filename
         self.data = data
         
-        #extract data for UI
+        #extract data
         self.sender = data.get("sender", "Unknown")
         self.recipient = data.get("recipient", "Unknown")
         self.timestamp = data.get("time", "")
         self.note = data.get("note", "")
-        self.node_payload = data.get("copied_node", "") #raw nuke data
+        self.node_payload = data.get("copied_node", "")
 
         #styles
         self.default_style = """
@@ -72,7 +74,7 @@ class MailItem(QtWidgets.QWidget):
         self.lbl_from = QtWidgets.QLabel(f"<b>From:</b> {self.sender}")
         info_layout.addWidget(self.lbl_from)
 
-        #format time better 
+        #format time
         try:
             dt = datetime.fromisoformat(self.timestamp)
             pretty_time = dt.strftime("%Y-%m-%d %H:%M")
@@ -87,7 +89,7 @@ class MailItem(QtWidgets.QWidget):
         header_layout.addStretch() 
         header_layout.addWidget(self.lbl_time)
 
-        #separator line
+        #separator
         self.line = QtWidgets.QFrame()
         self.line.setFrameShape(QtWidgets.QFrame.Shape.HLine)
         self.line.setFrameShadow(QtWidgets.QFrame.Shadow.Plain)
@@ -115,51 +117,38 @@ class MailItem(QtWidgets.QWidget):
         else:
             self.setStyleSheet(self.default_style)
 
-#MAIN WINDOW CLASS
+#MAIN WINDOW
 class NodeMailUI(QtWidgets.QMainWindow):
     def __init__(self, parent=None):
         super().__init__(parent)
 
-        #PATH SETUP AND IMPORT FIX 
-        # current_script_dir = Path(__file__).resolve().parent
-        os.environ.get("ORI_PIPELINE_PATH")
+        #path setup
         self.pipeline_root = os.environ.get("ORI_PIPELINE_PATH")
-        # self.pipeline_root = current_script_dir.parent.parent
         
-        #exact path to orionUtils.py
+        #path to utils
         utils_path = os.path.join(str(self.pipeline_root), "core", "orionUtils.py")
 
         if not os.path.exists(utils_path):
-            print("---------------------------------------------------")
-            print(f"CRITICAL ERROR: orionUtils.py not found.")
-            print(f"Expected location: {utils_path}")
-            print("---------------------------------------------------")
+            print("CRITICAL ERROR: orionUtils.py not found.")
             return
 
         try:
-            #DIRECT LOAD: Bypass 'sys.path', load the file directly
+            #direct load
             import importlib.util
-            
-            #unique module name 
             spec = importlib.util.spec_from_file_location("orion_core_utils_direct", utils_path)
             orion_module = importlib.util.module_from_spec(spec)
             spec.loader.exec_module(orion_module)
             
             #init class
             self.orion = orion_module.OrionUtils()
-            print(f"OrionUtils loaded successfully from: {utils_path}")
+            print(f"OrionUtils loaded from: {utils_path}")
 
         except Exception as e:
-            print("---------------------------------------------------")
-            print(f"CRITICAL ERROR: Failed to load OrionUtils.")
-            print(f"Error details: {e}")
-            import traceback
-            traceback.print_exc()
-            print("---------------------------------------------------")
+            print(f"CRITICAL ERROR: Failed to load OrionUtils: {e}")
             return
         
         root_path = self.orion.get_root_dir()
-        self.nodemail_path = os.path.join(root_path, "60_config", "nodemail")
+        self.nodemail_path = os.path.join(root_path, "60_config", "nodemail", "houdini")
         
         if not os.path.exists(self.nodemail_path):
             try:
@@ -178,7 +167,6 @@ class NodeMailUI(QtWidgets.QMainWindow):
         self.current_selected_item = None
         
         self.build_ui(usernames)
-        
         self.update_selection_display()
         self.refresh_inbox()
 
@@ -190,12 +178,12 @@ class NodeMailUI(QtWidgets.QMainWindow):
         
         self.tab_widget = QtWidgets.QTabWidget()
         
-        #TAB 1 INCOMING
+        #tab inbox
         update_tab = QtWidgets.QWidget()
         update_layout = QtWidgets.QVBoxLayout(update_tab)
         self.tab_widget.addTab(update_tab, "Inbox")
         
-        #refresh inbox button
+        #refresh button
         btn_refresh_inbox = QtWidgets.QPushButton("Refresh Inbox")
         btn_refresh_inbox.clicked.connect(self.refresh_inbox)
         
@@ -204,12 +192,12 @@ class NodeMailUI(QtWidgets.QMainWindow):
         self.scroll_window.setVerticalScrollBarPolicy(QtCore.Qt.ScrollBarPolicy.ScrollBarAlwaysOn)
         self.scroll_window.setHorizontalScrollBarPolicy(QtCore.Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
         
-        #buttons
+        #action buttons
         self.paste_button = QtWidgets.QPushButton("Paste Nodes to Graph")
         self.paste_button.setMinimumHeight(40)
         self.paste_button.setStyleSheet("background-color: #4a90e2; color: white; font-weight: bold;")
         self.paste_button.clicked.connect(self.paste_mail)
-        self.paste_button.setEnabled(False) #disable until item selected
+        self.paste_button.setEnabled(False) 
 
         self.delete_button = QtWidgets.QPushButton("Delete Selected")
         self.delete_button.clicked.connect(self.delete_selected_mail)
@@ -219,11 +207,11 @@ class NodeMailUI(QtWidgets.QMainWindow):
         button_layout.addWidget(self.paste_button)
         button_layout.addWidget(self.delete_button)
         
-        #container for mail items
+        #inbox container
         self.inbox_widget = QtWidgets.QWidget()                 
         self.inbox_vbox = QtWidgets.QVBoxLayout()               
         self.inbox_widget.setLayout(self.inbox_vbox)
-        self.inbox_vbox.addStretch() #push items to top
+        self.inbox_vbox.addStretch() 
 
         self.scroll_window.setWidget(self.inbox_widget)
         
@@ -231,12 +219,11 @@ class NodeMailUI(QtWidgets.QMainWindow):
         update_layout.addWidget(self.scroll_window)
         update_layout.addLayout(button_layout)
         
-        #RIGHT COLUMN (OUTGOING) 
+        #right column
         right_layout = QtWidgets.QVBoxLayout()
         
-        #refresh selection button
+        #refresh selection
         refresh_btn = QtWidgets.QPushButton("Get Selected Nodes")
-        refresh_btn.setToolTip("Click to update the list based on current Nuke selection")
         refresh_btn.clicked.connect(self.update_selection_display)
         
         #display box
@@ -250,7 +237,7 @@ class NodeMailUI(QtWidgets.QMainWindow):
         recipient_label = QtWidgets.QLabel("Recipient:")
         self.recipient_dropdown = QtWidgets.QComboBox()
         
-        #add usernames to dropdown
+        #populate users
         if usernames:
             for u in usernames:
                 self.recipient_dropdown.addItem(u)
@@ -272,7 +259,6 @@ class NodeMailUI(QtWidgets.QMainWindow):
         send_button.setStyleSheet("background-color: #e67e22; color: white; font-weight: bold;")
         send_button.clicked.connect(self.send_mail)
         
-        #add to right layout
         right_layout.addWidget(QtWidgets.QLabel("<b>Compose</b>"))
         right_layout.addWidget(refresh_btn)
         right_layout.addWidget(self.snapshot_label)
@@ -281,15 +267,11 @@ class NodeMailUI(QtWidgets.QMainWindow):
         right_layout.addWidget(send_button)
         right_layout.addStretch()
         
-        #add to main layout
         main_layout.addWidget(self.tab_widget, 3)
         main_layout.addLayout(right_layout, 2)
 
-    #INBOX LOGIC
     def refresh_inbox(self):
-        """Scans the nodemail directory for JSON files matching the current user."""
-        
-        #clear current list 
+        #clear old list
         while self.inbox_vbox.count() > 1:
             item = self.inbox_vbox.takeAt(0)
             widget = item.widget()
@@ -300,7 +282,6 @@ class NodeMailUI(QtWidgets.QMainWindow):
         search_pattern = os.path.join(self.nodemail_path, "*.json")
         files = glob.glob(search_pattern)
         
-        #sort by time
         files.sort(key=os.path.getmtime, reverse=True)
 
         found_count = 0
@@ -309,98 +290,95 @@ class NodeMailUI(QtWidgets.QMainWindow):
                 with open(f, 'r') as json_file:
                     data = json.load(json_file)
                 
-                #check if this mail is for the current user
                 recipient = data.get("recipient", "")
                 
                 if recipient == self.user:
                     mail_item = MailItem(filename=f, data=data)
                     mail_item.clicked.connect(self.handle_mail_click)
-                    #insert at top (index 0)
                     self.inbox_vbox.insertWidget(found_count, mail_item)
                     found_count += 1
             except Exception as e:
                 print(f"Error reading mail file {f}: {e}")
 
-        if found_count == 0:
-            #TODO: no mail msg (empty mailbox)
-            pass
-
     def handle_mail_click(self, clicked_item):
-        #deselect old
         if self.current_selected_item:
             self.current_selected_item.set_selected(False)
         
-        #select new
         self.current_selected_item = clicked_item
         clicked_item.set_selected(True)
         
-        #enable buttons
         self.paste_button.setEnabled(True)
         self.delete_button.setEnabled(True)
 
     def delete_selected_mail(self):
         if self.current_selected_item:
-            #delete file
             try:
                 os.remove(self.current_selected_item.filename)
             except OSError as e:
                 print(f"Could not delete file: {e}")
             
-            #remove from ui
             self.inbox_vbox.removeWidget(self.current_selected_item)
             self.current_selected_item.deleteLater()
             self.current_selected_item = None
             
-            #disable buttons
             self.paste_button.setEnabled(False)
             self.delete_button.setEnabled(False)
 
     def paste_mail(self):
-        #paste mail nodes into nuke
+        #check selection
         if not self.current_selected_item:
             return
             
+        #get base64 string
         raw_data = self.current_selected_item.node_payload
         if not raw_data:
-            if nuke: nuke.message("Error: Email contains no node data.")
+            if hou: hou.promptMessageType.Error("Error: Email contains no node data.")
             return
 
-        if nuke:
+        if hou:
             try:
-                #write raw data to temp .nk file
-                fd, temp_nk_path = tempfile.mkstemp(suffix=".nk")
+                #decode base64 to binary
+                binary_data = base64.b64decode(raw_data)
+
+                #write to temp file
+                fd, temp_hou_path = tempfile.mkstemp(suffix=".cpio")
                 os.close(fd)
                 
-                with open(temp_nk_path, "w") as f:
-                    f.write(raw_data)
+                with open(temp_hou_path, "wb") as f:
+                    f.write(binary_data)
                 
-                #paste into nuke
-                nuke.nodePaste(temp_nk_path)
+                #find current network pane
+                pane = hou.ui.paneTabOfType(hou.paneTabType.NetworkEditor)
+                if pane:
+                    current_node = pane.pwd()
+                else:
+                    current_node = hou.node("/obj")
+
+                #load children
+                current_node.loadChildrenFromFile(temp_hou_path)
                 
                 #cleanup
-                os.remove(temp_nk_path)
+                os.remove(temp_hou_path)
                 print("Nodes pasted successfully.")
+                hou.promptMessageType.Message("Nodes pasted!")
                 
             except Exception as e:
-                nuke.message(f"Error pasting nodes: {e}")
+                hou.promptMessageType.Error(f"Error pasting nodes: {e}")
+                print(e)
         else:
-            print("Nuke not detected. Cannot paste nodes.")
+            print("Houdini not detected. Cannot paste nodes.")
 
-    #OUTGOING
     def update_selection_display(self):
-        """Queries Nuke for selected nodes."""
-        if nuke:
+        if hou:
             try:
-                selected_nodes = nuke.selectedNodes()
+                selected_nodes = hou.selectedNodes()
                 if not selected_nodes:
-                    self.snapshot_label.setPlainText("No nodes currently selected in Nuke.")
+                    self.snapshot_label.setPlainText("No nodes currently selected in Houdini.")
                     return
 
-                #get names
                 names = [n.name() for n in selected_nodes]
                 names.sort()
                 
-                #format list
                 display_text = f"Selected ({len(names)} Nodes):\n----------------\n"
                 display_text += "\n".join(names)
                 
@@ -409,37 +387,45 @@ class NodeMailUI(QtWidgets.QMainWindow):
             except Exception as e:
                 self.snapshot_label.setPlainText(f"Error reading selection: {e}")
         else:
-            self.snapshot_label.setPlainText("Nuke module not found (Running standalone?)")
+            self.snapshot_label.setPlainText("Houdini module not found")
 
     def send_mail(self):
         recipient = self.recipient_dropdown.currentText()
         note = self.note_edit.text()
         
-        if nuke and not nuke.selectedNodes():
-            nuke.message("Please select nodes first.")
+        #check hou
+        if not hou:
+            print("Cannot send mail outside of Houdini.")
             return
 
-        raw_node_data = ""
-        
-        if nuke:
-            #create temp file to store copied nodes
-            fd, temp_nk_path = tempfile.mkstemp(suffix=".nk")
-            os.close(fd) 
+        selected = hou.selectedNodes()
+        if not selected:
+            hou.promptMessageType.Message("Please select nodes first.")
+            return
 
-            try:
-                nuke.nodeCopy(temp_nk_path) 
-                with open(temp_nk_path, "r") as f:
-                    raw_node_data = f.read() 
-            except Exception as e:
-                print(f"Error copying nodes: {e}")
-                return
-            finally:
-                if os.path.exists(temp_nk_path):
-                    os.remove(temp_nk_path)
-        else:
-            raw_node_data = "# Dummy data for standalone testing"
+        encoded_str = ""
 
-        #generate unique filename using timestamp to prevent overwrite
+        try:
+            #save nodes to temp binary file
+            fd, temp_hou_path = tempfile.mkstemp(suffix=".cpio")
+            os.close(fd)
+            
+            hou.saveNodesToFile(selected, temp_hou_path)
+
+            #read binary and encode to base64
+            with open(temp_hou_path, "rb") as f:
+                binary_data = f.read()
+                encoded_str = base64.b64encode(binary_data).decode("utf-8")
+            
+            #cleanup
+            os.remove(temp_hou_path)
+
+        except Exception as e:
+            print(f"Error saving nodes: {e}")
+            hou.promptMessageType.Error(f"Error preparing nodes: {e}")
+            return
+
+        #generate filename
         timestamp = datetime.now()
         time_str_iso = timestamp.isoformat()
         time_str_file = timestamp.strftime("%Y%m%d_%H%M%S")
@@ -452,7 +438,7 @@ class NodeMailUI(QtWidgets.QMainWindow):
             "recipient": recipient,
             "time": time_str_iso,
             "note": note,
-            "copied_node": raw_node_data
+            "copied_node": encoded_str
         }
 
         try:
@@ -460,25 +446,22 @@ class NodeMailUI(QtWidgets.QMainWindow):
                 json.dump(mail_packet, f, indent=4)
             
             print(f"Successfully sent mail to: {save_path}")
-            if nuke: nuke.message(f"Sent to {recipient}!")
+            hou.promptMessageType.Message(f"Sent to {recipient}!")
             self.note_edit.clear()
             
         except Exception as e:
-            if nuke: nuke.message(f"Could not write file: {e}")
+            hou.promptMessageType.Error(f"Could not write file: {e}")
             print(e)
 
 #MAIN EXECUTION
 app = QtWidgets.QApplication.instance()
 
 def start():
-    """Starts the NodeMail UI."""
-    #get/create QApplication
     app = QtWidgets.QApplication.instance()
     if not app:
         app = QtWidgets.QApplication(sys.argv)
         app.setStyle("Fusion")
     
-    #glob win var
     global custom_nodemail_window
 
     try:
@@ -487,22 +470,9 @@ def start():
     except (NameError, RuntimeError):
         pass
 
-    #show win
     custom_nodemail_window = NodeMailUI()
     custom_nodemail_window.show()
 
-    #standalone and nuke open
-    if not nuke: 
-        sys.exit(app.exec())
-
 if __name__ == "__main__":
     start()
-    
-#TO RUN IN NUKE USE:
-# import sys
-# path = r"P:\all_work\studentGroups\ORION_CORPORATION\00_pipeline\orionTech\scripts\nodemail"
-# if path not in sys.path:
-#     sys.path.append(path)
 
-# import orion_nodemail
-# orion_nodemail.start() 

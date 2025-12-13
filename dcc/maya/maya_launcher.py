@@ -47,7 +47,8 @@ def launch_maya():
         print("CRITICAL ERROR: ORI_ROOT_PATH is still missing. Check your .env file content.")
         return
 
-    ROOT_PATH = os.path.join(ORI_ROOT_PATH, "60_config", "softwarePrefs", "maya") 
+    ROOT_PATH = os.path.join(ORI_ROOT_PATH, "60_config", "softwarePrefs", "maya")
+    PIPELINE_PATH = os.path.join(ORI_ROOT_PATH, "00_pipeline", "orionTech")
 
     #copy the current system environment
     env = os.environ.copy()
@@ -90,7 +91,7 @@ def launch_maya():
     env["MAYA_DISABLE_CIP"] = "1"
     env["MAYA_DISABLE_CER"] = "1"
 
-    env["MAYA_PROJECT"] = ORI_PROJECT_PATH
+    # env["MAYA_PROJECT"] = ORI_PROJECT_PATH
     env["ORI_PROJECT_PATH"] = ORI_PROJECT_PATH
 
     pref = PrefsUtils(orion)
