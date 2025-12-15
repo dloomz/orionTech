@@ -33,6 +33,13 @@ try:
 except ImportError as e:
     print(f"Warning: Could not import houdini_launcher: {e}")
     launch_houdini = None
+    
+try:
+
+    from dcc.mari.mari_launcher import launch_mari
+except ImportError as e:
+    print(f"Warning: Could not import mari_launcher: {e}")
+    launch_mari = None
 
 class OrionTechUI(QWidget):
     def __init__(self, orion_utils_inst, system_utils_inst, prefs_utils_inst):
@@ -130,13 +137,14 @@ class OrionTechUI(QWidget):
                 border-radius: 5px;
             }
             QPushButton:hover {
-                background-color: #FFB37D;
+                background-color: #404040;
             }
         """)
         
         self.btn_launch_maya.clicked.connect(self.handle_launch_maya)
         self.btn_launch_nuke.clicked.connect(self.handle_launch_nuke)
         self.btn_launch_houdini.clicked.connect(self.handle_launch_houdini)
+        self.btn_launch_mari.clicked.connect(self.handle_launch_mari)
         
         self.apps_layout.addWidget(self.btn_launch_maya)
         self.apps_layout.addWidget(self.btn_launch_nuke)
@@ -287,8 +295,6 @@ class OrionTechUI(QWidget):
         if launch_maya:
             try:
                 print("Starting Maya Launcher...")
-                # Optionally minimize the UI while launching
-                # self.showMinimized() 
                 launch_maya()
             except Exception as e:
                 QMessageBox.critical(self, "Launch Error", f"An error occurred while launching Maya:\n{e}")
@@ -300,8 +306,6 @@ class OrionTechUI(QWidget):
         if launch_nuke:
             try:
                 print("Starting Nuke Launcher...")
-                # Optionally minimize the UI while launching
-                # self.showMinimized() 
                 launch_nuke()
             except Exception as e:
                 QMessageBox.critical(self, "Launch Error", f"An error occurred while launching Nuke:\n{e}")
@@ -313,13 +317,22 @@ class OrionTechUI(QWidget):
         if launch_houdini:
             try:
                 print("Starting Houdini Launcher...")
-                # Optionally minimize the UI while launching
-                # self.showMinimized() 
                 launch_houdini()
             except Exception as e:
                 QMessageBox.critical(self, "Launch Error", f"An error occurred while launching Houdini:\n{e}")
         else:
             QMessageBox.warning(self, "Launcher Missing", "Could not import 'dcc.houdini.houdini_launcher'.\nCheck if the file exists.")
+            
+    def handle_launch_mari(self):
+        """Executes the custom Mari Launcher"""
+        if launch_mari:
+            try:
+                print("Starting Mari Launcher...")
+                launch_mari()
+            except Exception as e:
+                QMessageBox.critical(self, "Launch Error", f"An error occurred while launching Mari:\n{e}")
+        else:
+            QMessageBox.warning(self, "Launcher Missing", "Could not import 'dcc.mari.mari_launcher'.\nCheck if the file exists.")
 
     def add_separator(self, layout):
         line = QFrame()
@@ -412,7 +425,6 @@ class OrionTechUI(QWidget):
         self.prefs_utils.save_settings(self.settings)
         self.system_utils.set_windows_dark_mode(state == Qt.Checked)
         
-
     def toggle_discord_startup(self, state):
         self.settings['discord_on_startup'] = (state == Qt.Checked)
         self.prefs_utils.save_settings(self.settings)
@@ -421,7 +433,6 @@ class OrionTechUI(QWidget):
         self.system_utils.open_window(discord_path, state == Qt.Checked)
         
     def wacom_fix(self, state):
-        
         self.settings['wacom_fix'] = (state == Qt.Checked)
         self.prefs_utils.save_settings(self.settings)
         self.system_utils.wacom_fix(state == Qt.Checked)

@@ -2,6 +2,7 @@ import os
 import subprocess
 import sys
 from pathlib import Path
+import shutil
 
 def launch_maya():
     
@@ -53,11 +54,11 @@ def launch_maya():
     #copy the current system environment
     env = os.environ.copy()
     
-    #PYTHONPATH: python find scripts in your 'scripts' folder
+    #PYTHONPATH: python find scripts in 'scripts' folder
     MAYA_SCRIPT_PATH = os.path.join(ROOT_PATH, "scripts")
     ORI_LIBS_PATH = os.path.join(ORI_ROOT_PATH, "60_config", "libs")
     
-    all_maya_paths = [MAYA_SCRIPT_PATH, ORI_LIBS_PATH]
+    all_maya_paths = [MAYA_SCRIPT_PATH, ORI_LIBS_PATH, PIPELINE_PATH]
     ORI_MAYA_PATHS = os.pathsep.join(all_maya_paths)
 
     env["PYTHONPATH"] = ORI_MAYA_PATHS + os.pathsep + env.get("PYTHONPATH", "")
@@ -93,12 +94,20 @@ def launch_maya():
 
     # env["MAYA_PROJECT"] = ORI_PROJECT_PATH
     env["ORI_PROJECT_PATH"] = ORI_PROJECT_PATH
+    
+    # WORKSPACE_SRC = os.path.join(MAYA_SCRIPT_PATH, "userSetup.py")
+    # WORKSPACE_DST = [r"C:\Docs\maya\2026\scripts\userSetup.py", r"C:\Docs\maya\2025\scripts\userSetup.py", r"C:\Docs\maya\scripts\userSetup.py"]
+    
+    # for dst in WORKSPACE_DST:
+    #     try:
+    #         shutil.copyfile(WORKSPACE_SRC, dst)
+    #     except Exception as e:
+    #         print(f"Unable to copy userprefs: {e}")
 
     pref = PrefsUtils(orion)
     pref.load_prefs("maya", user)
     
-
-    # launch Maya with the modified environment
+    #launch Maya with the modified environment
     try:
         subprocess.Popen([MAYA_EXE], env=env)
     except FileNotFoundError:

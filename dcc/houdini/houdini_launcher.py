@@ -58,6 +58,8 @@ def launch_houdini():
     env["HOUDINI_PACKAGE_DIR"] = PACKAGE_PATH + os.pathsep + env.get("HOUDINI_PACKAGE_DIR", "")
     env["HOUDINI_USER_PREF_DIR"] = f"P:/all_work/studentGroups/ORION_CORPORATION/60_config/userPrefs/{user}/prefs/houdini__HVER__"
     
+    # env["HOUDINI_TOOLBAR_PATH"] = f"P:/all_work/studentGroups/ORION_CORPORATION/60_config/softwarePrefs/houdini/toolbar" + os.pathsep + env.get("HOUDINI_TOOLBAR_PATH", "")
+    
     # #PYTHONPATH: python find scripts in your 'scripts' folder
     # HOUDINI_SCRIPT_PATH = os.path.join(ROOT_PATH, "scripts")
     # ORI_LIBS_PATH = os.path.join(ORI_ROOT_PATH, "60_config", "libs")

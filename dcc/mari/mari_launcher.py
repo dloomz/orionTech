@@ -38,7 +38,8 @@ def launch_mari():
         return
     
     #path to mari exe
-    MARI_EXE = r"C:\Program Files\Mari7.1v2\Bundle\bin\Mari7.1v2.exe"
+    # MARI_EXE = r"C:\Program Files\Mari7.1v2\Bundle\bin\Mari7.1v2.exe"
+    MARI_EXE = r"C:\Program Files\Mari7.0v2\Bundle\bin\Mari7.0v2.exe"
 
     ORI_ROOT_PATH = os.environ.get("ORI_ROOT_PATH")
     print("ORI_ROOT_PATH:", ORI_ROOT_PATH)
@@ -49,8 +50,11 @@ def launch_mari():
 
     ROOT_PATH = os.path.join(ORI_ROOT_PATH, "60_config", "softwarePrefs", "mari")
     PIPELINE_PATH = os.path.join(ORI_ROOT_PATH, "00_pipeline", "orionTech")
+    OCIO_PATH = r"P:\all_work\studentGroups\ORION_CORPORATION\60_config\colorManagement\aces_1.2\config.ocio"
 
+    env = os.environ.copy()
 
+    env["OCIO"] = OCIO_PATH
 
     try:
         subprocess.Popen([MARI_EXE], env=env)
