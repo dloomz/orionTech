@@ -4,7 +4,7 @@ import sys
 from pathlib import Path
 import shutil
 
-def launch_nuke():
+def launch_nuke(file_path=None, shot_code=None):
     
     user = os.getlogin()
     
@@ -80,14 +80,18 @@ def launch_nuke():
     env["PYTHONPATH"] = os.path.join(ROOT_PATH, "python") + os.pathsep + env.get("PYTHONPATH", "")
     env["NUKE_PATH"] = ORI_NUKE_PATHS 
     env['ORI_PIPELINE_PATH'] = PIPELINE_PATH
+    env["ORI_SHOT_CONTEXT"] = shot_code if shot_code else ""
     # os.environ['OCIO'] = OCIO_PATH
 
+    cmd = [NUKE_EXE, FLAG]
+    if file_path:
+        cmd.append(file_path)
+
     try:
-        subprocess.Popen([NUKE_EXE, FLAG], env=env)
+        subprocess.Popen(cmd, env=env)
     except FileNotFoundError:
-        print("Error: Nuke executable not found. Check the NUKE_EXE path.")
-    except Exception as e:
-        print(f"An error occurred: {e}")
+        print("Error: Nuke executable not found.")
 
 if __name__ == "__main__":
-    launch_nuke()
+    path_arg = sys.argv[1] if len(sys.argv) > 1 else None
+    launch_nuke(file_path=path_arg)

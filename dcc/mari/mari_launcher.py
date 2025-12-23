@@ -3,7 +3,7 @@ import subprocess
 import sys
 from pathlib import Path
 
-def launch_mari():
+def launch_mari(file_path=None, shot_code=None):
     
     user = os.getlogin()
     
@@ -55,13 +55,17 @@ def launch_mari():
     env = os.environ.copy()
 
     env["OCIO"] = OCIO_PATH
+    env["ORI_SHOT_CONTEXT"] = shot_code if shot_code else ""
+
+    cmd = [MARI_EXE]
+    if file_path:
+        cmd.append(file_path)
 
     try:
-        subprocess.Popen([MARI_EXE], env=env)
+        subprocess.Popen(cmd, env=env)
     except FileNotFoundError:
-        print("Error: Mari executable not found. Check the MARI_EXE path.")
-    except Exception as e:
-        print(f"An error occurred: {e}")
+        print("Error: Mari executable not found.")
 
 if __name__ == "__main__":
-    launch_mari()
+    path_arg = sys.argv[1] if len(sys.argv) > 1 else None
+    launch_mari(file_path=path_arg)

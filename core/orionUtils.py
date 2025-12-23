@@ -39,12 +39,19 @@ class OrionUtils():
         "3D_RENDERS",
         "2D_RENDERS",
     ]
+    
+    ASSET_TASKS = {
+        "GEO": ["WORK", "PUBLISH"],
+        "SCULPT": ["WORK", "PUBLISH"],
+        "RIG": ["WORK", "PUBLISH"],
+        "USD": ["WORK", "PUBLISH"],
+        "TEX": ["WORK", "PUBLISH"]
+    }
 
     def __init__(self):
         
         # DYNAMIC ROOT DETECTION
         current_script_path = os.path.abspath(__file__)
-        # go up two levels: core/ -> root/
         self.pipeline_dir = os.path.dirname(os.path.dirname(current_script_path))
         
         # LOAD .ENV
@@ -69,7 +76,6 @@ class OrionUtils():
         if project_root and os.path.exists(project_root):
             self.root_dir = project_root
         else:
-            # Fallback detection
             home_root = "O:\\"
             work_root = "P:\\all_work\\studentGroups\\ORION_CORPORATION"
             self.current_user = os.getlogin()
@@ -79,14 +85,12 @@ class OrionUtils():
             else:
                 self.root_dir = home_root
         
-        # Determine Home/Work Status
         self.current_user = os.getlogin()
-        if self.current_user in self.usernames:
-            self.home_status = False  # At work
-        else:
-            self.home_status = True   # At home
-
+        self.home_status = self.current_user not in self.usernames
         self.libs_path = os.path.join(self.root_dir,"60_config", "libs") 
+
+        # Ensure DB is up to date
+        self.check_and_update_schema()
 
     def load_env_file(self):
         if not os.path.exists(self.env_file):
@@ -123,29 +127,18 @@ class OrionUtils():
             return {}
 
     def get_relative_path(self, full_path):
-        """
-        Converts an absolute path to a path relative to the project root.
-        Example: P:\...\ORION_CORPORATION\00_pipeline\40_shots\stc_0010 
-        Returns: 00_pipeline\40_shots\stc_0010
-        """
         try:
-            # Ensure we are working with absolute paths
             abs_full = os.path.abspath(full_path)
             abs_root = os.path.abspath(self.root_dir)
-            
-            # This handles drive letter mismatches automatically if the root is correct
             if abs_full.startswith(abs_root):
                 rel_path = os.path.relpath(abs_full, abs_root)
                 return rel_path
             
-            # Fallback: simple string replacement if paths are somehow divergent
-            # but represent the same location
             if "ORION_CORPORATION" in abs_full:
                  parts = abs_full.split("ORION_CORPORATION")
                  if len(parts) > 1:
                      return parts[1].lstrip(os.sep)
-            
-            return full_path # Return original if conversion fails
+            return full_path 
         except Exception as e:
             print(f"Path conversion error: {e}")
             return full_path
@@ -160,8 +153,48 @@ class OrionUtils():
         conn.execute("PRAGMA foreign_keys = ON") 
         return conn
 
+    def check_and_update_schema(self):
+        try:
+            conn = self.get_db_connection()
+            cursor = conn.cursor()
+            
+            # SHOTS TABLE
+            cursor.execute('''CREATE TABLE IF NOT EXISTS shots (
+                id TEXT PRIMARY KEY,
+                code TEXT UNIQUE,
+                frame_start INTEGER,
+                frame_end INTEGER,
+                user_assigned TEXT,
+                shot_path TEXT,
+                description TEXT,
+                discord_thread_id TEXT,
+                thumbnail_path TEXT
+            )''')
+            
+            # ASSETS TABLE (NEW)
+            cursor.execute('''CREATE TABLE IF NOT EXISTS assets (
+                id TEXT PRIMARY KEY,
+                name TEXT UNIQUE,
+                type TEXT,
+                user_assigned TEXT,
+                asset_path TEXT,
+                description TEXT,
+                thumbnail_path TEXT
+            )''')
+            
+            # Check for missing columns in existing tables (Migration logic)
+            cursor.execute("PRAGMA table_info(shots)")
+            cols = [info[1] for info in cursor.fetchall()]
+            if "description" not in cols: cursor.execute("ALTER TABLE shots ADD COLUMN description TEXT")
+            if "discord_thread_id" not in cols: cursor.execute("ALTER TABLE shots ADD COLUMN discord_thread_id TEXT")
+            if "thumbnail_path" not in cols: cursor.execute("ALTER TABLE shots ADD COLUMN thumbnail_path TEXT")
+
+            conn.commit()
+            conn.close()
+        except Exception as e:
+            print(f"Schema Check Failed: {e}")
+
     def check_shot_exists_in_db(self, shot_code):
-        """Checks if a shot code exists in the DB."""
         conn = self.get_db_connection()
         try:
             row = conn.execute('SELECT 1 FROM shots WHERE code = ?', (shot_code,)).fetchone()
@@ -170,10 +203,8 @@ class OrionUtils():
             conn.close()
 
     def rename_shot_code_in_db(self, old_code, new_code):
-        """Updates the shot code in the database (e.g. stc0010 -> stc_0010)."""
         conn = self.get_db_connection()
         try:
-            # Check if new code already taken
             existing = conn.execute('SELECT 1 FROM shots WHERE code = ?', (new_code,)).fetchone()
             if existing:
                 return False, "New code already exists in DB."
@@ -191,18 +222,9 @@ class OrionUtils():
             conn.close()
 
     def register_shot_path(self, shot_code, full_path):
-        """Updates the shot_path in the database using RELATIVE path."""
         conn = self.get_db_connection()
-        # Convert to relative path before storing
         rel_path = self.get_relative_path(full_path)
-        
         try:
-            # Ensure column exists
-            cursor = conn.execute("PRAGMA table_info(shots)")
-            cols = [c[1] for c in cursor.fetchall()]
-            if "shot_path" not in cols:
-                conn.execute("ALTER TABLE shots ADD COLUMN shot_path TEXT")
-            
             conn.execute('UPDATE shots SET shot_path = ? WHERE code = ?', (rel_path, shot_code))
             conn.commit()
             return True
@@ -211,25 +233,8 @@ class OrionUtils():
             return False
         finally:
             conn.close()
-
-    def simplify_shot_id(self, shot_code):
-        """
-        REPLACES the long UUID in the 'id' column with the clean 'code'.
-        """
-        conn = self.get_db_connection()
-        try:
-            conn.execute('UPDATE shots SET id = code WHERE code = ?', (shot_code,))
-            conn.commit()
-            print(f"DB: Simplified ID for {shot_code}")
-            return True
-        except Exception as e:
-            print(f"Error simplifying ID: {e}")
-            return False
-        finally:
-            conn.close()
     
     def get_shot_thread_id(self, shot_code):
-        """Fetches the Discord Thread ID for a specific shot from the DB."""
         conn = self.get_db_connection()
         try:
             cursor = conn.execute("PRAGMA table_info(shots)")
@@ -246,18 +251,25 @@ class OrionUtils():
         finally:
             conn.close()
 
-    # --- TAGGING SYSTEM ---
+    # --- TAGGING SYSTEM (FIXED PERMISSION ERROR) ---
 
-    def create_meta_tag(self, folder_path, unique_code, data=None):
-        """Creates orion_meta.json with RELATIVE path and .id_CODE marker."""
+    def create_meta_tag(self, folder_path, shot_code, data=None, shot_id=None):
+        """
+        Creates orion_meta.json.
+        FIX: Handles Windows hidden file permission errors by unhiding before writing.
+        """
         if not os.path.exists(folder_path):
             return False
 
-        # Convert to relative path before storing
+        # Fallback to shot_code if no specific ID provided
+        if not shot_id:
+            shot_id = shot_code
+
         rel_path = self.get_relative_path(folder_path)
 
         meta_data = {
-            "code": unique_code,
+            "code": shot_code,
+            "id": shot_id,
             "original_path": rel_path, 
             "created_by": os.getlogin(),
             "last_updated": str(datetime.now())
@@ -266,6 +278,12 @@ class OrionUtils():
 
         json_path = os.path.join(folder_path, "orion_meta.json")
         
+        # --- PERMISSION FIX START ---
+        # If file exists and is hidden, unhide it so we can write to it
+        if os.name == 'nt' and os.path.exists(json_path):
+            subprocess.run(["attrib", "-h", json_path], check=False, shell=True)
+        # ----------------------------
+
         try:
             if os.path.exists(json_path):
                 with open(json_path, 'r') as f:
@@ -278,17 +296,18 @@ class OrionUtils():
             with open(json_path, 'w') as f:
                 json.dump(meta_data, f, indent=4)
             
-            # ID Marker
+            # Handle ID Markers
             for file in os.listdir(folder_path):
-                if file.startswith(".id_") and file != f".id_{unique_code}":
+                if file.startswith(".id_") and file != f".id_{shot_id}":
                     try: os.remove(os.path.join(folder_path, file))
                     except: pass
 
-            id_marker = os.path.join(folder_path, f".id_{unique_code}")
+            id_marker = os.path.join(folder_path, f".id_{shot_id}")
             if not os.path.exists(id_marker):
                 with open(id_marker, 'w') as f:
-                    f.write(f"ID: {unique_code}")
+                    f.write(f"ID: {shot_id}\nCODE: {shot_code}")
             
+            # Re-apply Hidden Attribute
             if os.name == 'nt':
                 subprocess.run(["attrib", "+h", json_path], check=False, shell=True)
                 subprocess.run(["attrib", "+h", id_marker], check=False, shell=True)
@@ -297,6 +316,93 @@ class OrionUtils():
         except Exception as e:
             print(f"Tagging failed: {e}")
             return False
+
+    def asset_create_meta_tag(self, folder_path, asset_code, data=None, asset_id=None):
+        if not os.path.exists(folder_path): return False
+        if not asset_id: asset_id = asset_code
+
+        meta_data = {
+            "code": code,
+            "id": item_id,
+            "original_path": self.get_relative_path(folder_path), 
+            "created_by": os.getlogin(),
+            "last_updated": str(datetime.now())
+        }
+        if data: meta_data.update(data)
+
+        json_path = os.path.join(folder_path, "orion_meta.json")
+        
+        # Windows hidden file fix
+        if os.name == 'nt' and os.path.exists(json_path):
+            subprocess.run(["attrib", "-h", json_path], check=False, shell=True)
+
+        try:
+            if os.path.exists(json_path):
+                with open(json_path, 'r') as f:
+                    try:
+                        existing = json.load(f)
+                        existing.update(meta_data)
+                        meta_data = existing
+                    except: pass
+
+            with open(json_path, 'w') as f:
+                json.dump(meta_data, f, indent=4)
+            
+            # Re-hide
+            if os.name == 'nt':
+                subprocess.run(["attrib", "+h", json_path], check=False, shell=True)
+            return True
+        except Exception as e:
+            print(f"Tagging failed: {e}")
+            return False
+
+    # --- ASSET METHODS (NEW) ---
+
+    def create_asset(self, name, asset_type, user, description="", thumbnail_path=""):
+        # Structure: 30_assets/name
+        asset_path = os.path.join(self.root_dir, '30_assets', name)
+        
+        # Create Folders based on ASSET_TASKS
+        for task, subfolders in self.ASSET_TASKS.items():
+            for sub in subfolders:
+                full_path = os.path.join(asset_path, task, sub)
+                os.makedirs(full_path, exist_ok=True)
+                
+        new_id = str(uuid.uuid4())
+        self.asset_create_meta_tag(asset_path, name, {"type": "asset", "asset_type": asset_type, "description": description}, asset_id=new_id)
+        
+        conn = self.get_db_connection()
+        try:
+            conn.execute(
+                'INSERT OR REPLACE INTO assets (id, name, type, user_assigned, asset_path, description, thumbnail_path) VALUES (?, ?, ?, ?, ?, ?, ?)',
+                (new_id, name, asset_type, user, self.get_relative_path(asset_path), description, thumbnail_path)
+            )
+            conn.commit()
+            return new_id
+        except Exception as e:
+            print(f"Asset Creation Error: {e}")
+            raise e
+        finally: conn.close()
+
+    def get_all_assets(self):
+        conn = self.get_db_connection()
+        try: return conn.execute('SELECT * FROM assets ORDER BY name').fetchall()
+        finally: conn.close()
+
+    def get_asset(self, name):
+        conn = self.get_db_connection()
+        try: return conn.execute('SELECT * FROM assets WHERE name = ?', (name,)).fetchone()
+        finally: conn.close()
+
+    def delete_asset(self, name):
+        conn = self.get_db_connection()
+        try:
+            conn.execute('DELETE FROM assets WHERE name = ?', (name,))
+            conn.commit()
+            shutil.rmtree(os.path.join(self.root_dir, '30_assets', name), ignore_errors=True)
+            return True
+        except: return False
+        finally: conn.close()
 
     # --- FOLDER CREATION ---
 
@@ -329,30 +435,35 @@ class OrionUtils():
         
         return shot_path
 
-    def create_shot(self, shot_code, start, end, user):
-        """Standard creation method."""
+    def create_shot(self, shot_code, start, end, user, description="", thumbnail_path=""):
+        """Creates a shot with unique UUID and supports Description/Thumbnail."""
+        self.check_and_update_schema()
+        
         shot_path = self.create_shot_structure(shot_code)
         
-        # Tags handle path internally now
-        self.create_meta_tag(shot_path, shot_code, {"type": "shot"})
+        # GENERATE UUID FOR ID
+        new_id = str(uuid.uuid4())
+
+        # Create tags (Pass UUID as shot_id)
+        self.create_meta_tag(shot_path, shot_code, {"type": "shot", "description": description}, shot_id=new_id)
         
         conn = self.get_db_connection()
         try:
-            shot_id = shot_code 
             exists = conn.execute("SELECT 1 FROM shots WHERE code = ?", (shot_code,)).fetchone()
-            
-            # Get relative path for DB
             rel_path = self.get_relative_path(shot_path)
 
             if not exists:
                 conn.execute(
-                    'INSERT INTO shots (id, code, frame_start, frame_end, user_assigned, shot_path) VALUES (?, ?, ?, ?, ?, ?)',
-                    (shot_id, shot_code, start, end, user, rel_path)
+                    'INSERT INTO shots (id, code, frame_start, frame_end, user_assigned, shot_path, description, thumbnail_path) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
+                    (new_id, shot_code, start, end, user, rel_path, description, thumbnail_path)
                 )
             else:
-                conn.execute('UPDATE shots SET shot_path = ? WHERE code = ?', (rel_path, shot_code))
+                conn.execute('UPDATE shots SET shot_path = ?, description = ?, thumbnail_path = ? WHERE code = ?', (rel_path, description, thumbnail_path, shot_code))
             conn.commit()
-        except: pass
+            return new_id
+        except Exception as e:
+            print(f"DB Insert Error: {e}")
+            return None
         finally: conn.close()
 
     def get_all_shots(self):
@@ -388,7 +499,6 @@ class OrionUtils():
     # --- NOTIFICATIONS ---
 
     def send_discord_notification(self, message):
-        # Ensure libs path is importable
         if self.libs_path not in sys.path:
             sys.path.insert(0, self.libs_path)
 

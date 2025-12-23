@@ -255,24 +255,25 @@ class ShotFixer(QWidget):
              if reply == QMessageBox.Yes:
                  self.orion.simplify_shot_id(proposed_name)
 
-        #UPDATE PATH & TAGS (RELATIVE PATHS)
-        #get relative path for DB/JSON
+       # UPDATE PATH & TAGS (RELATIVE PATHS)
         final_rel_path = self.orion.get_relative_path(final_physical_path)
         
         if "Missing" in health or "Mismatch" in health or "Register" in health or "Update" in health or "JSON" in health:
             reply = QMessageBox.question(self, "Finalize", 
-                                       f"Create structure, update tags,\n"
-                                       f"and set DB/JSON path to RELATIVE path:\n{final_rel_path}?",
+                                       f"Create structure and update tags?",
                                        QMessageBox.Yes | QMessageBox.No)
             if reply == QMessageBox.Yes:
                 self.orion.create_shot_structure(proposed_name) 
                 
-                #OrionUtils internally handles relative path conversion
-                #call it explicitly to be sure
-                self.orion.create_meta_tag(final_physical_path, proposed_name, 
+                # FETCH ID FROM DB TO ENSURE CONSISTENCY
+                shot_data = self.orion.get_shot(proposed_name)
+                shot_id = shot_data['id'] if shot_data else proposed_name
+
+                # PASS BOTH CODE AND ID
+                self.orion.create_meta_tag(final_physical_path, proposed_name, shot_id,
                                          {"type": "shot", "note": "Fixed/Migrated"})
                 
-                self.orion.register_shot_path(proposed_name, final_physical_path)
+                self.orion.register_shot_path(proposed_name, final_physical_path) 
 
         QMessageBox.information(self, "Done", f"Processed {proposed_name}")
         self.scan_folders()

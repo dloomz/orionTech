@@ -3,7 +3,7 @@ import subprocess
 import sys
 from pathlib import Path
 
-def launch_maya():
+def launch_maya(file_path=None, shot_code=None):
     
     user = os.getlogin()
     
@@ -93,29 +93,25 @@ def launch_maya():
 
     # env["MAYA_PROJECT"] = ORI_PROJECT_PATH
     env["ORI_PROJECT_PATH"] = ORI_PROJECT_PATH
+    env["ORI_SHOT_CONTEXT"] = shot_code if shot_code else ""
     
-    # WORKSPACE_SRC = os.path.join(MAYA_SCRIPT_PATH, "userSetup.py")
-    # WORKSPACE_DST = [r"C:\Docs\maya\2026\scripts\userSetup.py", r"C:\Docs\maya\2025\scripts\userSetup.py", r"C:\Docs\maya\scripts\userSetup.py"]
-    
-    # for dst in WORKSPACE_DST:
-    #     try:
-    #         shutil.copyfile(WORKSPACE_SRC, dst)
-    #     except Exception as e:
-    #         print(f"Unable to copy userprefs: {e}")
-
     pref = PrefsUtils(orion)
     pref.load_prefs("maya", user)
     
     #launch Maya with the modified environment
+    cmd = [MAYA_EXE]
+    if file_path:
+        cmd.append(file_path) # Add file to launch args
+
     try:
-        subprocess.Popen([MAYA_EXE], env=env)
+        subprocess.Popen(cmd, env=env)
     except FileNotFoundError:
-        print("Error: Maya executable not found. Check the MAYA_EXE path.")
-    except Exception as e:
-        print(f"An error occurred: {e}")
+        print("Error: Maya executable not found.")
 
 if __name__ == "__main__":
-    launch_maya()
+    # Check if a file path was passed as a command line argument
+    path_arg = sys.argv[1] if len(sys.argv) > 1 else None
+    launch_maya(file_path=path_arg)
 
 
 #import syncsketchGUI.actions

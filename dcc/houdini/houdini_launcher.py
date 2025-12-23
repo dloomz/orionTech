@@ -3,7 +3,7 @@ import subprocess
 import sys
 from pathlib import Path
 
-def launch_houdini():
+def launch_houdini(file_path=None, shot_code=None):
     
     user = os.getlogin()
     
@@ -57,25 +57,19 @@ def launch_houdini():
     env['ORI_PIPELINE_PATH'] = PIPELINE_PATH
     env["HOUDINI_PACKAGE_DIR"] = PACKAGE_PATH + os.pathsep + env.get("HOUDINI_PACKAGE_DIR", "")
     env["HOUDINI_USER_PREF_DIR"] = f"P:/all_work/studentGroups/ORION_CORPORATION/60_config/userPrefs/{user}/prefs/houdini__HVER__"
-    
-    # env["HOUDINI_TOOLBAR_PATH"] = f"P:/all_work/studentGroups/ORION_CORPORATION/60_config/softwarePrefs/houdini/toolbar" + os.pathsep + env.get("HOUDINI_TOOLBAR_PATH", "")
-    
-    # #PYTHONPATH: python find scripts in your 'scripts' folder
-    # HOUDINI_SCRIPT_PATH = os.path.join(ROOT_PATH, "scripts")
-    # ORI_LIBS_PATH = os.path.join(ORI_ROOT_PATH, "60_config", "libs")
-    
-    # all_houdini_paths = [HOUDINI_SCRIPT_PATH, ORI_LIBS_PATH]
-    # ORI_HOUDINI_PATHS = os.pathsep.join(all_houdini_paths)
-
-    # env["PYTHONPATH"] = ORI_HOUDINI_PATHS + os.pathsep + env.get("PYTHONPATH", "")
+    env["ORI_SHOT_CONTEXT"] = shot_code if shot_code else ""
     
     # launch Houdini with the modified environment
+    cmd = [HOUDINI_EXE]
+    if file_path:
+        cmd.append(file_path) # Add file to launch args
+
     try:
-        subprocess.Popen([HOUDINI_EXE], env=env)
+        subprocess.Popen(cmd, env=env)
     except FileNotFoundError:
-        print("Error: Houdini executable not found. Check the HOUDINI_EXE path.")
-    except Exception as e:
-        print(f"An error occurred: {e}")
+        print("Error: Houdini executable not found.")
 
 if __name__ == "__main__":
-    launch_houdini()
+    # Check if a file path was passed as a command line argument
+    path_arg = sys.argv[1] if len(sys.argv) > 1 else None
+    launch_houdini(file_path=path_arg)
