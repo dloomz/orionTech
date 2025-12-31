@@ -51,6 +51,7 @@ class OrionTechUI(QWidget):
 
         # Load user settings
         self.settings = self.prefs_utils.load_settings()
+        
         self.current_user = os.getlogin()
 
         self.init_ui()
@@ -269,7 +270,7 @@ class OrionTechUI(QWidget):
         # Connections
         self.dark_mode_checkbox.stateChanged.connect(self.toggle_dark_mode)
         self.discord_checkbox.stateChanged.connect(self.toggle_discord_startup)
-        self.wacom_checkbox.stateChanged.connect(self.wacom_fix)
+        self.wacom_checkbox.stateChanged.connect(self.toggle_wacom_fix)
         
         # Set Defaults
         self.dark_mode_checkbox.setChecked(self.settings.get('dark_mode', False))
@@ -279,7 +280,6 @@ class OrionTechUI(QWidget):
         # Add Tabs and Finalize
         self.tabs.addTab(self.apps_tab, 'Apps') # Added Apps as first tab
         self.tabs.addTab(self.prod_tab, 'Production')
-        # self.tabs.addTab(self.prefs_tab, 'Prefs')
         self.tabs.addTab(self.settings_tab, 'Settings')
         
         self.layout.addWidget(self.tabs)
@@ -344,7 +344,6 @@ class OrionTechUI(QWidget):
         if self.settings.get('dark_mode', False):
             self.system_utils.set_windows_dark_mode(True)
 
-    # --- PRODUCTION HANDLERS ---
     def handle_auto_create(self):
         next_code = self.orion_utils.get_next_shot_code()
         try:
@@ -411,15 +410,6 @@ class OrionTechUI(QWidget):
                 self.edit_start_input.setText(str(shot['frame_start']))
                 self.edit_end_input.setText(str(shot['frame_end']))
 
-    # --- PREFS & SETTINGS HANDLERS ---
-    # def load_prefs(self):
-    #     self.prefs_utils.load_prefs(self.software_selector.currentText(), self.current_user)
-    #     QMessageBox.information(self, "Success", "Preferences Loaded")
-
-    # def save_prefs(self):
-    #     self.prefs_utils.save_prefs(self.software_selector.currentText(), self.current_user)
-    #     QMessageBox.information(self, "Success", "Preferences Saved")
-
     def toggle_dark_mode(self, state):
         self.settings['dark_mode'] = (state == Qt.Checked)
         self.prefs_utils.save_settings(self.settings)
@@ -432,7 +422,7 @@ class OrionTechUI(QWidget):
         discord_path = "https://discord.com/login"
         self.system_utils.open_window(discord_path, state == Qt.Checked)
         
-    def wacom_fix(self, state):
+    def toggle_wacom_fix(self, state):
         self.settings['wacom_fix'] = (state == Qt.Checked)
         self.prefs_utils.save_settings(self.settings)
         self.system_utils.wacom_fix(state == Qt.Checked)

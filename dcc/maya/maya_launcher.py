@@ -2,8 +2,9 @@ import os
 import subprocess
 import sys
 from pathlib import Path
+import argparse
 
-def launch_maya(file_path=None, shot_code=None):
+def launch_maya(file_path=None, shot_code=None, frame_start=None, frame_end=None, discord_thread_id=None, shot_path=None):
     
     user = os.getlogin()
     
@@ -94,6 +95,10 @@ def launch_maya(file_path=None, shot_code=None):
     # env["MAYA_PROJECT"] = ORI_PROJECT_PATH
     env["ORI_PROJECT_PATH"] = ORI_PROJECT_PATH
     env["ORI_SHOT_CONTEXT"] = shot_code if shot_code else ""
+    env["ORI_DISCORD_THREAD_ID"] = str(discord_thread_id)
+    env["ORI_SHOT_PATH"] = str(shot_path)
+    env["ORI_SHOT_FRAME_START"] = str(frame_start)
+    env["ORI_SHOT_FRAME_END"] = str(frame_end)
     
     pref = PrefsUtils(orion)
     pref.load_prefs("maya", user)
@@ -109,9 +114,25 @@ def launch_maya(file_path=None, shot_code=None):
         print("Error: Maya executable not found.")
 
 if __name__ == "__main__":
-    # Check if a file path was passed as a command line argument
-    path_arg = sys.argv[1] if len(sys.argv) > 1 else None
-    launch_maya(file_path=path_arg)
+    # ARGUMENT PARSER
+    parser = argparse.ArgumentParser(description="Launch Maya with Orion Context")
+    parser.add_argument("--file", help="Path to the Maya file to open", default=None)
+    parser.add_argument("--code", help="Shot Code (e.g., stc_0010)", default=None)
+    parser.add_argument("--start", help="Start Frame", default=None)
+    parser.add_argument("--end", help="End Frame", default=None)
+    parser.add_argument("--discord", help="Discord Thread ID", default=None)
+    parser.add_argument("--shotpath", help="Shot Path on Disk", default=None)
+    
+    args = parser.parse_args()
+    
+    launch_maya(
+        file_path=args.file,
+        shot_code=args.code,
+        frame_start=args.start,
+        frame_end=args.end,
+        discord_thread_id=args.discord,
+        shot_path=args.shotpath
+    )
 
 
 #import syncsketchGUI.actions

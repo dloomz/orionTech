@@ -2,8 +2,9 @@ import os
 import subprocess
 import sys
 from pathlib import Path
+import argparse
 
-def launch_houdini(file_path=None, shot_code=None):
+def launch_houdini(file_path=None, shot_code=None, frame_start=None, frame_end=None, discord_thread_id=None, shot_path=None):
     
     user = os.getlogin()
     
@@ -70,6 +71,22 @@ def launch_houdini(file_path=None, shot_code=None):
         print("Error: Houdini executable not found.")
 
 if __name__ == "__main__":
-    # Check if a file path was passed as a command line argument
-    path_arg = sys.argv[1] if len(sys.argv) > 1 else None
-    launch_houdini(file_path=path_arg)
+    # ARGUMENT PARSER
+    parser = argparse.ArgumentParser(description="Launch Houdini with Orion Context")
+    parser.add_argument("--file", help="Path to the Houdini file to open", default=None)
+    parser.add_argument("--code", help="Shot Code (e.g., stc_0010)", default=None)
+    parser.add_argument("--start", help="Start Frame", default=None)
+    parser.add_argument("--end", help="End Frame", default=None)
+    parser.add_argument("--discord", help="Discord Thread ID", default=None)
+    parser.add_argument("--shotpath", help="Shot Path on Disk", default=None)
+    
+    args = parser.parse_args()
+    
+    launch_houdini(
+        file_path=args.file,
+        shot_code=args.code,
+        frame_start=args.start,
+        frame_end=args.end,
+        discord_thread_id=args.discord,
+        shot_path=args.shotpath
+    )

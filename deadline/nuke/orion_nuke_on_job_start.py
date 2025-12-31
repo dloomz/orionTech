@@ -36,7 +36,7 @@ def __main__(*args):
 
         message = (
             f"🚀 **Nuke Render Started:** `{job_name}`\n"
-            f"> **User:** {user}\n"
+            f"> **User:** @{user}\n"
             f"> **Pool:** {pool} | **Priority:** {priority}\n"
             f"> **Frames:** {job.JobFrames} ({task_count} tasks)\n"
             f"> **Comment:** {comment}"

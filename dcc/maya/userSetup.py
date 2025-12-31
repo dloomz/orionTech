@@ -1,6 +1,11 @@
 import maya.cmds as cmds
 import maya.utils
+import maya.OpenMaya as om
+
+from maya.plugin.timeSliderBookmark.timeSliderBookmark import createBookmark
+
 from functools import partial
+import os
 
 from core.orionUtils import OrionUtils
 orion_utils = OrionUtils()
@@ -16,20 +21,23 @@ cmds.optionVar(iv=("firstLaunch", 1))
 #ANIMATION
 def setup_animation():
     cmds.playbackOptions(loop='continuous')
-    cmds.playbackOptions(ast=1001, aet=1500)
-    cmds.playbackOptions(min=1001, max=1500)
     cmds.playbackOptions(playbackSpeed=1.0)
 
 #SHOT CONTEXT
-def set_shot_context(shot_code, start_frame, end_frame, *args):
+def set_shot_context(shot_code, start_frame, end_frame, discord_thread_id, shot_path, *args):
     #function runs when shot in the menu is clicked
     #receives specific data for shot
     print(f"Setting Context to: {shot_code}")
     print(f"Frame Range: {start_frame} - {end_frame}")
     
+    os.environ["ORI_SHOT_CONTEXT"] = shot_code
+    os.environ["ORI_DISCORD_THREAD_ID"] = str(discord_thread_id) if discord_thread_id else ""
+    os.environ["ORI_SHOT_PATH"] = shot_path
+    os.environ["ORI_SHOT_FRAME_START"] = str(start_frame)
+    os.environ["ORI_SHOT_FRAME_END"] = str(end_frame)
+    
     #set maya timeline to shot range
-    cmds.playbackOptions(min=start_frame, max=end_frame)
-    cmds.playbackOptions(ast=start_frame, aet=end_frame)
+    set_frames_from_shot()
 
 def populate_shot_menu(menu_name, *args):
     #clear existing items 
@@ -43,13 +51,15 @@ def populate_shot_menu(menu_name, *args):
         code = shot['code']
         start = shot['frame_start']
         end = shot['frame_end']
+        discord_thread_id = shot['discord_thread_id']
+        shot_path = shot['shot_path']
         
         #create the menu item
         #use partial to pass the specific shot data to the command
         cmds.menuItem(
             parent=menu_name,
             label=code,
-            command=partial(set_shot_context, code, start, end)
+            command=partial(set_shot_context, code, start, end, discord_thread_id, shot_path)
         )
 
 def add_button_to_toolbox():
@@ -83,8 +93,85 @@ def add_button_to_toolbox():
         parent=shot_button, 
         postMenuCommand=populate_shot_menu
     )
+
+def generate_thumbnail(clientData=None):
+    #get current scene path
+    scene_path = cmds.file(q=True, sn=True)
+    if not scene_path:
+        return
+
+    #construct thumbnail path in .thumbnails subfolder
+    folder = os.path.dirname(scene_path)
+    filename = os.path.basename(scene_path)
+    name_only = os.path.splitext(filename)[0]
+    
+    thumb_dir = os.path.join(folder, "thumbnails")
+    if not os.path.exists(thumb_dir):
+        os.makedirs(thumb_dir)
+
+    thumb_path = os.path.join(thumb_dir, f"{name_only}.jpg")
+
+    #capture Viewport
+    try:
+        editor = cmds.playblast(activeEditor=True)
+        cmds.playblast(
+            frame=cmds.currentTime(q=True),
+            format="image",
+            compression="jpg",
+            completeFilename=thumb_path,
+            showOrnaments=False,
+            viewer=False,
+            percent=100,
+            widthHeight=[512, 288],
+            forceOverwrite=True
+        )
+        print(f"Orion: Thumbnail saved to {thumb_path}")
+    except Exception as e:
+        print(f"Orion: Thumbnail generation failed: {e}")
+
+def set_frames_from_shot():
+    #check if the bookmark plugin is loaded first
+    if not cmds.pluginInfo("timeSliderBookmark", query=True, loaded=True):
+        cmds.loadPlugin("timeSliderBookmark")
+
+    #get end frame from env var
+    end_frame_string = os.environ.get("ORI_SHOT_FRAME_END")
+    
+    #default 1250 otherwise use the env var
+    if end_frame_string:
+        end_bookmark = int(end_frame_string) 
+    else:
+        end_bookmark = 1250 
+
+    start_bookmark = 1011
+    
+    #scene handles padding
+    start_frame = 1001
+    end_frame = end_bookmark + 10
+    start_scene = 981
+    end_scene = end_frame + 10
+    
+    #apply timeline ranges
+    cmds.playbackOptions(min=start_frame, max=end_frame)
+    cmds.playbackOptions(ast=start_scene, aet=end_scene)
+
+    try:
+        createBookmark(name="MainAction", start=start_bookmark, stop=end_bookmark, color=(1.0, 0.37, 0.0))
+        print(f"Set frames and bookmark: {start_bookmark} to {end_bookmark}")
+    except Exception as e:
+        print(f"Error creating bookmark: {e}")
+
+def register_orion_callback():
+    om.MSceneMessage.addCallback(
+        om.MSceneMessage.kAfterSave, 
+        generate_thumbnail
+    )
+
+
+cmds.evalDeferred("register_orion_callback()")
     
 maya.utils.executeDeferred(setup_animation)
 maya.utils.executeDeferred(add_button_to_toolbox)
+maya.utils.executeDeferred(set_frames_from_shot)
 
 print("User setup script loaded.")

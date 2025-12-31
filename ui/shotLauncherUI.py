@@ -4,16 +4,9 @@ import subprocess
 import json
 import shutil
 import re
+import uuid
 from datetime import datetime
-from PyQt5.QtWidgets import (
-    QApplication, QWidget, QLabel, QPushButton,
-    QVBoxLayout, QHBoxLayout, QFrame, QGridLayout,
-    QSizePolicy, QScrollArea, QSplitter, QInputDialog,
-    QMessageBox, QLineEdit, QSpinBox, QTextEdit,
-    QFormLayout, QFileDialog, QMenu, QAction
-)
-from PyQt5.QtCore import Qt, pyqtSignal, QSize
-from PyQt5.QtGui import QPixmap
+import argparse
 
 # ORION TECH INTEGRATION
 current_ui_dir = os.path.dirname(os.path.abspath(__file__))
@@ -31,10 +24,69 @@ except ImportError:
         print(f"CRITICAL ERROR: Could not import OrionUtils.\nChecked path: {orion_package_root}\nError: {e}")
         sys.exit()
 
-# HELPERS 
+orion_utils = OrionUtils(check_schema=False)
 
+#success flag
+import_success = False
+
+#loop 3 times
+for attempt in range(3):
+    try:
+        #try to import module
+        from PyQt5.QtWidgets import (
+            QApplication, QWidget, QLabel, QPushButton,
+            QVBoxLayout, QHBoxLayout, QFrame, QGridLayout,
+            QSizePolicy, QScrollArea, QSplitter, QInputDialog,
+            QMessageBox, QLineEdit, QSpinBox, QTextEdit,
+            QFormLayout, QFileDialog, QMenu, QAction, QComboBox, QAbstractButton
+        )
+        from PyQt5.QtCore import Qt, pyqtSignal, QSize, QRect
+        from PyQt5.QtGui import QPixmap, QPainter
+        
+        #if we get here imports worked
+        import_success = True
+        break 
+
+    except ImportError as e:
+        #print error for debugging
+        print(f"Attempt {attempt} failed: {e}")
+
+        #handle logic based on which attempt just failed
+        if attempt == 0:
+            #native python failed, add work path for next try
+            print("Adding Work Path...")
+            if orion_utils.libs_path not in sys.path:
+                sys.path.insert(0, orion_utils.libs_path)
+
+        elif attempt == 1:
+            #work path failed, add home path for next try
+            print("Adding Home Path...")
+            home_path = os.path.join(orion_utils.libs_path, "home_vers")
+            #check if folder exists first
+            if os.path.exists(home_path):
+                if home_path not in sys.path:
+                    sys.path.insert(0, home_path)
+            else:
+                print(f"Home path not found at: {home_path}")
+
+        elif attempt == 2:
+            #all attempts failed
+            print("CRITICAL ERROR: Could not import PyQt5 from any location.")
+            break
+
+#final check
+if not import_success:
+    sys.exit()
+    
+#dictionary to cache loaded thumbnails
+THUMB_CACHE = {}
+
+# STYLE NOTES:
+# ORION ORANGE = #FF6000
+
+# HELPERS 
 def get_scrollbar_style(bg_color):
-    """Returns the CSS string for a consistent scrollbar style matching the column background."""
+    """Returns the CSS string for a consistent scrollbar style."""
     return f"""
         QScrollArea {{ background: transparent; border: none; }}
         QScrollBar:vertical {{ border: none; background: {bg_color}; width: 10px; margin: 0; }}
@@ -43,12 +95,82 @@ def get_scrollbar_style(bg_color):
         QScrollBar::add-page:vertical, QScrollBar::sub-page:vertical {{ background: none; }}
     """
 
-# CUSTOM WIDGETS 
+def get_cached_pixmap(path, target_size):
+    """
+    Loads, scales, and caches pixmaps for fast reuse.
+    """
+    if not path or not os.path.exists(path):
+        return None
 
+    #id to store path and size
+    key = (path, target_size.width(), target_size.height())
+    #check if in dictionary, return already present entry
+    if key in THUMB_CACHE:
+        return THUMB_CACHE[key]
+
+    pixmap = QPixmap(path)
+    if pixmap.isNull():
+        return None
+    #scale to fit target size
+    pixmap = pixmap.scaled(
+        target_size,
+        Qt.KeepAspectRatio,
+        Qt.SmoothTransformation
+    )
+
+    #store in cache
+    THUMB_CACHE[key] = pixmap
+    return pixmap
+
+def get_path_variants(path):
+    r"""
+    Returns a dictionary with 'work' and 'home' keys containing the path
+    remapped to P:\ (Work) and O:\ (Home) roots respectively.
+    """
+    if not path:
+        return {}
+    
+    path = os.path.normpath(path)
+    work_root = r"P:\all_work\studentGroups\ORION_CORPORATION"
+    home_root = "O:\\"
+    
+    rel_path = None
+    
+    #check if currently in Work Root
+    if path.lower().startswith(work_root.lower()):
+        rel_path = path[len(work_root):].lstrip(os.sep)
+        
+    #check if currently in Home Root
+    elif path.lower().startswith("o:"):
+        #strip "O:\" or "O:"
+        if len(path) > 3:
+            rel_path = path[3:]
+        elif len(path) == 3: # O:\
+            rel_path = ""
+        
+    #Fallback: Try to find "ORION_CORPORATION"
+    if rel_path is None and "ORION_CORPORATION" in path:
+        parts = path.split("ORION_CORPORATION")
+        if len(parts) > 1:
+            rel_path = parts[1].lstrip(os.sep)
+            
+    if rel_path is not None:
+        return {
+            "work": os.path.join(work_root, rel_path),
+            "home": os.path.join(home_root, rel_path)
+        }
+    
+    #if path cannot be resolved, return original for both as fallback
+    return {"work": path, "home": path}
+
+
+# CUSTOM WIDGETS 
 class ExportItemWidget(QFrame):
     """
-    Compact widget for displaying Export files in the 2nd Column (Asset Mode).
+    Widget for displaying Export files.
     """
+    
+    #create signal for actions, like publish/unpublish
     action_triggered = pyqtSignal(str, object) # action, self
 
     def __init__(self, filename, full_path, is_published=False):
@@ -109,11 +231,12 @@ class ExportItemWidget(QFrame):
     def update_style(self):
         base_style = "ExportItemWidget { background-color: #2b2b2b; border-radius: 6px; }"
         if self.is_published:
-            # Green border for published
+            #Green border for published
             self.setStyleSheet(base_style + "ExportItemWidget { border: 2px solid #00ff00; }")
         else:
             self.setStyleSheet(base_style + "ExportItemWidget { border: 1px solid #444; } ExportItemWidget:hover { border: 1px solid #666; background-color: #333; }")
 
+    #add context menu on right click and also do mousePressEvent as normal
     def mousePressEvent(self, event):
         if event.button() == Qt.RightButton:
             self.show_context_menu(event.pos())
@@ -123,21 +246,63 @@ class ExportItemWidget(QFrame):
         menu = QMenu(self)
         menu.setStyleSheet("QMenu { background-color: #333; color: white; border: 1px solid #555; } QMenu::item:selected { background-color: #555; }")
         
+        #File Actions
+        action_open = QAction("Open File Location", self) # pyright: ignore[reportPossiblyUnboundVariable]
+        action_open.triggered.connect(self.open_file_location)
+        menu.addAction(action_open)
+
+        # Path Variants
+        variants = get_path_variants(self.full_path)
+        
+        action_copy_local = QAction("Copy Path (Local)", self)
+        action_copy_local.triggered.connect(self.copy_path)
+        menu.addAction(action_copy_local)
+
+        if variants:
+            action_copy_work = QAction("Copy Work Path (P:)", self)
+            action_copy_work.triggered.connect(lambda: self.copy_specific_path(variants.get("work")))
+            menu.addAction(action_copy_work)
+
+            action_copy_home = QAction("Copy Home Path (O:)", self)
+            action_copy_home.triggered.connect(lambda: self.copy_specific_path(variants.get("home")))
+            menu.addAction(action_copy_home)
+        
+        menu.addSeparator()
+        
+        #Publish Actions
         if self.is_published:
-            action = QAction("Unpublish (Move to .BIN)", self)
-            action.triggered.connect(lambda: self.action_triggered.emit("unpublish", self))
+            action_pub = QAction("Unpublish (Move to BIN)", self)
+            action_pub.triggered.connect(lambda: self.action_triggered.emit("unpublish", self))
         else:
-            action = QAction("Publish", self)
-            action.triggered.connect(lambda: self.action_triggered.emit("publish", self))
+            action_pub = QAction("Publish", self)
+            action_pub.triggered.connect(lambda: self.action_triggered.emit("publish", self))
+        menu.addAction(action_pub)
+
+        menu.addSeparator()
             
-        menu.addAction(action)
         menu.exec_(self.mapToGlobal(pos))
+
+    def open_file_location(self):
+        #Open the file selected in explorer
+        if not self.full_path:
+            return
+        path = os.path.normpath(self.full_path)
+        if os.path.exists(path):
+            subprocess.Popen(r'explorer /select,"' + path + '"')
+    
+    def copy_path(self):
+        #copy full path to clipboard
+        QApplication.clipboard().setText(self.full_path)
+
+    def copy_specific_path(self, path):
+        if path:
+            QApplication.clipboard().setText(path)
 
     def set_published(self, state):
         self.is_published = state
         self.update_style()
 
-
+#Represents Shot / Asset with thumbnail
 class ShotButton(QPushButton):
     def __init__(self, text, color, full_data=None):
         super().__init__()
@@ -180,14 +345,14 @@ class ShotButton(QPushButton):
         
         # Load thumbnail 
         thumb_path = self.full_data.get("thumbnail_path")
-        if thumb_path and isinstance(thumb_path, str) and os.path.exists(thumb_path):
+        if thumb_path and isinstance(thumb_path, str) and thumb_path.strip():
             clean_path = thumb_path.strip().replace("\\", "/")
             self.box.setStyleSheet(f"""
                 border-image: url('{clean_path}') 0 0 0 0 stretch stretch;
                 border-radius: 4px;
                 border: 1px solid #555;
             """)
-            self.box.setText("") # Clear pixmap if set previously
+            self.box.setText("") 
         else:
             self.box.setStyleSheet(f"background-color: {self.default_color}; border-radius: 4px;")
 
@@ -261,6 +426,51 @@ class TaskButton(QPushButton):
         self.setStyleSheet(style)
         self.lbl.setStyleSheet(f"color: {txt_color}; font-size: 11px; border: none; background: transparent;")
         self.bullet.setStyleSheet(f"color: {bullet_color}; font-size: 16px; margin-right: 5px; background: transparent; border: none;")
+        
+    def mousePressEvent(self, event):
+        if event.button() == Qt.RightButton:
+            self.show_context_menu(event.pos())
+        super().mousePressEvent(event)
+
+    def show_context_menu(self, pos):
+        menu = QMenu(self)
+        menu.setStyleSheet("QMenu { background-color: #333; color: white; border: 1px solid #555; } QMenu::item:selected { background-color: #555; }")        
+
+        # New File Actions
+        action_open = QAction("Open File Location", self)
+        action_open.triggered.connect(self.open_file_location)
+        menu.addAction(action_open)
+
+        # Path Variants
+        variants = get_path_variants(self.full_path)
+        
+        action_copy_local = QAction("Copy Path (Local)", self)
+        action_copy_local.triggered.connect(self.copy_path)
+        menu.addAction(action_copy_local)
+
+        if variants:
+            action_copy_work = QAction("Copy Work Path (P:)", self)
+            action_copy_work.triggered.connect(lambda: self.copy_specific_path(variants.get("work")))
+            menu.addAction(action_copy_work)
+
+            action_copy_home = QAction("Copy Home Path (O:)", self)
+            action_copy_home.triggered.connect(lambda: self.copy_specific_path(variants.get("home")))
+            menu.addAction(action_copy_home)
+            
+        menu.exec_(self.mapToGlobal(pos))
+
+    def open_file_location(self):
+        # Opens Explorer with the file selected
+        path = os.path.normpath(self.full_path)
+        if os.path.exists(path):
+            subprocess.Popen(r'explorer /select,"' + path + '"')
+    
+    def copy_path(self):
+        QApplication.clipboard().setText(self.full_path)
+
+    def copy_specific_path(self, path):
+        if path:
+            QApplication.clipboard().setText(path)
 
 class SpecialismGroup(QWidget):
     def __init__(self, spec_name, full_path, parent_ui):
@@ -274,7 +484,6 @@ class SpecialismGroup(QWidget):
         self.layout.setSpacing(2)
         
         color = "#009966"
-        if spec_name == "COMP": color = "#66ffcc"
         
         self.header_btn = SpecButton(spec_name, color)
         self.header_btn.clicked.connect(self.toggle_expand)
@@ -330,6 +539,13 @@ class SpecialismGroup(QWidget):
             new_path = os.path.join(self.full_path, text)
             try:
                 os.makedirs(new_path, exist_ok=True)
+
+                export_path = os.path.join(new_path, "EXPORT")
+                published_path = os.path.join(export_path, "PUBLISHED")
+                
+                os.makedirs(export_path, exist_ok=True)
+                os.makedirs(published_path, exist_ok=True)
+
                 self.populate_tasks() 
             except Exception as e:
                 QMessageBox.critical(self, "Error", str(e))
@@ -362,7 +578,7 @@ class ContextSwitch(QFrame):
         self.mode_changed.emit(self.current_mode)
 
     def update_style(self):
-        active = "QPushButton { background-color: #ffaa00; color: white; border-radius: 17px; font-weight: bold; border: none; }"
+        active = "QPushButton { background-color: #FF6000; color: white; border-radius: 17px; font-weight: bold; border: none; }"
         inactive = "QPushButton { background-color: transparent; color: #888; border-radius: 17px; font-weight: bold; border: none; } QPushButton:hover { color: white; }"
         if self.current_mode == "Assets":
             self.btn_assets.setStyleSheet(active)
@@ -372,98 +588,199 @@ class ContextSwitch(QFrame):
             self.btn_shots.setStyleSheet(active)
 
 class ThumbnailCard(QFrame):
-    clicked = pyqtSignal(object) 
+    clicked = pyqtSignal(object)
     double_clicked = pyqtSignal(object)
-    action_triggered = pyqtSignal(str, object) 
-    
-    def __init__(self, filename, full_path, color, file_type="standard"):
+    action_triggered = pyqtSignal(str, object)
+
+    def __init__(self, filename, full_path, fallback_color, file_type="standard"):
         super().__init__()
-        # Flexible width
-        self.setFixedHeight(250) 
-        self.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
-        
+
         self.filename = filename
         self.full_path = full_path
-        self.is_selected = False
-        self.is_published = False
         self.file_type = file_type
 
-        # THUMBNAIL LOGIC
-        base_dir = os.path.dirname(full_path)
-        base_name, ext = os.path.splitext(filename)
-        ext = ext.lower()
-        
-        valid_img_exts = ['.jpg', '.jpeg', '.png', '.tga', '.tiff', '.tif', '.bmp', '.exr']
-        
-        if ext in valid_img_exts:
-            self.thumb_path = full_path
-        else:
-            target_thumb = os.path.join(base_dir, ".thumbnails", base_name + ".jpg")
-            if not os.path.exists(target_thumb):
-                target_thumb = os.path.join(base_dir, base_name + ".jpg")
-            self.thumb_path = target_thumb
-        
-        self.layout = QVBoxLayout()
-        self.layout.setContentsMargins(8, 8, 8, 8)
-        self.setLayout(self.layout)
-        
-        self.image_area = QLabel()
-        self.image_area.setFixedHeight(180) 
-        self.image_area.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
-        self.image_area.setAlignment(Qt.AlignCenter)
-        
-        # DEFAULT STYLE
-        self.image_area.setStyleSheet(f"background-color: {color}; border-radius: 6px;")
-        
-        # Load Image using STYLE SHEET 
-        if os.path.exists(self.thumb_path):
-            clean_path = self.thumb_path.replace("\\", "/")
-            self.image_area.setStyleSheet(f"""
-                border-image: url('{clean_path}') 0 0 0 0 stretch stretch;
-                border-radius: 6px;
-                background-color: transparent; 
-            """)
+        self.is_selected = False
+        self.is_published = False
+        self.pixmap_loaded = False
 
-        self.layout.addWidget(self.image_area)
-        
+        self.setFixedHeight(250)
+        self.setFixedWidth(290)
+        self.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
+        self.setObjectName("ThumbnailCard")
+
+        # Resolve thumbnail path
+        self.thumb_path = self._resolve_thumbnail_path()
+
+        # ---------- Layout ----------
+        layout = QVBoxLayout(self)
+        layout.setContentsMargins(8, 8, 8, 8)
+        layout.setSpacing(6)
+
+        # Image area
+        self.image_area = QLabel()
+        self.image_area.setFixedHeight(180)
+        self.image_area.setFixedWidth(280)
+        self.image_area.setAlignment(Qt.AlignCenter)
+        self.image_area.setAttribute(Qt.WA_TransparentForMouseEvents) # FIX: Allow clicks to pass through
+        self.image_area.setStyleSheet(
+            f"background-color: {fallback_color}; border-radius: 6px;"
+        )
+
+        layout.addWidget(self.image_area)
+
+        # Filename
         self.name_lbl = QLabel(filename)
-        self.name_lbl.setStyleSheet("color: white; font-weight: bold; font-size: 12px; border: none; background: transparent;")
         self.name_lbl.setWordWrap(True)
-        self.layout.addWidget(self.name_lbl)
-        
+        self.name_lbl.setAttribute(Qt.WA_TransparentForMouseEvents) # FIX: Allow clicks to pass through
+        self.name_lbl.setStyleSheet(
+            "color: white; font-weight: bold; font-size: 12px;"
+        )
+        layout.addWidget(self.name_lbl)
+
+        # Published label
         self.status_lbl = QLabel("PUBLISHED ✓")
-        self.status_lbl.setStyleSheet("color: #00ff00; font-size: 11px; font-weight: bold; border: none; background: transparent;")
+        self.status_lbl.setAttribute(Qt.WA_TransparentForMouseEvents) # FIX: Allow clicks to pass through
+        self.status_lbl.setStyleSheet(
+            "color: #00ff00; font-size: 11px; font-weight: bold;"
+        )
         self.status_lbl.hide()
-        self.layout.addWidget(self.status_lbl)
-        
+        layout.addWidget(self.status_lbl)
+
         self.update_border()
 
+    # ------------------------------------------------------------------
+    # Thumbnail resolution
+    # ------------------------------------------------------------------
+
+    def _resolve_thumbnail_path(self):
+        """
+        Determines the best thumbnail path to use.
+        """
+        base_dir = os.path.dirname(self.full_path)
+        base_name, ext = os.path.splitext(self.filename)
+        ext = ext.lower()
+
+        valid_img_exts = {'.jpg', '.jpeg', '.png', '.bmp', '.tif', '.tiff', '.exr'}
+
+        # If it's already an image, prefer it
+        if ext in valid_img_exts:
+            return self.full_path
+
+        # Look for generated thumbnails
+        thumb = os.path.join(base_dir, "thumbnails", base_name + ".jpg")
+        if os.path.exists(thumb):
+            return thumb
+
+        # Fallback: same folder jpg
+        thumb = os.path.join(base_dir, base_name + ".jpg")
+        if os.path.exists(thumb):
+            return thumb
+
+        return None
+
+    # ------------------------------------------------------------------
+    # Lazy loading
+    # ------------------------------------------------------------------
+
+    def showEvent(self, event):
+        """
+        Lazy-load the pixmap only when widget becomes visible.
+        """
+        super().showEvent(event)
+        if not self.pixmap_loaded:
+            self.load_thumbnail()
+
+    def load_thumbnail(self):
+        """
+        Loads thumbnail pixmap using cache.
+        """
+        if not self.thumb_path:
+            return
+
+        pixmap = get_cached_pixmap(self.thumb_path, self.image_area.size())
+        if pixmap:
+            self.image_area.setPixmap(pixmap)
+            self.image_area.setStyleSheet(
+                "background-color: transparent; border-radius: 6px;"
+            )
+            self.pixmap_loaded = True
+
+    # ------------------------------------------------------------------
+    # Interaction
+    # ------------------------------------------------------------------
+
     def mousePressEvent(self, event):
-        # right-click only if export file in asset context
-        if event.button() == Qt.RightButton and self.file_type == "export":
-            self.show_context_menu(event.pos())
-        else:
+        # Handle left click for selection
+        if event.button() == Qt.LeftButton:
             self.clicked.emit(self)
         super().mousePressEvent(event)
-    
+
+    def contextMenuEvent(self, event):
+        # Standard way to handle right click menus
+        self.show_context_menu(event.globalPos())
+
     def mouseDoubleClickEvent(self, event):
         if self.full_path:
             self.double_clicked.emit(self)
         super().mouseDoubleClickEvent(event)
 
-    def show_context_menu(self, pos):
+    def show_context_menu(self, global_pos):
         menu = QMenu(self)
-        menu.setStyleSheet("QMenu { background-color: #333; color: white; border: 1px solid #555; } QMenu::item:selected { background-color: #555; }")
+        menu.setStyleSheet("""
+            QMenu { background-color: #333; color: white; border: 1px solid #555; }
+            QMenu::item:selected { background-color: #555; }
+        """)
+
+        # 1. Publish Actions (Only if this card represents an export)
+        if self.file_type == "export":
+            action_text = "Unpublish" if self.is_published else "Publish"
+            action_pub = QAction(action_text, self)
+            action_pub.triggered.connect(
+                lambda: self.action_triggered.emit(
+                    "unpublish" if self.is_published else "publish", self
+                )
+            )
+            menu.addAction(action_pub)
+            menu.addSeparator()
+
+        # 2. File Actions (Always Available)
+        action_open = QAction("Open File Location", self)
+        action_open.triggered.connect(self.open_file_location)
+        menu.addAction(action_open)
+
+        # Path Variants
+        variants = get_path_variants(self.full_path)
         
-        if self.is_published:
-            action = QAction("Unpublish", self)
-            action.triggered.connect(lambda: self.action_triggered.emit("unpublish", self))
-        else:
-            action = QAction("Publish", self)
-            action.triggered.connect(lambda: self.action_triggered.emit("publish", self))
-            
-        menu.addAction(action)
-        menu.exec_(self.mapToGlobal(pos))
+        action_copy_local = QAction("Copy Path (Local)", self)
+        action_copy_local.triggered.connect(self.copy_path)
+        menu.addAction(action_copy_local)
+
+        if variants:
+            action_copy_work = QAction("Copy Work Path (P:)", self)
+            action_copy_work.triggered.connect(lambda: self.copy_specific_path(variants.get("work")))
+            menu.addAction(action_copy_work)
+
+            action_copy_home = QAction("Copy Home Path (O:)", self)
+            action_copy_home.triggered.connect(lambda: self.copy_specific_path(variants.get("home")))
+            menu.addAction(action_copy_home)
+
+        menu.exec_(global_pos)
+
+    def open_file_location(self):
+        path = os.path.normpath(self.full_path)
+        if os.path.exists(path):
+            subprocess.Popen(f'explorer /select,"{path}"')
+    
+    def copy_path(self):
+        QApplication.clipboard().setText(self.full_path)
+
+    def copy_specific_path(self, path):
+        if path:
+            QApplication.clipboard().setText(path)
+
+    # ------------------------------------------------------------------
+    # State updates
+    # ------------------------------------------------------------------
 
     def set_selected(self, selected):
         self.is_selected = selected
@@ -471,20 +788,38 @@ class ThumbnailCard(QFrame):
 
     def mark_published(self, published=True):
         self.is_published = published
-        if published: self.status_lbl.show()
-        else: self.status_lbl.hide()
+        self.status_lbl.setVisible(published)
         self.update_border()
 
     def update_border(self):
         base_bg = "#1e1e1e"
-        hover_bg = "#333333" 
-        css = "ThumbnailCard { border-radius: 10px; }"
+        hover_bg = "#333333"
+
         if self.is_selected:
-            css += f"ThumbnailCard {{ background-color: {base_bg}; border: 3px solid #ffcc00; padding: 2px; }}"
+            css = (
+                "ThumbnailCard {"
+                f"background-color: {base_bg};"
+                "border: 3px solid #FF6000;"
+                "border-radius: 10px;"
+                "}"
+            )
         elif self.is_published:
-            css += f"ThumbnailCard {{ background-color: {base_bg}; border: 3px solid #00ff00; }}"
+            css = (
+                "ThumbnailCard {"
+                f"background-color: {base_bg};"
+                "border: 3px solid #00ff00;"
+                "border-radius: 10px;"
+                "}"
+            )
         else:
-            css += f"ThumbnailCard {{ background-color: {base_bg}; border: none; }} ThumbnailCard:hover {{ background-color: {hover_bg}; }}"
+            css = (
+                "ThumbnailCard {"
+                f"background-color: {base_bg};"
+                "border-radius: 10px;"
+                "}"
+                f"ThumbnailCard:hover {{ background-color: {hover_bg}; }}"
+            )
+
         self.setStyleSheet(css)
 
 class ShotInfoPanel(QFrame):
@@ -500,7 +835,7 @@ class ShotInfoPanel(QFrame):
         self.lbl_shot_code.setStyleSheet("color: #33ccff; font-size: 20px; font-weight: bold; background: transparent; border: none;")
         
         self.lbl_range = QLabel("Range: -")
-        self.lbl_range.setStyleSheet("color: #ffcc00; font-size: 14px; font-weight: bold; background: transparent; border: none;")
+        self.lbl_range.setStyleSheet("color: #FF6000; font-size: 14px; font-weight: bold; background: transparent; border: none;")
         self.lbl_range.setAlignment(Qt.AlignRight | Qt.AlignVCenter)
         
         header_layout.addWidget(self.lbl_shot_code)
@@ -631,7 +966,10 @@ class AssetEditor(QFrame):
     def __init__(self, mode="create", existing_data=None):
         super().__init__()
         self.mode = mode
-        self.existing_data = existing_data or {}
+        # FIX: Ensure existing_data is a dictionary immediately
+        existing_data = existing_data or {}
+        self.existing_data = existing_data
+
         self.setStyleSheet("""
             QFrame { background-color: #222; border-radius: 8px; }
             QLabel { color: #aaa; font-size: 12px; border: none; }
@@ -641,16 +979,20 @@ class AssetEditor(QFrame):
         layout = QVBoxLayout(self)
         layout.setContentsMargins(15, 15, 15, 15)
         layout.setSpacing(10)
+        
+        # Safe to use .get() now because existing_data is guaranteed to be a dict
         title = "Create New Asset" if mode == "create" else f"Edit {existing_data.get('name', 'Asset')}"
         lbl_title = QLabel(title)
         lbl_title.setStyleSheet("color: white; font-size: 16px; font-weight: bold; border: none;")
         layout.addWidget(lbl_title)
         layout.addSpacing(10)
+        
         form = QFormLayout()
         form.setSpacing(10)
         self.inp_name = QLineEdit()
         self.inp_name.setText(existing_data.get('name', ''))
         form.addRow("Asset Name:", self.inp_name)
+        
         self.inp_type = QComboBox()
         self.inp_type.addItems(["Character", "Prop", "Environment", "Vehicle", "MattePaint"])
         current_type = existing_data.get('type', 'Prop')
@@ -658,6 +1000,7 @@ class AssetEditor(QFrame):
         if index >= 0: self.inp_type.setCurrentIndex(index)
         form.addRow("Asset Type:", self.inp_type)
         layout.addLayout(form)
+        
         self.thumbnail_path = existing_data.get('thumbnail_path', '')
         thumb_layout = QHBoxLayout()
         self.btn_browse_thumb = QPushButton("Browse")
@@ -672,13 +1015,16 @@ class AssetEditor(QFrame):
         thumb_layout.addWidget(self.lbl_thumb_preview)
         thumb_layout.addStretch()
         layout.addLayout(thumb_layout)
+        
         layout.addWidget(QLabel("Description:"))
         self.inp_desc = QTextEdit()
         self.inp_desc.setPlaceholderText("Enter asset description...")
         self.inp_desc.setMaximumHeight(80)
         self.inp_desc.setText(str(existing_data.get('description', '')))
         layout.addWidget(self.inp_desc)
+        
         layout.addStretch()
+        
         btn_layout = QHBoxLayout()
         btn_save = QPushButton("Save Asset")
         btn_save.setStyleSheet("background-color: #27ae60; color: white;")
@@ -689,15 +1035,18 @@ class AssetEditor(QFrame):
         btn_layout.addWidget(btn_cancel)
         btn_layout.addWidget(btn_save)
         layout.addLayout(btn_layout)
+        
     def browse_thumbnail(self):
         path, _ = QFileDialog.getOpenFileName(self, "Select Thumbnail", "", "Images (*.png *.jpg *.jpeg)")
         if path:
             self.thumbnail_path = path
             self.update_thumb_preview()
+            
     def update_thumb_preview(self):
         if self.thumbnail_path and os.path.exists(self.thumbnail_path):
              clean = self.thumbnail_path.replace("\\", "/")
              self.lbl_thumb_preview.setStyleSheet(f"border-image: url('{clean}') 0 0 0 0 stretch stretch; border-radius: 4px;")
+             
     def on_save(self):
         name = self.inp_name.text().strip()
         if not name: return 
@@ -705,18 +1054,47 @@ class AssetEditor(QFrame):
             "name": name,
             "type": self.inp_type.currentText(),
             "description": self.inp_desc.toPlainText(),
-            "thumbnail_path": self.thumbnail_path
+            "thumbnail_path": self.thumbnail_path,
+            "original_name": self.existing_data.get("name") # Pass original name for rename detection
         }
         self.saved.emit(data)
+
+#ORION LOGO BUTTON
+
+class OrionButton(QAbstractButton):
+    def __init__(self, pixmap, pixmap_hover, pixmap_pressed, parent=None):
+        super(OrionButton, self).__init__(parent)
+        
+        self.pixmap = QPixmap(pixmap)
+        self.pixmap_hover = QPixmap(pixmap_hover)
+        self.pixmap_pressed = QPixmap(pixmap_pressed)
+
+        self.pressed.connect(self.update)
+        self.released.connect(self.update)
+
+    def paintEvent(self, event):
+        pix = self.pixmap_hover if self.underMouse() else self.pixmap
+        if self.isDown():
+            pix = self.pixmap_pressed
+
+        painter = QPainter(self)
+        painter.drawPixmap(event.rect(), pix)
+
+    def enterEvent(self, event):
+        self.update()
+
+    def leaveEvent(self, event):
+        self.update()
+
+    def sizeHint(self):
+        return QSize(200, 200)
 
 # MAIN APP
 
 class OrionLauncherUI(QWidget):
     def __init__(self):
         super().__init__()
-        self.orion = OrionUtils()
-        if hasattr(self.orion, 'check_and_update_schema'):
-            self.orion.check_and_update_schema()
+        self.orion = OrionUtils(check_schema=True)
             
         self.project_root = self.orion.get_root_dir()
         self.current_context = "Shots"
@@ -730,8 +1108,8 @@ class OrionLauncherUI(QWidget):
 
     def init_ui(self):
         self.setWindowTitle(f'OrionTech')
-        self.resize(1500, 900)
-        self.setStyleSheet("background-color: #121212; font-family: Segoe UI, sans-serif;")
+        self.resize(1550, 900)
+        self.setStyleSheet("background-color: #121212; color: #ffffff; font-family: Segoe UI, sans-serif;")
 
         main_layout = QHBoxLayout()
         main_layout.setSpacing(0)
@@ -750,7 +1128,6 @@ class OrionLauncherUI(QWidget):
             scroll = QScrollArea()
             scroll.setWidgetResizable(True)
             scroll.setFrameShape(QFrame.NoFrame)
-
             scroll.setStyleSheet(get_scrollbar_style(bg_color))
             
             container = QWidget()
@@ -765,10 +1142,32 @@ class OrionLauncherUI(QWidget):
         #  COL 1: SHOTS 
         self.col1_frame, self.col1_root, self.col1_scroll, self.col1_content = create_column_structure("#1e1e1e", 320, "border-right: 1px solid #2a2a2a;")
         
+        # --- HEADER ROW (Logo + Switcher) ---
+        header_layout = QHBoxLayout()
+        header_layout.setContentsMargins(5, 0, 5, 10) # Margins + Bottom spacing
+        header_layout.setSpacing(15) # Space between Logo and Switcher
+        
+        # 1. Logo (FIX: Use dynamic project_root instead of hardcoded P:)
+        logo_dir = os.path.join(self.project_root, "20_pre", "branding", "logos")
+        btn_path = os.path.join(logo_dir, "orion_colour.png")
+        btn_hover_path = os.path.join(logo_dir, "orion_white.png")
+        btn_clicked_path = os.path.join(logo_dir, "orion_orange.png")
+        
+        self.orion_btn = OrionButton(btn_path, btn_hover_path, btn_clicked_path)
+        self.orion_btn.setFixedSize(108, 34)
+        header_layout.addWidget(self.orion_btn)
+        
+        # 2. Context Switcher
         self.context_switch = ContextSwitch()
         self.context_switch.mode_changed.connect(self.switch_context)
-        self.col1_root.insertWidget(0, self.context_switch, 0, Qt.AlignCenter)
-        self.col1_root.insertSpacing(1, 10)
+        header_layout.addWidget(self.context_switch)
+        
+        # 3. Spacer (Pushes everything to the left)
+        header_layout.addStretch()
+        
+        self.col1_root.addLayout(header_layout)
+        # -------------------------------------
+        
         self.col1_root.addWidget(self.col1_scroll)
         
         self.action_bar = QWidget()
@@ -782,7 +1181,7 @@ class OrionLauncherUI(QWidget):
         
         sub_action_layout = QHBoxLayout()
         edit_btn = QPushButton("edit")
-        edit_btn.setStyleSheet("background-color: #ffaa00; color: #222; font-weight: bold; border-radius: 5px; height: 30px; border: none;")
+        edit_btn.setStyleSheet("background-color: #FF6000; color: #222; font-weight: bold; border-radius: 5px; height: 30px; border: none;")
         edit_btn.clicked.connect(self.enter_edit_mode)
         del_btn = QPushButton("delete")
         del_btn.setStyleSheet("background-color: #ff0033; color: white; font-weight: bold; border-radius: 5px; height: 30px; border: none;")
@@ -824,7 +1223,7 @@ class OrionLauncherUI(QWidget):
 
         # Bottom: Exports (Hidden by default)
         self.col2_bottom_widget = QWidget()
-        self.col2_bottom_widget.setVisible(False) 
+        self.col2_bottom_widget.setVisible(True) 
         col2_bot_layout = QVBoxLayout(self.col2_bottom_widget)
         col2_bot_layout.setContentsMargins(15, 10, 15, 20)
         self.add_header(col2_bot_layout, "exports")
@@ -832,7 +1231,6 @@ class OrionLauncherUI(QWidget):
         self.col2_export_scroll = QScrollArea()
         self.col2_export_scroll.setWidgetResizable(True)
         self.col2_export_scroll.setFrameShape(QFrame.NoFrame)
-
         self.col2_export_scroll.setStyleSheet(get_scrollbar_style("#252525"))
         
         self.col2_export_container = QWidget()
@@ -845,9 +1243,10 @@ class OrionLauncherUI(QWidget):
 
         self.col2_splitter.addWidget(self.col2_top_widget)
         self.col2_splitter.addWidget(self.col2_bottom_widget)
-        self.col2_splitter.setStretchFactor(0, 2)
+        self.col2_splitter.setStretchFactor(0, 1)
         self.col2_splitter.setStretchFactor(1, 1)
         
+        self.col2_splitter.setSizes([1000, 1000])
         col2_main_layout.addWidget(self.col2_splitter)
 
         # COL 3: GALLERY
@@ -938,47 +1337,94 @@ class OrionLauncherUI(QWidget):
 
     def enter_edit_mode(self):
         if not self.current_shot_code:
-            QMessageBox.warning(self, "Select Shot", "Please select a shot to edit.")
+            QMessageBox.warning(self, "Select Item", "Please select an item to edit.")
             return
-            
-        full_data = {}
-        shot_row = self.orion.get_shot(self.current_shot_code)
-        if shot_row:
-            full_data["code"] = shot_row['code']
-            full_data["frame_start"] = shot_row['frame_start']
-            full_data["frame_end"] = shot_row['frame_end']
-            
-            if 'discord_thread_id' in shot_row.keys():
-                full_data["discord_thread_id"] = shot_row['discord_thread_id']
-            else:
-                 tid = self.orion.get_shot_thread_id(self.current_shot_code)
-                 full_data["discord_thread_id"] = tid if tid else ""
-                 
-            if 'description' in shot_row.keys():
-                full_data["description"] = shot_row['description']
-            if 'thumbnail_path' in shot_row.keys():
-                full_data["thumbnail_path"] = shot_row['thumbnail_path']
-        else:
-            full_data["code"] = self.current_shot_code
-            
-        try:
-            meta_path = os.path.join(self.project_root, "40_shots", self.current_shot_code, "orion_meta.json")
-            if os.path.exists(meta_path):
-                with open(meta_path, 'r') as f:
-                    d = json.load(f)
-                    if "description" not in full_data or not full_data["description"]:
-                        full_data["description"] = d.get("description", "")
-        except: pass
 
+        # Hide main widgets
         self.context_switch.hide()
         self.action_bar.hide()
         self.col1_scroll.hide()
-        
-        self.editor = ShotEditor(mode="edit", existing_data=full_data)
-        self.editor.saved.connect(self.save_edited_shot)
-        self.editor.cancelled.connect(self.exit_edit_mode)
-        
-        self.col1_root.insertWidget(2, self.editor)
+
+        try:
+            if self.current_context == "Assets":
+                # --- ASSET EDIT MODE ---
+                asset_row = self.orion.get_asset(self.current_shot_code)
+                full_data = {}
+                
+                if asset_row:
+                    row_dict = dict(asset_row)
+                    # Use 'or' to safely handle None (NULL) values from DB
+                    full_data["name"] = row_dict.get("name") or self.current_shot_code
+                    full_data["type"] = row_dict.get("type") or "Prop"
+                    full_data["description"] = row_dict.get("description") or ""
+                    full_data["thumbnail_path"] = row_dict.get("thumbnail_path") or ""
+                else:
+                    full_data["name"] = self.current_shot_code
+                    full_data["type"] = "Prop"
+                    full_data["description"] = ""
+                    full_data["thumbnail_path"] = ""
+                
+                # Attempt to load description from meta JSON if DB was empty
+                if not full_data["description"]:
+                    try:
+                        meta_path = os.path.join(self.project_root, "30_assets", self.current_shot_code, "orion_meta.json")
+                        if os.path.exists(meta_path):
+                            with open(meta_path, 'r') as f:
+                                d = json.load(f)
+                                full_data["description"] = d.get("description", "")
+                    except: pass
+
+                self.editor = AssetEditor(mode="edit", existing_data=full_data)
+                self.editor.saved.connect(self.save_edited_asset)
+                self.editor.cancelled.connect(self.exit_edit_mode)
+                self.col1_root.insertWidget(2, self.editor)
+
+            else:
+                # --- SHOT EDIT MODE ---
+                full_data = {}
+                shot_row = self.orion.get_shot(self.current_shot_code)
+                if shot_row:
+                    row_dict = dict(shot_row)
+                    full_data["code"] = row_dict.get('code') or self.current_shot_code
+                    full_data["frame_start"] = row_dict.get('frame_start', 1001)
+                    full_data["frame_end"] = row_dict.get('frame_end', 1100)
+                    full_data["discord_thread_id"] = row_dict.get('discord_thread_id') or ""
+                    full_data["description"] = row_dict.get('description') or ""
+                    full_data["thumbnail_path"] = row_dict.get('thumbnail_path') or ""
+                    
+                    # Fallback for Discord ID if missing in dict
+                    if not full_data["discord_thread_id"]:
+                        tid = self.orion.get_shot_thread_id(self.current_shot_code)
+                        if tid: full_data["discord_thread_id"] = tid
+
+                else:
+                    full_data["code"] = self.current_shot_code
+                    
+                # Load description from meta if missing
+                if not full_data.get("description"):
+                    try:
+                        meta_path = os.path.join(self.project_root, "40_shots", self.current_shot_code, "orion_meta.json")
+                        if os.path.exists(meta_path):
+                            with open(meta_path, 'r') as f:
+                                d = json.load(f)
+                                full_data["description"] = d.get("description", "")
+                    except: pass
+                
+                self.editor = ShotEditor(mode="edit", existing_data=full_data)
+                self.editor.saved.connect(self.save_edited_shot)
+                self.editor.cancelled.connect(self.exit_edit_mode)
+                self.col1_root.insertWidget(2, self.editor)
+
+        except Exception as e:
+            # If error, restore UI and show message
+            print(f"Edit Mode Error: {e}")
+            import traceback
+            traceback.print_exc()
+            
+            self.context_switch.show()
+            self.action_bar.show()
+            self.col1_scroll.show()
+            QMessageBox.critical(self, "Editor Error", f"Could not load editor:\n{e}")
 
     def exit_edit_mode(self):
         if hasattr(self, 'editor'):
@@ -1048,13 +1494,66 @@ class OrionLauncherUI(QWidget):
         except Exception as e:
             QMessageBox.critical(self, "Update Failed", str(e))
 
+    def save_edited_asset(self, data):
+        old_name = data.get("original_name")
+        new_name = data["name"]
+        atype = data["type"]
+        desc = data.get("description", "")
+        thumb = data.get("thumbnail_path", "")
+        
+        try:
+            # 1. Handle Rename
+            if old_name and old_name != new_name:
+                assets_root = os.path.join(self.project_root, "30_assets")
+                old_path = os.path.join(assets_root, old_name)
+                new_path = os.path.join(assets_root, new_name)
+                
+                if os.path.exists(new_path):
+                    raise Exception(f"Asset '{new_name}' already exists.")
+                
+                os.rename(old_path, new_path)
+                
+                # Update DB Name and Path
+                conn = self.orion.get_db_connection()
+                new_rel_path = self.orion.get_relative_path(new_path)
+                conn.execute("UPDATE assets SET name = ?, asset_path = ? WHERE name = ?", 
+                             (new_name, new_rel_path, old_name))
+                conn.commit()
+                conn.close()
+                self.current_shot_code = new_name 
+
+            # 2. Update DB Metadata
+            # Get ID first
+            asset_row = self.orion.get_asset(new_name)
+            asset_id = asset_row['id'] if asset_row else str(uuid.uuid4())
+            
+            conn = self.orion.get_db_connection()
+            conn.execute("UPDATE assets SET type = ?, description = ?, thumbnail_path = ? WHERE name = ?", 
+                         (atype, desc, thumb, new_name))
+            conn.commit()
+            conn.close()
+
+            # 3. Update Meta Tag (JSON)
+            asset_path = os.path.join(self.project_root, "30_assets", new_name)
+            self.orion.create_meta_tag(asset_path, new_name, 
+                                       {"type": "asset", "asset_type": atype, "description": desc}, 
+                                       shot_id=asset_id)
+            
+            QMessageBox.information(self, "Success", f"Asset {new_name} updated.")
+            self.exit_edit_mode()
+            
+        except Exception as e:
+            QMessageBox.critical(self, "Update Failed", str(e))
+
     def delete_current_shot(self):
         if not self.current_shot_code: return
+        
         item_type = "Asset" if self.current_context == "Assets" else "Shot"
         reply = QMessageBox.question(self, "Confirm Delete", 
                                      f"Are you sure you want to delete {item_type}: {self.current_shot_code}?\n"
                                      "This will remove the folder and DB entry permanently.",
                                      QMessageBox.Yes | QMessageBox.No)
+        
         if reply == QMessageBox.Yes:
             try:
                 success = False
@@ -1062,16 +1561,22 @@ class OrionLauncherUI(QWidget):
                     success = self.orion.delete_asset(self.current_shot_code)
                 else:
                     success = self.orion.delete_shot(self.current_shot_code)
+                
                 if success:
+                    QMessageBox.information(self, "Deleted", f"{item_type} deleted successfully.")
+                    # Reset Selection
                     self.current_shot_code = None
                     self.active_buttons["col1"] = None
+                    
+                    # Clear UI Panes
                     self.clear_layout(self.col2_content) 
                     self.clear_layout(self.col2_export_layout) 
                     self.info_panel.setVisible(False)
+                    
+                    # Refresh List
                     self.populate_column_1()
-                    QMessageBox.information(self, "Deleted", f"{item_type} deleted successfully.")
                 else:
-                    QMessageBox.warning(self, "Error", "Failed to delete item.")
+                    QMessageBox.warning(self, "Error", "Failed to delete item. Check console for details.")
             except Exception as e:
                 QMessageBox.critical(self, "Error", str(e))
 
@@ -1083,11 +1588,7 @@ class OrionLauncherUI(QWidget):
         self.clear_gallery()
         self.info_panel.setVisible(False) 
         
-        # Toggle Asset Layout in Col 2
-        if mode == "Assets":
-            self.col2_bottom_widget.setVisible(True)
-        else:
-            self.col2_bottom_widget.setVisible(False)
+        self.col2_bottom_widget.setVisible(True)
             
         self.populate_column_1()
 
@@ -1144,22 +1645,15 @@ class OrionLauncherUI(QWidget):
 
         self.current_task_path = full_path
         
-        if self.current_context == "Assets":
-            # Asset Logic:
-            # Gallery = Work Files (Excluding .EXPORT, .BIN)
-            self.populate_gallery(full_path, exclude_dirs=[".EXPORT", ".BIN"])
-            # Col 2 Bottom = Export Files
-            self.populate_exports_pane(full_path)
-        else:
-            # Shot Logic: Standard Gallery
-            self.populate_gallery(full_path)
+        self.populate_gallery(full_path, exclude_dirs=["EXPORT", "BIN"])
+        self.populate_exports_pane(full_path)
 
     def populate_exports_pane(self, task_path):
-        """Populates the bottom of Column 2 with items from .EXPORT and .EXPORT/.PUBLISHED"""
+        """Populates the bottom of Column 2 with items from EXPORT and EXPORT/PUBLISHED"""
         self.clear_layout(self.col2_export_layout)
         
-        export_path = os.path.join(task_path, ".EXPORT")
-        publish_path = os.path.join(export_path, ".PUBLISHED")
+        export_path = os.path.join(task_path, "EXPORT")
+        publish_path = os.path.join(export_path, "PUBLISHED")
         
         items_to_add = [] 
 
@@ -1209,7 +1703,7 @@ class OrionLauncherUI(QWidget):
     def publish_asset_file(self, item):
         src = item.full_path
         dir_name = os.path.dirname(src)
-        publish_dir = os.path.join(dir_name, ".PUBLISHED")
+        publish_dir = os.path.join(dir_name, "PUBLISHED")
         if not os.path.exists(publish_dir): os.makedirs(publish_dir)
         
         dst = os.path.join(publish_dir, item.filename)
@@ -1227,7 +1721,7 @@ class OrionLauncherUI(QWidget):
         export_root = os.path.dirname(export_dir)
         task_dir = os.path.dirname(export_root) 
         
-        bin_dir = os.path.join(task_dir, ".BIN")
+        bin_dir = os.path.join(task_dir, "BIN")
         if not os.path.exists(bin_dir): os.makedirs(bin_dir)
         
         dst = os.path.join(bin_dir, item.filename)
@@ -1239,7 +1733,7 @@ class OrionLauncherUI(QWidget):
 
         try:
             shutil.move(item.full_path, dst)
-            QMessageBox.information(self, "Unpublished", f"Moved to .BIN:\n{os.path.basename(dst)}")
+            QMessageBox.information(self, "Unpublished", f"Moved to BIN:\n{os.path.basename(dst)}")
             # Refresh list
             self.populate_exports_pane(self.current_task_path)
         except Exception as e:
@@ -1294,7 +1788,7 @@ class OrionLauncherUI(QWidget):
         
         open_btn = QPushButton("open folder")
         open_btn.setFixedSize(80, 30)
-        open_btn.setStyleSheet("background-color: #ffaa00; color: #222; font-weight: bold; border-radius: 5px;")
+        open_btn.setStyleSheet("background-color: #FF6000; color: #222; font-weight: bold; border-radius: 5px;")
         open_btn.clicked.connect(self.on_open_folder_clicked)
         
         bottom_bar.addWidget(self.pub_btn)   
@@ -1306,6 +1800,16 @@ class OrionLauncherUI(QWidget):
         return layout
 
     def on_new_file_clicked(self):
+        
+        shot_code = self.current_shot_code
+        shot_row = self.orion.get_shot(shot_code)
+        row_dict = dict(shot_row)
+        
+        frame_start = row_dict.get('frame_start')
+        frame_end = row_dict.get('frame_end')
+        discord_thread_id = row_dict.get('discord_thread_id') 
+        shot_path = row_dict.get('shot_path')
+        
         items = ["Maya", "Nuke", "Houdini", "Mari"]
         choice, ok = QInputDialog.getItem(self, "Launch DCC", "Select Software to Open:", items, 0, False)
         if not ok: return
@@ -1317,18 +1821,36 @@ class OrionLauncherUI(QWidget):
         }
         launcher_rel_path = launcher_map[choice]
         launcher_abs_path = os.path.join(orion_package_root, launcher_rel_path)
+        
         if os.path.exists(launcher_abs_path):
+            #FLAGS
             cmd_args = [sys.executable, launcher_abs_path]
-            if self.current_shot_code:
-                cmd_args.extend(["", self.current_shot_code])
+            
+            if shot_code:
+                cmd_args.extend(["--code", str(shot_code)])
+                cmd_args.extend(["--start", str(frame_start)])
+                cmd_args.extend(["--end", str(frame_end)])
+                cmd_args.extend(["--discord", str(discord_thread_id)])
+                cmd_args.extend(["--shotpath", str(shot_path)])
+
             subprocess.Popen(cmd_args)
         else:
             QMessageBox.warning(self, "Error", f"Launcher script not found: {launcher_abs_path}")
 
     def launch_dcc_file(self, card):
+        
+        shot_code = self.current_shot_code
+        shot_row = self.orion.get_shot(shot_code)
+        row_dict = dict(shot_row)
+        
+        frame_start = row_dict.get('frame_start')
+        frame_end = row_dict.get('frame_end')
+        discord_thread_id = row_dict.get('discord_thread_id') 
+        shot_path = row_dict.get('shot_path') 
+        
         file_path = card.full_path
         ext = os.path.splitext(file_path)[1].lower()
-        shot_code = self.current_shot_code
+        
         launcher_map = {
             ".ma": "dcc/maya/maya_launcher.py",
             ".mb": "dcc/maya/maya_launcher.py",
@@ -1337,14 +1859,28 @@ class OrionLauncherUI(QWidget):
             ".hipnc": "dcc/houdini/houdini_launcher.py",
             ".mari": "dcc/mari/mari_launcher.py"
         }
+        
         if ext in launcher_map:
             launcher_rel_path = launcher_map[ext]
             launcher_abs_path = os.path.join(orion_package_root, launcher_rel_path)
+            
             if os.path.exists(launcher_abs_path):
-                cmd_args = [sys.executable, launcher_abs_path, file_path]
-                if shot_code: cmd_args.append(shot_code)
+                # BUILD ARGUMENTS WITH FLAGS
+                cmd_args = [sys.executable, launcher_abs_path]
+                
+                # We HAVE a file, so add it
+                cmd_args.extend(["--file", file_path])
+                
+                if shot_code: 
+                    cmd_args.extend(["--code", str(shot_code)])
+                    cmd_args.extend(["--start", str(frame_start)])
+                    cmd_args.extend(["--end", str(frame_end)])
+                    cmd_args.extend(["--discord", str(discord_thread_id)])
+                    cmd_args.extend(["--shotpath", str(shot_path)])
+                    
                 subprocess.Popen(cmd_args)
                 return
+            
         try:
             os.startfile(file_path)
         except Exception as e:
@@ -1406,11 +1942,27 @@ class OrionLauncherUI(QWidget):
         if self.selected_card: self.selected_card.mark_published()
 
     def add_header(self, layout, text):
-        header = QLabel(text)
-        header.setAlignment(Qt.AlignCenter)
-        header.setStyleSheet("color: #aaa; font-weight: bold; background-color: #3e3e3e; border-radius: 10px;")
-        header.setFixedSize(140, 25)
-        layout.addWidget(header, 0, Qt.AlignCenter)
+        #container to hold text and line 
+        header_container = QWidget()
+        v_layout = QVBoxLayout(header_container)
+        v_layout.setContentsMargins(0, 0, 0, 0)
+        #space between text and line
+        v_layout.setSpacing(4) 
+
+        #text label
+        lbl = QLabel(text)
+        lbl.setAlignment(Qt.AlignCenter)
+        lbl.setStyleSheet("color: #ccc; font-weight: bold; font-size: 13px; background: transparent; border: none;")
+        v_layout.addWidget(lbl, 0, Qt.AlignCenter)
+
+        #separator line
+        line = QFrame()
+        line.setFixedSize(30, 2) #30px wide, 2px tall
+        line.setStyleSheet("background-color: #FF6000;") #using a subtle grey, change to #FF6000 for orange
+        v_layout.addWidget(line, 0, Qt.AlignCenter)
+
+        #add container to main layout
+        layout.addWidget(header_container, 0, Qt.AlignCenter)
 
     def clear_layout(self, layout):
         while layout.count():

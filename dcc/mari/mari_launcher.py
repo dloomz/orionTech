@@ -2,8 +2,9 @@ import os
 import subprocess
 import sys
 from pathlib import Path
+import argparse
 
-def launch_mari(file_path=None, shot_code=None):
+def launch_mari(file_path=None, shot_code=None, frame_start=None, frame_end=None, discord_thread_id=None, shot_path=None):
     
     user = os.getlogin()
     
@@ -67,5 +68,22 @@ def launch_mari(file_path=None, shot_code=None):
         print("Error: Mari executable not found.")
 
 if __name__ == "__main__":
-    path_arg = sys.argv[1] if len(sys.argv) > 1 else None
-    launch_mari(file_path=path_arg)
+    #ARGUMENT PARSER
+    parser = argparse.ArgumentParser(description="Launch Mari with Orion Context")
+    parser.add_argument("--file", help="Path to the Mari file to open", default=None)
+    parser.add_argument("--code", help="Shot Code", default=None)
+    parser.add_argument("--start", help="Start Frame", default=None)
+    parser.add_argument("--end", help="End Frame", default=None)
+    parser.add_argument("--discord", help="Discord Thread ID", default=None)
+    parser.add_argument("--shotpath", help="Shot Path on Disk", default=None)
+    
+    args = parser.parse_args()
+    
+    launch_mari(
+        file_path=args.file,
+        shot_code=args.code,
+        frame_start=args.start,
+        frame_end=args.end,
+        discord_thread_id=args.discord,
+        shot_path=args.shotpath
+    )
