@@ -851,7 +851,7 @@ class ShotInfoPanel(QFrame):
     def update_info(self, code, start=None, end=None, description=""):
         self.lbl_shot_code.setText(code)
         if start is not None and end is not None:
-            self.lbl_range.setText(f"Range: {start} - {end}")
+            self.lbl_range.setText(f"Range: {start} - {int(end) + 20}")
             self.lbl_range.show()
         else:
             self.lbl_range.hide()

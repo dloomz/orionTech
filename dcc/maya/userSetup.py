@@ -149,11 +149,10 @@ def set_frames_from_shot():
     start_frame = 1001
     end_frame = end_bookmark + 10
     start_scene = 981
-    end_scene = end_frame + 10
     
     #apply timeline ranges
     cmds.playbackOptions(min=start_frame, max=end_frame)
-    cmds.playbackOptions(ast=start_scene, aet=end_scene)
+    cmds.playbackOptions(ast=start_scene, aet=end_frame)
 
     try:
         createBookmark(name="MainAction", start=start_bookmark, stop=end_bookmark, color=(1.0, 0.37, 0.0))
@@ -172,6 +171,11 @@ cmds.evalDeferred("register_orion_callback()")
     
 maya.utils.executeDeferred(setup_animation)
 maya.utils.executeDeferred(add_button_to_toolbox)
-maya.utils.executeDeferred(set_frames_from_shot)
+
+try:
+    maya.utils.executeDeferred(set_frames_from_shot)
+except Exception as e:
+    print(f"Error setting frames from shot: {e}")
+    pass
 
 print("User setup script loaded.")

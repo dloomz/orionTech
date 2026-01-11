@@ -477,30 +477,53 @@ class NodeMailUI(QtWidgets.QMainWindow):
 
 #MAIN EXECUTION
 def start():
-    #setup app
-    if QtWidgets.QApplication.instance():
-        app = QtWidgets.QApplication.instance()
-    else:
+    app = QtWidgets.QApplication.instance()
+    if not app:
         app = QtWidgets.QApplication(sys.argv)
-
-    #keep reference so gc doesnt kill it
+        app.setStyle("Fusion")
+    
+    #glob win var
     global custom_nodemail_window_hou
 
     try:
         if custom_nodemail_window_hou:
             custom_nodemail_window_hou.close()
-            custom_nodemail_window_hou.deleteLater()
-    except:
+    except (NameError, RuntimeError):
         pass
 
-    #parent to houdini main window
-    parent_win = None
-    if hou:
-        parent_win = hou.ui.mainQtWindow()
-
-    custom_nodemail_window_hou = NodeMailUI(parent_win)
+    #show win
+    custom_nodemail_window_hou = NodeMailUI()
     custom_nodemail_window_hou.show()
+
+    #standalone and nuke open
+    if not hou: 
+        sys.exit(app.exec())
+    # #setup app
+    # if QtWidgets.QApplication.instance():
+    #     app = QtWidgets.QApplication.instance()
+    # else:
+    #     app = QtWidgets.QApplication(sys.argv)
+
+    # #keep reference so gc doesnt kill it
+    # global custom_nodemail_window_hou
+
+    # try:
+    #     if custom_nodemail_window_hou:
+    #         custom_nodemail_window_hou.close()
+    #         custom_nodemail_window_hou.deleteLater()
+    # except:
+    #     pass
+
+    # #parent to houdini main window
+    # parent_win = None
+    # if hou:
+    #     parent_win = hou.ui.mainQtWindow()
+
+    # custom_nodemail_window_hou = NodeMailUI(parent_win)
+    # custom_nodemail_window_hou.show()
     
+if __name__ == "__main__":
+    start()
 #TO RUN IN HOUDINI USE:
 # import sys
 # path = r"P:\all_work\studentGroups\ORION_CORPORATION\00_pipeline\orionTech\scripts\nodemail"

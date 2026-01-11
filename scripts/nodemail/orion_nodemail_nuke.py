@@ -120,6 +120,9 @@ class NodeMailUI(QtWidgets.QMainWindow):
     def __init__(self, parent=None):
         super().__init__(parent)
 
+        #keep window on top
+        self.setWindowFlags(self.windowFlags() | QtCore.Qt.WindowType.WindowStaysOnTopHint)
+
         #PATH SETUP AND IMPORT FIX 
         # current_script_dir = Path(__file__).resolve().parent
         os.environ.get("ORI_PIPELINE_PATH")

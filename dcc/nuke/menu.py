@@ -1,5 +1,11 @@
 import nuke
+import nukeAutoShuffle
+
+from functools import partial
 import os
+
+from core.orionUtils import OrionUtils
+orion_utils = OrionUtils()
 
 ####################ORION TOOLS####################
 
@@ -30,12 +36,69 @@ GIZMO_DIR = os.path.join(NUKE_DIR, "gizmos")
 mainMenu = nuke.menu("Nuke")
 extraMenu = mainMenu.addMenu("Extra")
 orionMenu = mainMenu.addMenu("ORION")
+shotMenu = orionMenu.addMenu("Set Shot Context")
 
 try:
     start_nodemail = "orion_nodemail.start()"
     orionMenu.addCommand("Nodemail™", start_nodemail)
 except Exception as e:
     print(f"unable to add nodemail: {e}")
+
+def set_shot_context(shot_code, start_frame, end_frame, *args):
+    #function runs when shot in the menu is clicked
+    #receives specific data for shot
+    print(f"Setting Context to: {shot_code}")
+    print(f"Frame Range: {start_frame} - {end_frame}")
+    
+    os.environ["ORI_SHOT_CONTEXT"] = shot_code
+    # os.environ["ORI_DISCORD_THREAD_ID"] = str(discord_thread_id) if discord_thread_id else ""
+    # os.environ["ORI_SHOT_PATH"] = shot_path
+    os.environ["ORI_SHOT_FRAME_START"] = str(start_frame)
+    os.environ["ORI_SHOT_FRAME_END"] = str(end_frame)
+    
+    set_frames_from_shot()
+
+def populate_shot_menu(menu_name, *args):
+    #clear existing items 
+    shotMenu.clearMenu()
+    
+    #fetch all shots from database
+    shots = orion_utils.get_all_shots()
+    
+    for shot in shots:
+        #extract info from the db row
+        code = shot['code']
+        start = shot['frame_start']
+        end = shot['frame_end']
+        
+        #create the menu item
+        #use partial to pass the specific shot data to the command
+        shotMenu.addCommand(str(code), partial(set_shot_context, code, start, end))
+        
+populate_shot_menu(shotMenu)
+
+def set_frames_from_shot():
+    
+    #get end frame from env var
+    end_frame_string = os.environ.get("ORI_SHOT_FRAME_END")
+    
+    #scene handles padding
+    start_frame = 1001
+    end_frame = int(end_frame_string) + 20
+    
+    start_handle = 1011
+    end_handle = int(end_frame_string) +10
+    
+    #apply timeline ranges
+    nuke.Root()['first_frame'].setValue(start_frame)
+    nuke.Root()['last_frame'].setValue(end_frame)
+    
+    #add handle values
+    viewer_range = str(start_handle) + '-' + str(end_handle)
+    viewer_node = nuke.activeViewer().node()
+
+    viewer_node['frame_range_lock'].setValue(True)
+    viewer_node['frame_range'].setValue(viewer_range)
 
 #load workspaces from custom path
 def register_user_path():
@@ -55,9 +118,6 @@ def register_user_path():
         print(f"Registered user path: {custom_nuke_dir}")
     else:
         print(f"Could not find path: {custom_nuke_dir}")
-
-    # OCIO_PATH = r"P:\all_work\studentGroups\ORION_CORPORATION\60_config\colorManagement\aces_1.2\config.ocio"
-    # os.environ['OCIO'] = OCIO_PATH
 
 register_user_path()
   
@@ -126,5 +186,9 @@ nuke.knobDefault("Root.format", "ORION_2K")
 nuke.Root()['format'].setValue("ORION_2K")
 nuke.Root()['fps'].setValue(24)
 
-
+try:
+    set_frames_from_shot()
+except Exception as e:
+    print(f"Error setting frames from shot: {e}")
+    pass
 

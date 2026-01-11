@@ -72,17 +72,24 @@ def launch_nuke(file_path=None, shot_code=None, frame_start=None, frame_end=None
     #join all into string, seperated
     PLUGINS_PATH = os.pathsep.join(NEW_PLUGINS_PATH)
     
-    all_nuke_paths = [USER_PATH, PLUGINS_PATH, ROOT_PATH]
+    all_nuke_paths = [USER_PATH, PLUGINS_PATH, ROOT_PATH, PIPELINE_PATH]
     ORI_NUKE_PATHS = os.pathsep.join(all_nuke_paths)
 
     #copy the current system environment
     env = os.environ.copy()
     
     env["PYTHONPATH"] = os.path.join(ROOT_PATH, "python") + os.pathsep + env.get("PYTHONPATH", "")
+    # env["PYTHONPATH"] = PIPELINE_PATH + os.pathsep + env.get("PYTHONPATH", "")
     env["NUKE_PATH"] = ORI_NUKE_PATHS 
     env['ORI_PIPELINE_PATH'] = PIPELINE_PATH
     env["ORI_SHOT_CONTEXT"] = shot_code if shot_code else ""
     # os.environ['OCIO'] = OCIO_PATH
+    
+    env["ORI_SHOT_CONTEXT"] = shot_code if shot_code else ""
+    env["ORI_DISCORD_THREAD_ID"] = str(discord_thread_id)
+    env["ORI_SHOT_PATH"] = str(shot_path)
+    env["ORI_SHOT_FRAME_START"] = str(frame_start)
+    env["ORI_SHOT_FRAME_END"] = str(frame_end)
 
     cmd = [NUKE_EXE, FLAG]
     if file_path:
