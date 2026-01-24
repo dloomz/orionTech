@@ -38,7 +38,7 @@ for attempt in range(3):
             QVBoxLayout, QHBoxLayout, QFrame, QGridLayout,
             QSizePolicy, QScrollArea, QSplitter, QInputDialog,
             QMessageBox, QLineEdit, QSpinBox, QTextEdit,
-            QFormLayout, QFileDialog, QMenu, QAction, QComboBox, QAbstractButton
+            QFormLayout, QFileDialog, QMenu, QAction, QComboBox, QAbstractButton, QStackedWidget
         )
         from PyQt5.QtCore import Qt, pyqtSignal, QSize, QRect
         from PyQt5.QtGui import QPixmap, QPainter
@@ -231,7 +231,7 @@ class ExportItemWidget(QFrame):
     def update_style(self):
         base_style = "ExportItemWidget { background-color: #2b2b2b; border-radius: 6px; }"
         if self.is_published:
-            #Green border for published
+            #green border for published
             self.setStyleSheet(base_style + "ExportItemWidget { border: 2px solid #00ff00; }")
         else:
             self.setStyleSheet(base_style + "ExportItemWidget { border: 1px solid #444; } ExportItemWidget:hover { border: 1px solid #666; background-color: #333; }")
@@ -246,12 +246,12 @@ class ExportItemWidget(QFrame):
         menu = QMenu(self)
         menu.setStyleSheet("QMenu { background-color: #333; color: white; border: 1px solid #555; } QMenu::item:selected { background-color: #555; }")
         
-        #File Actions
-        action_open = QAction("Open File Location", self) # pyright: ignore[reportPossiblyUnboundVariable]
+        #file actions
+        action_open = QAction("Open File Location", self)
         action_open.triggered.connect(self.open_file_location)
         menu.addAction(action_open)
 
-        # Path Variants
+        #path varientss
         variants = get_path_variants(self.full_path)
         
         action_copy_local = QAction("Copy Path (Local)", self)
@@ -550,6 +550,58 @@ class SpecialismGroup(QWidget):
             except Exception as e:
                 QMessageBox.critical(self, "Error", str(e))
 
+class MenuSwitch(QFrame):
+    mode_changed = pyqtSignal(str) 
+    def __init__(self):
+        super().__init__()
+        
+        self.setFixedSize(750, 34)
+        self.setStyleSheet("background-color: #333; border-radius: 17px;")
+        
+        self.layout = QHBoxLayout()
+        self.layout.setContentsMargins(0, 0, 0, 0)
+        self.layout.setSpacing(0)
+        self.setLayout(self.layout)
+        
+        self.btn_prod = QPushButton("Production")
+        self.btn_apps = QPushButton("Apps")
+        self.btn_renders = QPushButton("Renders")
+        self.btn_vault = QPushButton("Vault")
+        self.btn_settings = QPushButton("Settings")
+        
+        self.btn_list = [self.btn_prod, self.btn_apps, self.btn_renders, self.btn_vault, self.btn_settings]
+        
+        for btn in self.btn_list:
+            btn.setCheckable(True)
+            btn.setFixedSize(150, 34) 
+            btn.clicked.connect(self.toggle_mode)
+            self.layout.addWidget(btn)
+            
+        self.current_menu = "Production"
+        self.update_style()
+
+    def toggle_mode(self):
+        
+        sender = self.sender()
+        
+        for btn in self.btn_list:
+            if sender == btn: 
+                self.current_menu = btn.text()
+            
+        self.update_style()
+        self.mode_changed.emit(self.current_menu)
+
+    def update_style(self):
+        active = "QPushButton { background-color: #FF6000; color: white; border-radius: 17px; font-weight: bold; border: none; }"
+        inactive = "QPushButton { background-color: transparent; color: #888; border-radius: 17px; font-weight: bold; border: none; } QPushButton:hover { color: white; }"
+        
+        for btn in self.btn_list:
+            name = btn.text()
+            if self.current_menu == name:
+                btn.setStyleSheet(active)
+            else:
+                btn.setStyleSheet(inactive)
+
 class ContextSwitch(QFrame):
     mode_changed = pyqtSignal(str) 
     def __init__(self):
@@ -648,10 +700,8 @@ class ThumbnailCard(QFrame):
 
         self.update_border()
 
-    # ------------------------------------------------------------------
-    # Thumbnail resolution
-    # ------------------------------------------------------------------
 
+    # Thumbnail resolution
     def _resolve_thumbnail_path(self):
         """
         Determines the best thumbnail path to use.
@@ -662,7 +712,7 @@ class ThumbnailCard(QFrame):
 
         valid_img_exts = {'.jpg', '.jpeg', '.png', '.bmp', '.tif', '.tiff', '.exr'}
 
-        # If it's already an image, prefer it
+        #already an image, prefer it
         if ext in valid_img_exts:
             return self.full_path
 
@@ -678,10 +728,7 @@ class ThumbnailCard(QFrame):
 
         return None
 
-    # ------------------------------------------------------------------
     # Lazy loading
-    # ------------------------------------------------------------------
-
     def showEvent(self, event):
         """
         Lazy-load the pixmap only when widget becomes visible.
@@ -705,10 +752,7 @@ class ThumbnailCard(QFrame):
             )
             self.pixmap_loaded = True
 
-    # ------------------------------------------------------------------
     # Interaction
-    # ------------------------------------------------------------------
-
     def mousePressEvent(self, event):
         #left click for selection
         if event.button() == Qt.LeftButton:
@@ -859,6 +903,7 @@ class ShotInfoPanel(QFrame):
 class ShotEditor(QFrame):
     saved = pyqtSignal(dict)
     cancelled = pyqtSignal()
+    
     def __init__(self, mode="create", existing_data=None):
         super().__init__()
         self.mode = mode
@@ -869,37 +914,49 @@ class ShotEditor(QFrame):
             QLineEdit, QSpinBox, QTextEdit { background-color: #333; color: white; border: 1px solid #444; border-radius: 4px; padding: 5px; }
             QPushButton { padding: 8px; font-weight: bold; border-radius: 4px; border: none; }
         """)
+        
         layout = QVBoxLayout(self)
         layout.setContentsMargins(15, 15, 15, 15)
         layout.setSpacing(10)
+        
         title = "Create New Shot" if mode == "create" else f"Edit {existing_data.get('code', 'Shot')}"
         lbl_title = QLabel(title)
         lbl_title.setStyleSheet("color: white; font-size: 16px; font-weight: bold; border: none;")
         layout.addWidget(lbl_title)
         layout.addSpacing(10)
+        
         form = QFormLayout()
         form.setSpacing(10)
+        
         self.inp_code = QLineEdit()
         self.inp_code.setText(existing_data.get('code', ''))
+        
         form.addRow("Shot Code:", self.inp_code)
         range_layout = QHBoxLayout()
+        
         self.inp_start = QSpinBox()
         self.inp_start.setRange(0, 999999)
         self.inp_start.setValue(existing_data.get('frame_start', 1001))
         self.inp_end = QSpinBox()
         self.inp_end.setRange(0, 999999)
         self.inp_end.setValue(existing_data.get('frame_end', 1100))
+        
         range_layout.addWidget(self.inp_start)
         range_layout.addWidget(QLabel("-"))
         range_layout.addWidget(self.inp_end)
+        
         form.addRow("Frame Range:", range_layout)
+        
         self.inp_discord = QLineEdit()
         self.inp_discord.setPlaceholderText("Optional Discord Thread ID")
         self.inp_discord.setText(str(existing_data.get('discord_thread_id', '')))
+        
         form.addRow("Discord ID:", self.inp_discord)
+        
         layout.addLayout(form)
         self.thumbnail_path = existing_data.get('thumbnail_path', '')
         thumb_layout = QHBoxLayout()
+        
         self.btn_browse_thumb = QPushButton("Browse")
         self.btn_browse_thumb.setFixedSize(70, 30)
         self.btn_browse_thumb.setStyleSheet("background-color: #3498db; color: white;")
@@ -907,42 +964,55 @@ class ShotEditor(QFrame):
         self.lbl_thumb_preview = QLabel()
         self.lbl_thumb_preview.setFixedSize(50, 30)
         self.lbl_thumb_preview.setStyleSheet("background-color: #444; border-radius: 4px;")
+        
         if self.thumbnail_path: self.update_thumb_preview()
+        
         thumb_layout.addWidget(QLabel("Thumbnail:"))
         thumb_layout.addWidget(self.btn_browse_thumb)
         thumb_layout.addWidget(self.lbl_thumb_preview)
         thumb_layout.addStretch()
+        
         layout.addLayout(thumb_layout)
         layout.addWidget(QLabel("Description:"))
+        
         self.inp_desc = QTextEdit()
         self.inp_desc.setPlaceholderText("Enter shot description...")
         self.inp_desc.setMaximumHeight(80)
+        
         desc_val = existing_data.get('description')
         if desc_val is None: desc_val = ""
         self.inp_desc.setText(str(desc_val))
+        
         layout.addWidget(self.inp_desc)
         layout.addStretch()
+        
         btn_layout = QHBoxLayout()
+        
         btn_save = QPushButton("Save Shot")
         btn_save.setStyleSheet("background-color: #27ae60; color: white;")
         btn_save.clicked.connect(self.on_save)
+        
         btn_cancel = QPushButton("Cancel")
         btn_cancel.setStyleSheet("background-color: #7f8c8d; color: white;")
         btn_cancel.clicked.connect(self.cancelled.emit)
         btn_layout.addWidget(btn_cancel)
         btn_layout.addWidget(btn_save)
+        
         layout.addLayout(btn_layout)
+        
     def browse_thumbnail(self):
         path, _ = QFileDialog.getOpenFileName(self, "Select Thumbnail", "", "Images (*.png *.jpg *.jpeg *.bmp)")
         if path:
             self.thumbnail_path = path
             self.update_thumb_preview()
+            
     def update_thumb_preview(self):
         if self.thumbnail_path and os.path.exists(self.thumbnail_path):
              clean = self.thumbnail_path.replace("\\", "/")
              self.lbl_thumb_preview.setStyleSheet(f"border-image: url('{clean}') 0 0 0 0 stretch stretch; border-radius: 4px;")
         else:
              self.lbl_thumb_preview.setStyleSheet("background-color: #444; border-radius: 4px;")
+             
     def on_save(self):
         code = self.inp_code.text().strip()
         if not code: return 
@@ -1000,12 +1070,14 @@ class AssetEditor(QFrame):
         
         self.thumbnail_path = existing_data.get('thumbnail_path', '')
         thumb_layout = QHBoxLayout()
+        
         self.btn_browse_thumb = QPushButton("Browse")
         self.btn_browse_thumb.setFixedSize(70, 30)
         self.btn_browse_thumb.setStyleSheet("background-color: #3498db; color: white;")
         self.btn_browse_thumb.clicked.connect(self.browse_thumbnail)
         self.lbl_thumb_preview = QLabel()
         self.lbl_thumb_preview.setFixedSize(50, 30)
+        
         if self.thumbnail_path: self.update_thumb_preview()
         thumb_layout.addWidget(QLabel("Thumbnail:"))
         thumb_layout.addWidget(self.btn_browse_thumb)
@@ -1026,9 +1098,11 @@ class AssetEditor(QFrame):
         btn_save = QPushButton("Save Asset")
         btn_save.setStyleSheet("background-color: #27ae60; color: white;")
         btn_save.clicked.connect(self.on_save)
+        
         btn_cancel = QPushButton("Cancel")
         btn_cancel.setStyleSheet("background-color: #7f8c8d; color: white;")
         btn_cancel.clicked.connect(self.cancelled.emit)
+        
         btn_layout.addWidget(btn_cancel)
         btn_layout.addWidget(btn_save)
         layout.addLayout(btn_layout)
@@ -1087,14 +1161,15 @@ class OrionButton(QAbstractButton):
         return QSize(200, 200)
 
 #MAIN APP
-
 class OrionLauncherUI(QWidget):
+    
     def __init__(self):
         super().__init__()
         self.orion = OrionUtils(check_schema=True)
             
         self.project_root = self.orion.get_root_dir()
-        self.current_context = "Shots"
+        self.current_context = "Shots" # Assets vs Shots
+        self.current_menu = "Production" # Top menu tab
         self.current_shot_code = None
         self.current_task_path = None
         
@@ -1104,47 +1179,30 @@ class OrionLauncherUI(QWidget):
         self.init_ui()
 
     def init_ui(self):
+        
         self.setWindowTitle(f'OrionTech')
         self.resize(1550, 900)
         self.setStyleSheet("background-color: #121212; color: #ffffff; font-family: Segoe UI, sans-serif;")
 
+        # MAIN LAYOUT
+        # Holds the Left Sidebar and the Right Content Area
         main_layout = QHBoxLayout()
         main_layout.setSpacing(0)
         main_layout.setContentsMargins(0, 0, 0, 0)
         self.setLayout(main_layout)
 
-        #Helper for basic columns
-        def create_column_structure(bg_color, min_width, radius_style=""):
-            wrapper = QFrame()
-            wrapper.setMinimumWidth(min_width)
-            wrapper.setStyleSheet(f"background-color: {bg_color}; {radius_style}")
-            root_layout = QVBoxLayout(wrapper)
-            root_layout.setContentsMargins(15, 20, 15, 20)
-            root_layout.setSpacing(10)
-            
-            scroll = QScrollArea()
-            scroll.setWidgetResizable(True)
-            scroll.setFrameShape(QFrame.NoFrame)
-            scroll.setStyleSheet(get_scrollbar_style(bg_color))
-            
-            container = QWidget()
-            container.setStyleSheet("background: transparent;")
-            content_layout = QVBoxLayout(container)
-            content_layout.setContentsMargins(0, 0, 5, 0)
-            content_layout.setSpacing(10)
-            content_layout.setAlignment(Qt.AlignTop)
-            scroll.setWidget(container)
-            return wrapper, root_layout, scroll, content_layout
-
-        #COL 1: SHOTS 
-        self.col1_frame, self.col1_root, self.col1_scroll, self.col1_content = create_column_structure("#1e1e1e", 320, "border-right: 1px solid #2a2a2a;")
+        # LEFT SIDEBAR (Previously col1)
+        # Logo, Asset/Shot Switcher, and the List of Items
+        self.sidebar_frame, self.sidebar_layout, self.sidebar_scroll, self.sidebar_content = self.create_column_structure(
+            "#1e1e1e", 320, "border-right: 1px solid #2a2a2a;"
+        )
         
-        #HEADER ROW (Logo + Switcher)
-        header_layout = QHBoxLayout()
-        header_layout.setContentsMargins(5, 0, 5, 10) #Margins + Bottom spacing
-        header_layout.setSpacing(15) #Space between Logo and Switcher
+        # sidebar header (Logo + Context Switch)
+        sidebar_header = QHBoxLayout()
+        sidebar_header.setContentsMargins(5, 0, 5, 10)
+        sidebar_header.setSpacing(15)
         
-        #Logo 
+        # logo setup
         logo_dir = os.path.join(self.project_root, "20_pre", "branding", "logos")
         btn_path = os.path.join(logo_dir, "orion_colour.png")
         btn_hover_path = os.path.join(logo_dir, "orion_white.png")
@@ -1152,19 +1210,18 @@ class OrionLauncherUI(QWidget):
         
         self.orion_btn = OrionButton(btn_path, btn_hover_path, btn_clicked_path)
         self.orion_btn.setFixedSize(108, 34)
-        header_layout.addWidget(self.orion_btn)
+        sidebar_header.addWidget(self.orion_btn)
         
-        #Context Switcher
+        # context switch (Assets vs Shots)
         self.context_switch = ContextSwitch()
         self.context_switch.mode_changed.connect(self.switch_context)
-        header_layout.addWidget(self.context_switch)
+        sidebar_header.addWidget(self.context_switch)
+        sidebar_header.addStretch()
         
-        #Spacer (Push everything to left)
-        header_layout.addStretch()
-        self.col1_root.addLayout(header_layout)
-
-        self.col1_root.addWidget(self.col1_scroll)
+        self.sidebar_layout.addLayout(sidebar_header)
+        self.sidebar_layout.addWidget(self.sidebar_scroll)
         
+        # action bar (Create/Edit/Delete buttons)
         self.action_bar = QWidget()
         self.action_layout = QVBoxLayout(self.action_bar)
         self.action_layout.setContentsMargins(0, 0, 0, 0)
@@ -1185,89 +1242,151 @@ class OrionLauncherUI(QWidget):
         sub_action_layout.addWidget(edit_btn)
         sub_action_layout.addWidget(del_btn)
         self.action_layout.addLayout(sub_action_layout)
-        self.col1_root.addWidget(self.action_bar)
+        self.sidebar_layout.addWidget(self.action_bar)
 
-        # COL 2: SPLIT LAYOUT 
-        self.col2_frame = QFrame()
-        self.col2_frame.setMinimumWidth(280)
-        self.col2_frame.setStyleSheet("background-color: #252525; border-right: 1px solid #2a2a2a;")
-        col2_main_layout = QVBoxLayout(self.col2_frame)
-        col2_main_layout.setContentsMargins(0,0,0,0)
+        # RIGHT CONTENT AREA
+        # Holds: Top Menu and the Stacked Pages (Production, Apps, etc)
+        self.right_content_widget = QWidget()
+        self.right_content_layout = QVBoxLayout(self.right_content_widget)
+        self.right_content_layout.setContentsMargins(0, 0, 0, 0) # No margins
+        self.right_content_layout.setSpacing(0)
+
+        # Top Navigation Bar (The MenuSwitch)
+        nav_container = QHBoxLayout()
+        nav_container.setContentsMargins(5, 0, 5, 10)
+        nav_container.setSpacing(15)
         
-        self.col2_splitter = QSplitter(Qt.Vertical)
-        self.col2_splitter.setHandleWidth(2)
-        self.col2_splitter.setStyleSheet("QSplitter::handle { background-color: #121212; }")
-
-        #Top: Tasks
-        self.col2_top_widget = QWidget()
-        col2_top_layout = QVBoxLayout(self.col2_top_widget)
-        col2_top_layout.setContentsMargins(15, 20, 15, 20)
-        self.add_header(col2_top_layout, "specialism / task")
+        self.top_menu_bar = MenuSwitch()
+        self.top_menu_bar.mode_changed.connect(self.switch_menu_page) 
+        nav_container.addWidget(self.top_menu_bar)
         
-        self.col2_scroll = QScrollArea()
-        self.col2_scroll.setWidgetResizable(True)
-        self.col2_scroll.setFrameShape(QFrame.NoFrame)
-        self.col2_scroll.setStyleSheet(get_scrollbar_style("#252525"))
+        self.right_content_layout.addLayout(nav_container)
+
+        # The Stack 
+        self.page_stack = QStackedWidget()
         
-        self.col2_content_container = QWidget()
-        self.col2_content_container.setStyleSheet("background: transparent;")
-        self.col2_content = QVBoxLayout(self.col2_content_container)
-        self.col2_content.setAlignment(Qt.AlignTop)
-        self.col2_scroll.setWidget(self.col2_content_container)
-        col2_top_layout.addWidget(self.col2_scroll)
-
-        #Bottom: Exports
-        self.col2_bottom_widget = QWidget()
-        self.col2_bottom_widget.setVisible(True) 
-        col2_bot_layout = QVBoxLayout(self.col2_bottom_widget)
-        col2_bot_layout.setContentsMargins(15, 10, 15, 20)
-        self.add_header(col2_bot_layout, "exports")
+        # Page 0: PRODUCTION VIEW (The complex splitter you had before)
+        self.production_view_widget = QWidget()
+        self.setup_production_view() 
+        self.page_stack.addWidget(self.production_view_widget)
         
-        self.col2_export_scroll = QScrollArea()
-        self.col2_export_scroll.setWidgetResizable(True)
-        self.col2_export_scroll.setFrameShape(QFrame.NoFrame)
-        self.col2_export_scroll.setStyleSheet(get_scrollbar_style("#252525"))
+        # Page 1: APPS VIEW (Placeholder)
+        self.apps_view_widget = QLabel("APPS UI UNDER CONSTRUCTION")
+        self.apps_view_widget.setAlignment(Qt.AlignCenter)
+        self.page_stack.addWidget(self.apps_view_widget)
+
+        # Page 2: RENDERS VIEW (Placeholder)
+        self.renders_view_widget = QLabel("RENDERS UI UNDER CONSTRUCTION")
+        self.renders_view_widget.setAlignment(Qt.AlignCenter)
+        self.page_stack.addWidget(self.renders_view_widget)
+
+        # Page 3: VAULT VIEW (Placeholder)
+        self.vault_view_widget = QLabel("VAULT UI UNDER CONSTRUCTION")
+        self.vault_view_widget.setAlignment(Qt.AlignCenter)
+        self.page_stack.addWidget(self.vault_view_widget)
+
+        # Page 4: SETTINGS VIEW (Placeholder)
+        self.settings_view_widget = QLabel("SETTINGS UI UNDER CONSTRUCTION")
+        self.settings_view_widget.setAlignment(Qt.AlignCenter)
+        self.page_stack.addWidget(self.settings_view_widget)
         
-        self.col2_export_container = QWidget()
-        self.col2_export_container.setStyleSheet("background: transparent;")
-        self.col2_export_layout = QVBoxLayout(self.col2_export_container)
-        self.col2_export_layout.setAlignment(Qt.AlignTop)
-        self.col2_export_layout.setSpacing(5)
-        self.col2_export_scroll.setWidget(self.col2_export_container)
-        col2_bot_layout.addWidget(self.col2_export_scroll)
+        # Add stack to right layout
+        self.right_content_layout.addWidget(self.page_stack)
 
-        self.col2_splitter.addWidget(self.col2_top_widget)
-        self.col2_splitter.addWidget(self.col2_bottom_widget)
-        self.col2_splitter.setStretchFactor(0, 1)
-        self.col2_splitter.setStretchFactor(1, 1)
+        # MAIN SPLITTER (Combines Left Sidebar + Right Content)
+        self.main_splitter = QSplitter(Qt.Horizontal)
+        self.main_splitter.setHandleWidth(2)
+        self.main_splitter.setStyleSheet("QSplitter::handle { background-color: #121212; }")
         
-        self.col2_splitter.setSizes([1000, 1000])
-        col2_main_layout.addWidget(self.col2_splitter)
+        self.main_splitter.addWidget(self.sidebar_frame)
+        self.main_splitter.addWidget(self.right_content_widget)
+        self.main_splitter.setStretchFactor(1, 2)
+        
+        main_layout.addWidget(self.main_splitter)
 
-        #COL 3: GALLERY
-        self.right_panel_widget = QWidget()
-        right_layout = self.create_right_panel()
-        self.right_panel_widget.setLayout(right_layout)
+        # Initial Load
+        self.populate_sidebar()
 
-        #SPLITTER 
-        self.splitter = QSplitter(Qt.Horizontal)
-        self.splitter.setHandleWidth(2)
-        self.splitter.setStyleSheet("QSplitter::handle { background-color: #121212; }")
-        self.splitter.addWidget(self.col1_frame)
-        self.splitter.addWidget(self.col2_frame)
-        self.splitter.addWidget(self.right_panel_widget)
-        self.splitter.setStretchFactor(2, 1)
-        main_layout.addWidget(self.splitter)
+    def setup_production_view(self):
+        layout = QVBoxLayout(self.production_view_widget)
+        layout.setContentsMargins(0, 0, 0, 0)
 
-        self.populate_column_1()
+        # 1. TASK PANEL (Previously col2)
+        self.task_panel_frame = QFrame()
+        self.task_panel_frame.setMinimumWidth(280)
+        self.task_panel_frame.setStyleSheet("background-color: #252525; border-right: 1px solid #2a2a2a;")
+        task_main_layout = QVBoxLayout(self.task_panel_frame)
+        task_main_layout.setContentsMargins(0,0,0,0)
+        
+        self.task_splitter = QSplitter(Qt.Vertical)
+        self.task_splitter.setHandleWidth(2)
+        self.task_splitter.setStyleSheet("QSplitter::handle { background-color: #121212; }")
+
+        # Top: Specialisms List
+        self.task_top_widget = QWidget()
+        task_top_layout = QVBoxLayout(self.task_top_widget)
+        task_top_layout.setContentsMargins(15, 20, 15, 20)
+        self.add_header(task_top_layout, "specialism / task")
+        
+        self.task_scroll = QScrollArea()
+        self.task_scroll.setWidgetResizable(True)
+        self.task_scroll.setFrameShape(QFrame.NoFrame)
+        self.task_scroll.setStyleSheet(get_scrollbar_style("#252525"))
+        
+        self.task_content_container = QWidget()
+        self.task_content_container.setStyleSheet("background: transparent;")
+        self.task_content = QVBoxLayout(self.task_content_container)
+        self.task_content.setAlignment(Qt.AlignTop)
+        self.task_scroll.setWidget(self.task_content_container)
+        task_top_layout.addWidget(self.task_scroll)
+
+        # Bottom: Exports List
+        self.task_bottom_widget = QWidget()
+        task_bot_layout = QVBoxLayout(self.task_bottom_widget)
+        task_bot_layout.setContentsMargins(15, 10, 15, 20)
+        self.add_header(task_bot_layout, "exports")
+        
+        self.export_scroll = QScrollArea()
+        self.export_scroll.setWidgetResizable(True)
+        self.export_scroll.setFrameShape(QFrame.NoFrame)
+        self.export_scroll.setStyleSheet(get_scrollbar_style("#252525"))
+        
+        self.export_container = QWidget()
+        self.export_container.setStyleSheet("background: transparent;")
+        self.export_layout = QVBoxLayout(self.export_container)
+        self.export_layout.setAlignment(Qt.AlignTop)
+        self.export_layout.setSpacing(5)
+        self.export_scroll.setWidget(self.export_container)
+        task_bot_layout.addWidget(self.export_scroll)
+
+        self.task_splitter.addWidget(self.task_top_widget)
+        self.task_splitter.addWidget(self.task_bottom_widget)
+        self.task_splitter.setStretchFactor(0, 1)
+        self.task_splitter.setStretchFactor(1, 1)
+        self.task_splitter.setSizes([1000, 1000])
+        
+        task_main_layout.addWidget(self.task_splitter)
+
+        # 2. GALLERY PANEL (Previously right_panel)
+        self.gallery_frame = QWidget()
+        gallery_layout = self.create_right_panel() # Uses your existing helper
+        self.gallery_frame.setLayout(gallery_layout)
+        
+        # 3. Combine Task Panel and Gallery Panel
+        self.production_splitter = QSplitter(Qt.Horizontal)
+        self.production_splitter.setHandleWidth(2)
+        self.production_splitter.addWidget(self.task_panel_frame)
+        self.production_splitter.addWidget(self.gallery_frame)
+        self.production_splitter.setStretchFactor(1, 2)
+        
+        layout.addWidget(self.production_splitter)
 
     #LOGIC
-
-    def populate_column_1(self):
+    def populate_sidebar(self):
         self.context_switch.show()
         self.action_bar.show()
-        self.col1_scroll.show()
-        self.clear_layout(self.col1_content)
+        self.sidebar_scroll.show()
+        self.clear_layout(self.sidebar_content)
         
         if self.current_context == "Assets":
             try:
@@ -1277,8 +1396,8 @@ class OrionLauncherUI(QWidget):
                     asset_dict = {key: asset[key] for key in asset.keys()}
                     btn = ShotButton(name, "#ff9966", full_data=asset_dict)
                     btn.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
-                    btn.clicked.connect(lambda checked, b=btn: self.on_col1_select(b))
-                    self.col1_content.addWidget(btn)
+                    btn.clicked.connect(lambda checked, b=btn: self.on_sidebar_select(b))
+                    self.sidebar_content.addWidget(btn)
             except Exception as e:
                 print(f"Asset DB Error: {e}")
         else:
@@ -1289,12 +1408,56 @@ class OrionLauncherUI(QWidget):
                     shot_dict = {key: shot[key] for key in shot.keys()}
                     btn = ShotButton(code, "#66ffcc", full_data=shot_dict) 
                     btn.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
-                    btn.clicked.connect(lambda checked, b=btn: self.on_col1_select(b))
-                    self.col1_content.addWidget(btn)
+                    btn.clicked.connect(lambda checked, b=btn: self.on_sidebar_select(b))
+                    self.sidebar_content.addWidget(btn)
             except Exception as e:
                 print(f"Shot DB Error: {e}")
         
-        self.col1_content.addStretch()
+        self.sidebar_content.addStretch()
+        
+    def on_sidebar_select(self, btn):
+        if self.active_buttons["col1"]:
+            try: self.active_buttons["col1"].set_active(False)
+            except: pass
+        btn.set_active(True)
+        self.active_buttons["col1"] = btn
+
+        self.current_shot_code = btn.text_label
+        
+        if btn.full_data:
+            start = btn.full_data.get('frame_start')
+            end = btn.full_data.get('frame_end')
+            desc = btn.full_data.get('description', "")
+            self.info_panel.update_info(self.current_shot_code, start, end, desc)
+        
+        self.populate_task_list()
+        self.clear_gallery()
+        self.clear_layout(self.export_layout)
+        
+    def populate_task_list(self):
+        self.clear_layout(self.task_content)
+        if not self.current_shot_code: return
+
+        if self.current_context == "Assets":
+            base_folder = "30_assets"
+        else:
+            base_folder = "40_shots"
+
+        item_path = os.path.join(self.project_root, base_folder, self.current_shot_code)
+        
+        if os.path.exists(item_path):
+            items = sorted([d for d in os.listdir(item_path) if os.path.isdir(os.path.join(item_path, d))])
+            ignore = ["__pycache__", ".git"]
+            items = [i for i in items if i not in ignore and not i.startswith(".")]
+
+            for spec in items:
+                spec_full_path = os.path.join(item_path, spec)
+                group = SpecialismGroup(spec, spec_full_path, self)
+                self.task_content.addWidget(group)
+        else:
+             self.task_content.addWidget(QLabel("Folder not found on disk."))
+
+        self.task_content.addStretch()
 
     def get_next_available_shot_code(self):
         shots_dir = os.path.join(self.project_root, "40_shots")
@@ -1315,7 +1478,7 @@ class OrionLauncherUI(QWidget):
     def enter_create_mode(self):
         self.context_switch.hide()
         self.action_bar.hide()
-        self.col1_scroll.hide()
+        self.sidebar_scroll.hide()
         
         if self.current_context == "Assets":
             self.editor = AssetEditor(mode="create")
@@ -1328,9 +1491,10 @@ class OrionLauncherUI(QWidget):
             self.editor.saved.connect(self.save_new_shot)
             self.editor.cancelled.connect(self.exit_edit_mode)
         
-        self.col1_root.insertWidget(2, self.editor) 
+        self.sidebar_layout.insertWidget(2, self.editor) 
 
     def enter_edit_mode(self):
+        
         if not self.current_shot_code:
             QMessageBox.warning(self, "Select Item", "Please select an item to edit.")
             return
@@ -1338,7 +1502,7 @@ class OrionLauncherUI(QWidget):
         #Hide main widgets
         self.context_switch.hide()
         self.action_bar.hide()
-        self.col1_scroll.hide()
+        self.sidebar_scroll.hide()
 
         try:
             if self.current_context == "Assets":
@@ -1372,7 +1536,7 @@ class OrionLauncherUI(QWidget):
                 self.editor = AssetEditor(mode="edit", existing_data=full_data)
                 self.editor.saved.connect(self.save_edited_asset)
                 self.editor.cancelled.connect(self.exit_edit_mode)
-                self.col1_root.insertWidget(2, self.editor)
+                self.sidebar_layout.insertWidget(2, self.editor)
 
             else:
                 #SHOT EDIT MODE 
@@ -1408,7 +1572,7 @@ class OrionLauncherUI(QWidget):
                 self.editor = ShotEditor(mode="edit", existing_data=full_data)
                 self.editor.saved.connect(self.save_edited_shot)
                 self.editor.cancelled.connect(self.exit_edit_mode)
-                self.col1_root.insertWidget(2, self.editor)
+                self.sidebar_layout.insertWidget(2, self.editor)
 
         except Exception as e:
             #If error, restore UI and show message
@@ -1418,14 +1582,14 @@ class OrionLauncherUI(QWidget):
             
             self.context_switch.show()
             self.action_bar.show()
-            self.col1_scroll.show()
+            self.sidebar_scroll.show()
             QMessageBox.critical(self, "Editor Error", f"Could not load editor:\n{e}")
 
     def exit_edit_mode(self):
         if hasattr(self, 'editor'):
             self.editor.deleteLater()
             del self.editor
-        self.populate_column_1()
+        self.populate_sidebar()
 
     def update_discord_id_in_db(self, code, discord_id):
         try:
@@ -1564,72 +1728,46 @@ class OrionLauncherUI(QWidget):
                     self.active_buttons["col1"] = None
                     
                     # Clear UI Panes
-                    self.clear_layout(self.col2_content) 
-                    self.clear_layout(self.col2_export_layout) 
+                    self.clear_layout(self.task_content) 
+                    self.clear_layout(self.export_layout) 
                     self.info_panel.setVisible(False)
                     
                     # Refresh List
-                    self.populate_column_1()
+                    self.populate_sidebar()
                 else:
                     QMessageBox.warning(self, "Error", "Failed to delete item. Check console for details.")
             except Exception as e:
                 QMessageBox.critical(self, "Error", str(e))
 
     def switch_context(self, mode):
-        self.current_context = mode
+        self.current_menu = mode
         self.active_buttons = {"col1": None, "task": None}
-        self.clear_layout(self.col2_content)
-        self.clear_layout(self.col2_export_layout) 
+        self.clear_layout(self.task_content)
+        self.clear_layout(self.export_layout) 
         self.clear_gallery()
         self.info_panel.setVisible(False) 
         
-        self.col2_bottom_widget.setVisible(True)
+        self.task_bottom_widget.setVisible(True)
             
-        self.populate_column_1()
-
-    def on_col1_select(self, btn):
-        if self.active_buttons["col1"]:
-            try: self.active_buttons["col1"].set_active(False)
-            except: pass
-        btn.set_active(True)
-        self.active_buttons["col1"] = btn
-
-        self.current_shot_code = btn.text_label
+        self.populate_sidebar()
         
-        if btn.full_data:
-            start = btn.full_data.get('frame_start')
-            end = btn.full_data.get('frame_end')
-            desc = btn.full_data.get('description', "")
-            self.info_panel.update_info(self.current_shot_code, start, end, desc)
+    def switch_menu_page(self, mode):
         
-        self.populate_merged_column_2()
-        self.clear_gallery()
-        self.clear_layout(self.col2_export_layout) 
-
-    def populate_merged_column_2(self):
-        self.clear_layout(self.col2_content)
-        if not self.current_shot_code: return
-
-        if self.current_context == "Assets":
-            base_folder = "30_assets"
-        else:
-            base_folder = "40_shots"
-
-        item_path = os.path.join(self.project_root, base_folder, self.current_shot_code)
+        self.current_menu = mode
         
-        if os.path.exists(item_path):
-            items = sorted([d for d in os.listdir(item_path) if os.path.isdir(os.path.join(item_path, d))])
-            ignore = ["__pycache__", ".git"]
-            items = [i for i in items if i not in ignore and not i.startswith(".")]
-
-            for spec in items:
-                spec_full_path = os.path.join(item_path, spec)
-                group = SpecialismGroup(spec, spec_full_path, self)
-                self.col2_content.addWidget(group)
-        else:
-             self.col2_content.addWidget(QLabel("Folder not found on disk."))
-
-        self.col2_content.addStretch()
+        # Logic to actually switch the stack page
+        if mode == "Production":
+            self.page_stack.setCurrentIndex(0)
+        elif mode == "Apps":
+            self.page_stack.setCurrentIndex(1)
+        elif mode == "Renders":
+            self.page_stack.setCurrentIndex(2)
+        elif mode == "Vault":
+            self.page_stack.setCurrentIndex(3)
+        elif mode == "Settings":
+            self.page_stack.setCurrentIndex(4)
+            
+        print(f"Switched to: {mode}")
 
     def on_task_select(self, btn, full_path):
         if self.active_buttons["task"]:
@@ -1645,7 +1783,7 @@ class OrionLauncherUI(QWidget):
 
     def populate_exports_pane(self, task_path):
         """Populates the bottom of Column 2 with items from EXPORT and EXPORT/PUBLISHED"""
-        self.clear_layout(self.col2_export_layout)
+        self.clear_layout(self.export_layout)
         
         export_path = os.path.join(task_path, "EXPORT")
         publish_path = os.path.join(export_path, "PUBLISHED")
@@ -1680,14 +1818,14 @@ class OrionLauncherUI(QWidget):
         if not items_to_add:
             lbl = QLabel("No export files found.")
             lbl.setStyleSheet("color: #666; font-style: italic; margin-left: 10px;")
-            self.col2_export_layout.addWidget(lbl)
+            self.export_layout.addWidget(lbl)
         else:
             for name, path, is_pub in items_to_add:
                 item = ExportItemWidget(name, path, is_published=is_pub)
                 item.action_triggered.connect(self.handle_export_action)
-                self.col2_export_layout.addWidget(item)
+                self.export_layout.addWidget(item)
                 
-        self.col2_export_layout.addStretch()
+        self.export_layout.addStretch()
 
     def handle_export_action(self, action, item):
         if action == "publish":
@@ -2012,6 +2150,7 @@ class OrionLauncherUI(QWidget):
         header_container = QWidget()
         v_layout = QVBoxLayout(header_container)
         v_layout.setContentsMargins(0, 0, 0, 0)
+        
         #space between text and line
         v_layout.setSpacing(4) 
 
@@ -2049,6 +2188,28 @@ class OrionLauncherUI(QWidget):
             self.exit_edit_mode()
         except Exception as e:
             QMessageBox.critical(self, "Error", str(e))
+        
+    def create_column_structure(self, bg_color, min_width, radius_style=""):
+        wrapper = QFrame()
+        wrapper.setMinimumWidth(min_width)
+        wrapper.setStyleSheet(f"background-color: {bg_color}; {radius_style}")
+        root_layout = QVBoxLayout(wrapper)
+        root_layout.setContentsMargins(15, 20, 15, 20)
+        root_layout.setSpacing(10)
+        
+        scroll = QScrollArea()
+        scroll.setWidgetResizable(True)
+        scroll.setFrameShape(QFrame.NoFrame)
+        scroll.setStyleSheet(get_scrollbar_style(bg_color))
+        
+        container = QWidget()
+        container.setStyleSheet("background: transparent;")
+        content_layout = QVBoxLayout(container)
+        content_layout.setContentsMargins(0, 0, 5, 0)
+        content_layout.setSpacing(10)
+        content_layout.setAlignment(Qt.AlignTop)
+        scroll.setWidget(container)
+        return wrapper, root_layout, scroll, content_layout
 
 if __name__ == '__main__':
     app = QApplication(sys.argv)

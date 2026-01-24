@@ -8,8 +8,10 @@ from datetime import datetime
 from pathlib import Path
 import importlib.util
 
-from PySide6 import QtWidgets, QtCore, QtGui
-from PySide2 import QtWidgets, QtCore, QtGui
+try:
+    from PySide2 import QtWidgets, QtCore, QtGui
+except ImportError:
+    from PySide6 import QtWidgets, QtCore, QtGui
 
 
 #software detection

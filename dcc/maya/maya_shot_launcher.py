@@ -1,13 +1,21 @@
 import sys
 import os
-import hou
+import re
+import maya.cmds as cmds
+import maya.mel as mel
+import maya.OpenMaya as om
+from maya.app.general.mayaMixin import MayaQWidgetDockableMixin
 
+#QT
 try:
     from PySide2 import QtWidgets, QtCore, QtGui
 except ImportError:
-    from PySide6 import QtWidgets, QtCore, QtGui
+    try:
+        from PySide6 import QtWidgets, QtCore, QtGui
+    except ImportError:
+        cmds.error("Could not load PySide2 or PySide6. UI cannot start.")
 
-#PATH SETUP 
+#PATH SETUP
 pipeline_path = os.environ.get("ORI_PIPELINE_PATH")
 
 if not pipeline_path:
@@ -19,13 +27,19 @@ if pipeline_path and pipeline_path not in sys.path:
 
 try:
     from core.orionUtils import OrionUtils
+    try: 
+        from maya.plugin.timeSliderBookmark.timeSliderBookmark import createBookmark
+    except ImportError:
+        createBookmark = None
 except ImportError:
-    hou.ui.displayMessage("Could not import OrionUtils. Check sys.path.")
+    print("Warning: Could not import OrionUtils. Check sys.path.")
 
-class OrionHoudiniUI(QtWidgets.QWidget):
-    def __init__(self):
-        super(OrionHoudiniUI, self).__init__()
+#UI
+class OrionMayaUI(MayaQWidgetDockableMixin, QtWidgets.QWidget):
+    def __init__(self, parent=None):
+        super(OrionMayaUI, self).__init__(parent=parent)
         
+        # Init Core
         if 'OrionUtils' in globals():
             self.orion = OrionUtils()
             self.root_dir = self.orion.get_root_dir()
@@ -35,11 +49,19 @@ class OrionHoudiniUI(QtWidgets.QWidget):
 
         self.current_shot = None
         
+        self.setWindowTitle("Orion Maya Loader")
+        self.setObjectName("OrionMayaWindow")
+        self.resize(600, 700)
+        
+        #always on top
+        self.setWindowFlags(QtCore.Qt.Window | QtCore.Qt.WindowStaysOnTopHint)
+        
         self.init_ui()
         
         if self.orion:
             self.populate_shots()
             
+            #sync context
             context_shot = os.environ.get("ORI_SHOT_CONTEXT")
             if context_shot:
                 index = self.combo_shots.findText(context_shot)
@@ -52,7 +74,7 @@ class OrionHoudiniUI(QtWidgets.QWidget):
         self.setLayout(self.main_layout)
         
         self.setStyleSheet("""
-            QWidget { background-color: #2b2b2b; color: #dddddd; font-family: Segoe UI; }
+            QWidget { background-color: #2b2b2b; color: #dddddd; font-family: Segoe UI, Arial; }
             QGroupBox { border: 1px solid #444; border-radius: 4px; margin-top: 10px; font-weight: bold; }
             QGroupBox::title { subcontrol-origin: margin; left: 10px; padding: 0 5px; }
             QPushButton { background-color: #444; border-radius: 3px; padding: 6px; }
@@ -64,13 +86,15 @@ class OrionHoudiniUI(QtWidgets.QWidget):
             QSplitter::handle { background-color: #444; }
         """)
 
+        #HEADER
         header_layout = QtWidgets.QHBoxLayout()
-        logo_label = QtWidgets.QLabel("ORION<b>HOUDINI</b>")
+        logo_label = QtWidgets.QLabel("ORION<b>MAYA</b>")
+        logo_label.setTextFormat(QtCore.Qt.RichText)
         logo_label.setStyleSheet("font-size: 16px; color: #FF6000;")
         header_layout.addWidget(logo_label)
         self.main_layout.addLayout(header_layout)
 
-        #SHOT CONTEXT 
+        #SHOT CONTEXT
         shot_group = QtWidgets.QGroupBox("Shot Context")
         shot_layout = QtWidgets.QVBoxLayout()
         
@@ -85,18 +109,21 @@ class OrionHoudiniUI(QtWidgets.QWidget):
         shot_group.setLayout(shot_layout)
         self.main_layout.addWidget(shot_group)
 
+        #TABS
         self.tabs = QtWidgets.QTabWidget()
         self.tabs.setStyleSheet("QTabWidget::pane { border: 0; }")
         
-        #TABS 
+        #scene tab
         self.tab_scene = QtWidgets.QWidget()
         self.build_scene_tab()
         self.tabs.addTab(self.tab_scene, "Scene Setup")
         
+        #asset tab
         self.tab_assets = QtWidgets.QWidget()
         self.build_assets_tab()
         self.tabs.addTab(self.tab_assets, "Assets")
         
+        #shot tasks tab
         self.tab_shot_tasks = QtWidgets.QWidget()
         self.build_shot_tasks_tab()
         self.tabs.addTab(self.tab_shot_tasks, "Shot Tasks")
@@ -107,17 +134,17 @@ class OrionHoudiniUI(QtWidgets.QWidget):
         layout = QtWidgets.QVBoxLayout()
         layout.setAlignment(QtCore.Qt.AlignTop)
         
-        btn_cam = QtWidgets.QPushButton("Load Shot Camera (Sublayer)")
+        btn_cam = QtWidgets.QPushButton("Import Shot Camera")
         btn_cam.setStyleSheet("background-color: #336699;")
         btn_cam.clicked.connect(self.import_camera)
         layout.addWidget(btn_cam)
         
-        btn_plate = QtWidgets.QPushButton("Load Plate (Background Plate)")
+        btn_plate = QtWidgets.QPushButton("Create Image Plane (Plate)")
         btn_plate.setStyleSheet("background-color: #996633;")
         btn_plate.clicked.connect(self.import_plate)
         layout.addWidget(btn_plate)
 
-        btn_hdri = QtWidgets.QPushButton("Load HDRI (Dome Light)")
+        btn_hdri = QtWidgets.QPushButton("Create Arnold SkyDome (HDRI)")
         btn_hdri.clicked.connect(self.import_hdri)
         layout.addWidget(btn_hdri)
         
@@ -132,22 +159,22 @@ class OrionHoudiniUI(QtWidgets.QWidget):
         self.input_search.textChanged.connect(self.filter_assets)
         layout.addWidget(self.input_search)
         
-        #splitter (asset list | task tree | file list)
+        #splitter
         splitter = QtWidgets.QSplitter(QtCore.Qt.Horizontal)
         
-        #pane 1: asset list
+        #list
         self.list_assets = QtWidgets.QListWidget()
         self.list_assets.setSelectionMode(QtWidgets.QAbstractItemView.SingleSelection)
         self.list_assets.itemClicked.connect(self.on_asset_clicked) 
         splitter.addWidget(self.list_assets)
         
-        #pane 2: task tree
+        #tree
         self.tree_asset_tasks = QtWidgets.QTreeWidget()
         self.tree_asset_tasks.setHeaderLabel("Asset Tasks")
         self.tree_asset_tasks.itemClicked.connect(self.on_asset_task_clicked)
         splitter.addWidget(self.tree_asset_tasks)
         
-        #pane 3: file n action
+        #files
         right_widget = QtWidgets.QWidget()
         right_layout = QtWidgets.QVBoxLayout(right_widget)
         right_layout.setContentsMargins(0, 0, 0, 0)
@@ -188,7 +215,7 @@ class OrionHoudiniUI(QtWidgets.QWidget):
         self.list_shot_files = QtWidgets.QListWidget()
         right_layout.addWidget(self.list_shot_files)
         
-        btn_load = QtWidgets.QPushButton("Sublayer File")
+        btn_load = QtWidgets.QPushButton("Reference/Import File")
         btn_load.clicked.connect(self.import_shot_task_file)
         right_layout.addWidget(btn_load)
         
@@ -198,32 +225,7 @@ class OrionHoudiniUI(QtWidgets.QWidget):
         layout.addWidget(splitter)
         self.tab_shot_tasks.setLayout(layout)
 
-    #helpers
-    
-    def get_stage(self):
-
-        stage = hou.node("/stage")
-        
-        if not stage:
-            stage = hou.node("/").createNode("stage", "stage")
-        return stage
-
-    def connect_node(self, node):
-
-        selected = hou.selectedNodes()
-        if selected and selected[0].parent() == node.parent():
-            #connect to the output of the selected node
-            node.setInput(0, selected[0])
-            #move new node below
-            node.moveToGoodPosition()
-        else:
-            node.moveToGoodPosition()
-        
-        #select the new node
-        node.setSelected(True, clear_all_selected=True)
-        node.setDisplayFlag(True)
-
-    #LOGIC
+    #LOGIC 
 
     def populate_shots(self):
         self.combo_shots.clear()
@@ -289,12 +291,12 @@ class OrionHoudiniUI(QtWidgets.QWidget):
         if os.path.exists(pub_path):
             for root, dirs, files in os.walk(pub_path):
                 for f in files:
-                    if f.endswith((".abc", ".usd", ".usdc", ".bgeo.sc", ".obj", ".fbx")):
+                    if f.endswith((".abc", ".usd", ".usdc", ".obj", ".fbx", ".ma", ".mb")):
                         full_path = os.path.join(root, f)
                         found_files.append((f, full_path))
         
         if not found_files:
-            files = [f for f in os.listdir(task_path) if f.endswith((".abc", ".usd", ".usdc", ".bgeo.sc", ".obj"))]
+            files = [f for f in os.listdir(task_path) if f.endswith((".abc", ".usd", ".usdc", ".obj", ".fbx", ".ma", ".mb"))]
             if files:
                 for f in sorted(files):
                     found_files.append((f, os.path.join(task_path, f)))
@@ -316,36 +318,57 @@ class OrionHoudiniUI(QtWidgets.QWidget):
             return
         
         self.current_shot = data
-        shot_start = int(data['frame_start'])
-        shot_end = int(data['frame_end'])
-        
-        global_start = 981
-        global_end = shot_end + 20
-        playback_start = shot_start
-        playback_end = shot_end + 20
-        
-        orion_orange = hou.Color((1.0, 0.376, 0.0))
-        bm_name = "Orion Range"
-        bm_start = 1011
-        bm_end = shot_end + 10
+        shot_code = data['code']
+        start_frame = str(data['frame_start'])
+        end_frame = str(data['frame_end'])
+        shot_path = data['shot_path']
+        thread_id = str(data['discord_thread_id']) if data['discord_thread_id'] else ""
 
-        try:
-            for b in hou.anim.bookmarks():
-                if b.name() == bm_name:
-                    try: hou.anim.removeBookmark(b)
-                    except: pass
-            
-            bookmark = hou.anim.newBookmark(bm_name, bm_start, bm_end)
-            bookmark.setColor(orion_orange)
-            bookmark.setSelected(True)
-        except: pass
+        self.lbl_shot_info.setText(f"Shot: {shot_code} ({start_frame}-{end_frame})")
 
-        self.lbl_shot_info.setText(f"Shot Range: {shot_start} - {shot_end}")
-        hou.playbar.setFrameRange(global_start, global_end)
-        hou.playbar.setPlaybackRange(playback_start, playback_end)
-        hou.setFrame(playback_start)
+        print(f"Setting Context to: {shot_code}")
+        os.environ["ORI_SHOT_CONTEXT"] = shot_code
+        os.environ["ORI_DISCORD_THREAD_ID"] = thread_id
+        os.environ["ORI_SHOT_PATH"] = shot_path
+        os.environ["ORI_SHOT_FRAME_START"] = start_frame
+        os.environ["ORI_SHOT_FRAME_END"] = end_frame
         
+        self.set_frames_from_shot(end_frame)
         self.populate_shot_tree()
+
+    def set_frames_from_shot(self, end_frame_str):
+        if not cmds.pluginInfo("timeSliderBookmark", query=True, loaded=True):
+            try: cmds.loadPlugin("timeSliderBookmark")
+            except: pass
+
+        if end_frame_str:
+            end_bookmark = int(end_frame_str)
+        else:
+            end_bookmark = 1250
+            
+        start_bookmark = 1011
+        
+        start_frame = 1001
+        end_frame = end_bookmark + 10
+        start_scene = 981
+        
+        cmds.playbackOptions(min=start_frame, max=end_frame)
+        cmds.playbackOptions(animationStartTime=start_scene, animationEndTime=end_frame)
+        cmds.currentTime(start_frame)
+
+        bm_name = "MainAction"
+        try:
+            all_bms = cmds.ls(type="timeSliderBookmark") or []
+            for b in all_bms:
+                if cmds.getAttr(f"{b}.name") == bm_name:
+                    cmds.delete(b)
+            
+            if createBookmark:
+                createBookmark(name=bm_name, start=start_bookmark, stop=end_bookmark, color=(1.0, 0.37, 0.0))
+            else:
+                cmds.timeSliderBookmark(name=bm_name, start=start_bookmark, end=end_bookmark, color=(1.0, 0.37, 0.0))
+        except Exception as e:
+            print(f"Error creating bookmark: {e}")
 
     def populate_shot_tree(self):
         self.tree_shot_tasks.clear()
@@ -391,7 +414,7 @@ class OrionHoudiniUI(QtWidgets.QWidget):
         if os.path.exists(pub_path):
             for root, dirs, files in os.walk(pub_path):
                 for f in files:
-                    if f.endswith((".abc", ".usd", ".usdc", ".bgeo.sc", ".obj", ".fbx")):
+                    if f.endswith((".abc", ".usd", ".usdc", ".bgeo.sc", ".obj", ".fbx", ".ma", ".mb")):
                         full_path = os.path.join(root, f)
                         found_files.append((f, full_path))
         
@@ -404,11 +427,11 @@ class OrionHoudiniUI(QtWidgets.QWidget):
             item.setData(QtCore.Qt.UserRole, path)
             self.list_shot_files.addItem(item)
 
-    #LOP IMPORTERS
+    #IMPORTERS
 
     def import_camera(self):
         if not self.current_shot:
-            hou.ui.displayMessage("Please select a shot first.")
+            print("Please select a shot first.")
             return
 
         shot_code = self.current_shot['code']
@@ -416,21 +439,22 @@ class OrionHoudiniUI(QtWidgets.QWidget):
         
         found = None
         if os.path.exists(cam_path):
-            candidates = [f for f in os.listdir(cam_path) if f.endswith(".abc") or f.endswith(".usd")]
+            candidates = [f for f in os.listdir(cam_path) if f.endswith(".abc") or f.endswith(".ma") or f.endswith(".mb")]
             candidates.sort()
             if candidates:
                 found = os.path.join(cam_path, candidates[-1])
         
         if found:
-            stage = self.get_stage()
-            #use sublayer for shot camera to bring in the opinion
-            lop = stage.createNode("sublayer", node_name=f"cam_{shot_code}")
-            lop.parm("filepath1").set(found)
-            
-            self.connect_node(lop)
-            hou.ui.displayMessage(f"Camera Sublayered: {os.path.basename(found)}")
+            if found.endswith(".abc"):
+                if not cmds.pluginInfo("AbcImport", q=True, loaded=True):
+                    cmds.loadPlugin("AbcImport")
+            try:
+                cmds.file(found, i=True, namespace=f"cam_{shot_code}", returnNewNodes=True)
+                print(f"Imported Camera: {os.path.basename(found)}")
+            except Exception as e:
+                print(f"Error importing camera: {e}")
         else:
-            hou.ui.displayMessage(f"No camera files found in: {cam_path}")
+            print(f"No camera files found in: {cam_path}")
 
     def import_plate(self):
         if not self.current_shot: return
@@ -438,98 +462,69 @@ class OrionHoudiniUI(QtWidgets.QWidget):
         plate_root = os.path.join(self.root_dir, "40_shots", shot_code, "COMP", "Plates", "Offline")
         
         if not os.path.exists(plate_root):
-            hou.ui.displayMessage("Plate folder not found.")
+            print("Plate folder not found.")
             return
 
         found_seq = None
         for item in os.listdir(plate_root):
-
             if item.lower().endswith((".exr", ".jpg", ".png", ".tif", ".tiff")):
                 found_seq = os.path.join(plate_root, item)
                 break
         
         if found_seq:
-            stage = self.get_stage()
-            lop = stage.createNode("backgroundplate", node_name=f"plate_{shot_code}")
-            
-            import re
-            match = re.search(r"(\d+)(\.[a-zA-Z]+)$", found_seq)
-            if match:
-                padding = len(match.group(1))
-                path_stub = found_seq[:match.start(1)] + f"$F{padding}" + match.group(2)
-                final_path = path_stub
-            else:
-                final_path = found_seq
-            
-            #PARAMETER 
-            parm = lop.parm("plate")
-            if not parm:
-                #fallback
-                for p_name in ["imagepath", "picture", "file", "texturepath"]:
-                    if lop.parm(p_name):
-                        parm = lop.parm(p_name)
-                        break
-            
-            if parm:
-                parm.set(final_path)
-                self.connect_node(lop)
-                hou.ui.displayMessage("Plate loaded in /stage.")
-            else:
-                #debug 
-                all_parms = [p.name() for p in lop.parms()]
-                print(f"Error: Could not find plate parameter. Available parameters: {all_parms}")
-                hou.ui.displayMessage("Error: Could not set plate path. Check console for details.")
-                
+            current_panel = cmds.getPanel(withFocus=True)
+            cam = "persp"
+            try:
+                if "modelPanel" in cmds.getPanel(typeOf=current_panel):
+                    cam = cmds.modelEditor(current_panel, q=True, camera=True)
+            except: pass
+
+            try:
+                image_plane = cmds.imagePlane(camera=cam, fileName=found_seq)[0]
+                cmds.setAttr(f"{image_plane}.useFrameExtension", 1)
+                print(f"Created Image Plane on {cam}")
+            except Exception as e:
+                print(f"Error creating image plane: {e}")
         else:
-            hou.ui.displayMessage("No image sequences found in Source.")
+            print("No image sequences found in Source.")
 
     def import_hdri(self):
-        start_path = os.path.join(self.root_dir, "25_footage", "hdri", "HDRI", f"{self.current_shot}_hdri")
-        path = hou.ui.selectFile(start_directory=start_path, title="Select HDRI", pattern="*.exr *.hdr")
+        start_path = os.path.join(self.root_dir, "25_footage", "hdri", "HDRI")
+        path = cmds.fileDialog2(fileMode=1, caption="Select HDRI", dir=start_path, fileFilter="HDRI (*.exr *.hdr)")
+        
         if path:
-            stage = self.get_stage()
-            lop = stage.createNode("domelight", node_name="dome_light")
-            lop.parm("texturefile").set(path)
-            
-            self.connect_node(lop)
+            file_path = path[0]
+            if not cmds.pluginInfo("mtoa", q=True, loaded=True):
+                try: 
+                    cmds.loadPlugin("mtoa")
+                except:
+                    print("Error: Arnold (mtoa) plugin not found. Cannot create SkyDome.")
+                    return
+
+            try:
+                light_shape = cmds.createNode("aiSkyDomeLight", name="dome_lightShape")
+                file_node = cmds.createNode("file", name="hdri_file")
+                cmds.setAttr(f"{file_node}.fileTextureName", file_path, type="string")
+                cmds.connectAttr(f"{file_node}.outColor", f"{light_shape}.color")
+                print(f"Created Arnold SkyDome with {os.path.basename(file_path)}")
+            except Exception as e:
+                print(f"Error creating HDRI setup: {e}")
 
     def import_selected_asset_file(self):
-        #get file and name
-        file_item = self.list_asset_files.currentItem()
-        if not file_item: return
-        path = file_item.data(QtCore.Qt.UserRole)
+        item = self.list_asset_files.currentItem()
+        if not item: return
         
+        path = item.data(QtCore.Qt.UserRole)
+        if not path or not os.path.exists(path): return
+
         asset_item = self.list_assets.selectedItems()[0]
         asset_name = asset_item.data(QtCore.Qt.UserRole)['name']
-
-        stage = self.get_stage()
-
-        #load geo
-        geo_node = stage.createNode("reference", node_name=f"load_{asset_name}")
         
-        if geo_node.parm("filepath1"):
-            geo_node.parm("filepath1").set(path)
-            
-        if geo_node.parm("primpath"):
-            geo_node.parm("primpath").set(f"/{asset_name}")
-            
-        self.connect_node(geo_node)
-
-    def import_shot_task_file(self):
-        #anim
-        item = self.list_shot_files.currentItem()
-        if not item: return
-        path = item.data(QtCore.Qt.UserRole)
-        
-        stage = self.get_stage()
-        
-        #load anim
-        anim_node = stage.createNode("sublayer", node_name="load_anim")
-        
-        if anim_node.parm("filepath1"):
-            anim_node.parm("filepath1").set(path)
-            
-        self.connect_node(anim_node)
+        try:
+            cmds.file(path, reference=True, namespace=asset_name, returnNewNodes=True)
+            print(f"Referenced Asset: {asset_name}")
+        except Exception as e:
+            print(f"Error referencing asset: {e}")
 
     def import_shot_task_file(self):
         item = self.list_shot_files.currentItem()
@@ -540,13 +535,24 @@ class OrionHoudiniUI(QtWidgets.QWidget):
         
         name = item.text().split('.')[0]
         
-        #SHOT TASKS 
-        stage = self.get_stage()
-        lop = stage.createNode("sublayer", node_name=name)
-        lop.parm("filepath1").set(path)
-        
-        self.connect_node(lop)
-        hou.ui.displayMessage(f"Shot Layer Sublayered: {name}")
+        try:
+            cmds.file(path, reference=True, namespace=name, returnNewNodes=True)
+            print(f"Referenced File: {name}")
+        except Exception as e:
+            print(f"Error loading file: {e}")
 
-def onCreateInterface():
-    return OrionHoudiniUI()
+#ENTRY POINT
+def show_orion_maya():
+    workspace_control_name = "OrionMayaWindowWorkspaceControl"
+    
+    if cmds.workspaceControl(workspace_control_name, exists=True):
+        cmds.deleteUI(workspace_control_name, control=True)
+    elif cmds.window("OrionMayaWindow", exists=True):
+        cmds.deleteUI("OrionMayaWindow", window=True)
+    
+    global orion_maya_window
+    orion_maya_window = OrionMayaUI()
+    orion_maya_window.show(dockable=True, floating=True)
+
+#run
+show_orion_maya()

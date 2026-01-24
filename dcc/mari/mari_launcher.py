@@ -40,8 +40,8 @@ def launch_mari(file_path=None, shot_code=None, frame_start=None, frame_end=None
     
     #path to mari exe
     # MARI_EXE = r"C:\Program Files\Mari7.1v2\Bundle\bin\Mari7.1v2.exe"
-    MARI_EXE = r"C:\Program Files\Mari7.0v2\Bundle\bin\Mari7.0v2.exe"
-
+    MARI_EXE = r"C:\Program Files\Mari7.1v2\Bundle\bin\Mari7.1v2.exe"
+    
     ORI_ROOT_PATH = os.environ.get("ORI_ROOT_PATH")
     print("ORI_ROOT_PATH:", ORI_ROOT_PATH)
 
@@ -57,6 +57,7 @@ def launch_mari(file_path=None, shot_code=None, frame_start=None, frame_end=None
 
     env["OCIO"] = OCIO_PATH
     env["ORI_SHOT_CONTEXT"] = shot_code if shot_code else ""
+    env["PYTHONPATH"] = PIPELINE_PATH + os.pathsep + env.get("PYTHONPATH", "")
 
     cmd = [MARI_EXE]
     if file_path:

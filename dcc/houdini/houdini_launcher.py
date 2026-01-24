@@ -56,12 +56,13 @@ def launch_houdini(file_path=None, shot_code=None, frame_start=None, frame_end=N
     env = os.environ.copy()
     
     env['ORI_PIPELINE_PATH'] = PIPELINE_PATH
-    env["HOUDINI_PACKAGE_DIR"] = PACKAGE_PATH + os.pathsep + env.get("HOUDINI_PACKAGE_DIR", "")
+    env["HOUDINI_PACKAGE_DIR"] = PACKAGE_PATH  + os.pathsep + env.get("HOUDINI_PACKAGE_DIR", "")
     env["HOUDINI_USER_PREF_DIR"] = f"P:/all_work/studentGroups/ORION_CORPORATION/60_config/userPrefs/{user}/prefs/houdini__HVER__"
     env["ORI_SHOT_CONTEXT"] = shot_code if shot_code else ""
     
-    # launch Houdini with the modified environment
+    # launch Houdini with modified environment
     cmd = [HOUDINI_EXE]
+    
     if file_path:
         cmd.append(file_path) # Add file to launch args
 
