@@ -115,10 +115,10 @@ class SystemUtils:
     def wacom_fix(self, enabled: bool):
         
         if enabled == True:
-            WACOM_PATH = r"P:\all_work\studentGroups\ORION_CORPORATION\60_config\wacom\ORION.wacomprefs"
+            WACOM_PATH = r"C:\Program Files\Tablet\Wacom\Professional_CPL.exe"
             
-            CMD = f"powershell -c \"{WACOM_PATH}\""
-            subprocess.run(CMD, shell=True)
+            # CMD = f"powershell -c \"{WACOM_PATH}\""
+            subprocess.Popen(WACOM_PATH)
             
         else:
             pass

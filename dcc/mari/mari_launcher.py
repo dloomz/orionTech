@@ -50,12 +50,14 @@ def launch_mari(file_path=None, shot_code=None, frame_start=None, frame_end=None
         return
 
     ROOT_PATH = os.path.join(ORI_ROOT_PATH, "60_config", "softwarePrefs", "mari")
+    MARI_SCRIPT_PATH = os.path.join(ROOT_PATH, "scripts")
     PIPELINE_PATH = os.path.join(ORI_ROOT_PATH, "00_pipeline", "orionTech")
     OCIO_PATH = r"P:\all_work\studentGroups\ORION_CORPORATION\60_config\colorManagement\aces_1.2\config.ocio"
 
     env = os.environ.copy()
 
     env["OCIO"] = OCIO_PATH
+    env["MARI_SCRIPT_PATH"] = MARI_SCRIPT_PATH
     env["ORI_SHOT_CONTEXT"] = shot_code if shot_code else ""
     env["PYTHONPATH"] = PIPELINE_PATH + os.pathsep + env.get("PYTHONPATH", "")
 

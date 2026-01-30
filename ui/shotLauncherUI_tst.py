@@ -2,10 +2,15 @@ import sys
 import os
 import subprocess
 import json
+
 import shutil
+
 import re
 import uuid
-from datetime import datetime
+
+from datetime import datetime, timedelta
+import time
+
 import argparse
 
 # ORION TECH INTEGRATION
@@ -23,8 +28,57 @@ except ImportError:
     except ImportError as e:
         print(f"CRITICAL ERROR: Could not import OrionUtils.\nChecked path: {orion_package_root}\nError: {e}")
         sys.exit()
+        
+try:
+    from core.prefsUtils import PrefsUtils
+except ImportError:
+    try:
+        from orionTech.core.prefsUtils import PrefsUtils
+    except ImportError as e:
+        print(f"CRITICAL ERROR: Could not import PrefUtils.\nChecked path: {orion_package_root}\nError: {e}")
+        sys.exit()
+        
+try:
+    from core.systemUtils import SystemUtils
+except ImportError:
+    try:
+        from orionTech.core.systemUtils import SystemUtils
+    except ImportError as e:
+        print(f"CRITICAL ERROR: Could not import SystemUtils.\nChecked path: {orion_package_root}\nError: {e}")
+        sys.exit()
 
 orion_utils = OrionUtils(check_schema=False)
+pref_utils = PrefsUtils(orion_utils)
+system_utils = SystemUtils(orion_utils, pref_utils)
+
+#IMPORT CUSTOM LAUNCHERS
+try:
+
+    from dcc.maya.maya_launcher import launch_maya
+except ImportError as e:
+    print(f"Warning: Could not import maya_launcher: {e}")
+    launch_maya = None
+    
+try:
+
+    from dcc.nuke.nuke_launcher import launch_nuke
+except ImportError as e:
+    print(f"Warning: Could not import nuke_launcher: {e}")
+    launch_nuke = None
+    
+try:
+
+    from dcc.houdini.houdini_launcher import launch_houdini
+except ImportError as e:
+    print(f"Warning: Could not import houdini_launcher: {e}")
+    launch_houdini = None
+    
+try:
+
+    from dcc.mari.mari_launcher import launch_mari
+except ImportError as e:
+    print(f"Warning: Could not import mari_launcher: {e}")
+    launch_mari = None
 
 #success flag
 import_success = False
@@ -38,9 +92,10 @@ for attempt in range(3):
             QVBoxLayout, QHBoxLayout, QFrame, QGridLayout,
             QSizePolicy, QScrollArea, QSplitter, QInputDialog,
             QMessageBox, QLineEdit, QSpinBox, QTextEdit,
-            QFormLayout, QFileDialog, QMenu, QAction, QComboBox, QAbstractButton, QStackedWidget
+            QFormLayout, QFileDialog, QMenu, QAction, QComboBox, 
+            QAbstractButton, QStackedWidget, QCheckBox, QSlider
         )
-        from PyQt5.QtCore import Qt, pyqtSignal, QSize, QRect
+        from PyQt5.QtCore import Qt, pyqtSignal, QSize, QRect, QTimer
         from PyQt5.QtGui import QPixmap, QPainter
         
         #if we get here imports worked
@@ -551,7 +606,9 @@ class SpecialismGroup(QWidget):
                 QMessageBox.critical(self, "Error", str(e))
 
 class MenuSwitch(QFrame):
+    
     mode_changed = pyqtSignal(str) 
+    
     def __init__(self):
         super().__init__()
         
@@ -603,38 +660,52 @@ class MenuSwitch(QFrame):
                 btn.setStyleSheet(inactive)
 
 class ContextSwitch(QFrame):
+    
     mode_changed = pyqtSignal(str) 
+    
     def __init__(self):
         super().__init__()
+        
         self.setFixedSize(140, 34)
         self.setStyleSheet("background-color: #333; border-radius: 17px;")
+        
         self.layout = QHBoxLayout()
         self.layout.setContentsMargins(0, 0, 0, 0)
         self.layout.setSpacing(0)
+        
         self.setLayout(self.layout)
+        
         self.btn_assets = QPushButton("assets")
         self.btn_shots = QPushButton("shots")
+        
         for btn in [self.btn_assets, self.btn_shots]:
             btn.setCheckable(True)
             btn.setFixedSize(70, 34) 
             btn.clicked.connect(self.toggle_mode)
             self.layout.addWidget(btn)
-        self.current_mode = "Shots"
+            
+        self.current_context = "Shots"
         self.update_style()
 
     def toggle_mode(self):
+        
         sender = self.sender()
-        if sender == self.btn_assets: self.current_mode = "Assets"
-        else: self.current_mode = "Shots"
+        
+        if sender == self.btn_assets: self.current_context = "Assets"
+        else: self.current_context = "Shots"
+        
         self.update_style()
-        self.mode_changed.emit(self.current_mode)
+        self.mode_changed.emit(self.current_context)
 
     def update_style(self):
+        
         active = "QPushButton { background-color: #FF6000; color: white; border-radius: 17px; font-weight: bold; border: none; }"
         inactive = "QPushButton { background-color: transparent; color: #888; border-radius: 17px; font-weight: bold; border: none; } QPushButton:hover { color: white; }"
-        if self.current_mode == "Assets":
+        
+        if self.current_context == "Assets":
             self.btn_assets.setStyleSheet(active)
             self.btn_shots.setStyleSheet(inactive)
+            
         else:
             self.btn_assets.setStyleSheet(inactive)
             self.btn_shots.setStyleSheet(active)
@@ -656,14 +727,14 @@ class ThumbnailCard(QFrame):
         self.pixmap_loaded = False
 
         self.setFixedHeight(250)
-        self.setFixedWidth(290)
+        self.setFixedWidth(300)
         self.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
         self.setObjectName("ThumbnailCard")
 
         # Resolve thumbnail path
         self.thumb_path = self._resolve_thumbnail_path()
 
-        # ---------- Layout ----------
+        # Layout
         layout = QVBoxLayout(self)
         layout.setContentsMargins(8, 8, 8, 8)
         layout.setSpacing(6)
@@ -673,7 +744,8 @@ class ThumbnailCard(QFrame):
         self.image_area.setFixedHeight(180)
         self.image_area.setFixedWidth(280)
         self.image_area.setAlignment(Qt.AlignCenter)
-        self.image_area.setAttribute(Qt.WA_TransparentForMouseEvents) # FIX: Allow clicks to pass through
+        #clicks pass through
+        self.image_area.setAttribute(Qt.WA_TransparentForMouseEvents) 
         self.image_area.setStyleSheet(
             f"background-color: {fallback_color}; border-radius: 6px;"
         )
@@ -683,7 +755,7 @@ class ThumbnailCard(QFrame):
         # Filename
         self.name_lbl = QLabel(filename)
         self.name_lbl.setWordWrap(True)
-        self.name_lbl.setAttribute(Qt.WA_TransparentForMouseEvents) # FIX: Allow clicks to pass through
+        self.name_lbl.setAttribute(Qt.WA_TransparentForMouseEvents) 
         self.name_lbl.setStyleSheet(
             "color: white; font-weight: bold; font-size: 12px;"
         )
@@ -691,7 +763,7 @@ class ThumbnailCard(QFrame):
 
         # Published label
         self.status_lbl = QLabel("PUBLISHED ✓")
-        self.status_lbl.setAttribute(Qt.WA_TransparentForMouseEvents) # FIX: Allow clicks to pass through
+        self.status_lbl.setAttribute(Qt.WA_TransparentForMouseEvents) 
         self.status_lbl.setStyleSheet(
             "color: #00ff00; font-size: 11px; font-weight: bold;"
         )
@@ -1160,12 +1232,504 @@ class OrionButton(QAbstractButton):
     def sizeHint(self):
         return QSize(200, 200)
 
+# SEQUENCE PLAYER WIDGET
+class SequencePlayer(QWidget):
+    def __init__(self):
+        super().__init__()
+        self.layout = QVBoxLayout(self)
+        self.layout.setContentsMargins(0, 0, 0, 0)
+        self.layout.setSpacing(10)
+
+        # IMAGE DISPLAY 
+        self.view_container = QLabel()
+        self.view_container.setAlignment(Qt.AlignCenter)
+        self.view_container.setStyleSheet("background-color: #000; border-radius: 8px; border: 2px solid #444;")
+        self.view_container.setMinimumSize(500, 300) 
+        self.view_container.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
+        self.layout.addWidget(self.view_container)
+
+        # SCRUBBER & CONTROLS
+        # Scrubber Row
+        scrubber_layout = QHBoxLayout()
+        self.slider = QSlider(Qt.Horizontal)
+        self.slider.setStyleSheet("""
+            QSlider::groove:horizontal { border: 1px solid #444; height: 6px; background: #222; margin: 2px 0; border-radius: 3px; }
+            QSlider::handle:horizontal { background: #FF6000; border: 1px solid #FF6000; width: 12px; height: 12px; margin: -3px 0; border-radius: 6px; }
+        """)
+        # Connect slider 
+        self.slider.valueChanged.connect(self.change_frame)
+        self.slider.sliderPressed.connect(self.pause_playback) # Pause when dragging
+        
+        self.lbl_frame = QLabel("0000")
+        self.lbl_frame.setStyleSheet("color: #888; font-weight: bold; background: #222; padding: 2px 6px; border-radius: 4px;")
+        
+        scrubber_layout.addWidget(self.slider)
+        scrubber_layout.addWidget(self.lbl_frame)
+        self.layout.addLayout(scrubber_layout)
+
+        # Buttons Row (Centered)
+        btn_layout = QHBoxLayout()
+        btn_layout.setAlignment(Qt.AlignCenter)
+        btn_layout.setSpacing(20)
+
+        btn_style = """
+            QPushButton { background-color: transparent; color: #888; font-size: 18px; border: none; }
+            QPushButton:hover { color: #FF6000; }
+        """
+        
+        self.btn_start = QPushButton("|<")
+        self.btn_play = QPushButton("▶")
+        self.btn_end = QPushButton(">|")
+        
+        # Connect Buttons
+        self.btn_start.clicked.connect(self.go_to_start)
+        self.btn_play.clicked.connect(self.toggle_playback)
+        self.btn_end.clicked.connect(self.go_to_end)
+        
+        for btn in [self.btn_start, self.btn_play, self.btn_end]:
+            btn.setStyleSheet(btn_style)
+            btn_layout.addWidget(btn)
+
+        self.layout.addLayout(btn_layout)
+
+        # METADATA SECTION
+        meta_container = QWidget()
+        meta_layout = QGridLayout(meta_container)
+        meta_layout.setContentsMargins(0, 10, 0, 0)
+        meta_layout.setSpacing(15)
+
+        def create_meta_field(label_text):
+            lbl = QLabel(label_text)
+            lbl.setStyleSheet("color: white; font-weight: bold; font-size: 11px; border-bottom: 2px solid #FF6000; padding-bottom: 2px;")
+            val = QLabel("")
+            val.setStyleSheet("background-color: #111; color: #aaa; padding: 5px; border-radius: 4px; min-height: 20px;")
+            return lbl, val
+
+        self.lbl_author_header, self.lbl_author_val = create_meta_field("author")
+        meta_layout.addWidget(self.lbl_author_header, 0, 0)
+        meta_layout.addWidget(self.lbl_author_val, 1, 0)
+
+        self.lbl_date_header, self.lbl_date_val = create_meta_field("date-time")
+        meta_layout.addWidget(self.lbl_date_header, 0, 1)
+        meta_layout.addWidget(self.lbl_date_val, 1, 1)
+
+        self.lbl_notes_header, self.lbl_notes_val = create_meta_field("notes")
+        self.lbl_notes_val.setWordWrap(True)
+        self.lbl_notes_val.setMinimumHeight(40)
+        self.lbl_notes_val.setAlignment(Qt.AlignTop | Qt.AlignLeft)
+        
+        meta_layout.addWidget(self.lbl_notes_header, 2, 0, 1, 2)
+        meta_layout.addWidget(self.lbl_notes_val, 3, 0, 1, 2)
+
+        self.layout.addWidget(meta_container)
+
+        # LOGIC & VARS
+        self.current_sequence = []
+        self.cache = {}
+        self.is_playing = False
+        
+        # Playback Timer
+        self.timer = QTimer()
+        self.timer.setInterval(42) # Approx 24 fps (1000ms / 24)
+        self.timer.timeout.connect(self.advance_frame)
+
+    # METADATA 
+    def set_metadata(self, author="--", date="--", notes=""):
+        self.lbl_author_val.setText(author)
+        self.lbl_date_val.setText(date)
+        self.lbl_notes_val.setText(notes if notes else "No notes available.")
+
+    # LOADING 
+    def load_sequence(self, folder_path):
+        self.pause_playback() # Stop if playing
+        self.current_sequence = []
+        self.cache = {}
+        
+        # Guard Clause
+        if not folder_path or not os.path.exists(folder_path):
+            self.view_container.setText("No Sequence Loaded")
+            self.view_container.setPixmap(QPixmap())
+            self.lbl_frame.setText("0000")
+            self.slider.setRange(0, 0)
+            self.set_metadata()
+            return
+
+        valid_ext = ['.jpg', '.jpeg', '.png']
+        
+        files = sorted(os.listdir(folder_path))
+        
+        for f in files:
+            ext = os.path.splitext(f)[1].lower()
+            if ext in valid_ext:
+                self.current_sequence.append(os.path.join(folder_path, f))
+        
+        if self.current_sequence:
+            self.slider.blockSignals(True) 
+            self.slider.setRange(0, len(self.current_sequence) - 1)
+            self.slider.setValue(0)
+            self.slider.blockSignals(False)
+            
+            self.change_frame(0)
+        else:
+            self.view_container.setText("No Images Found\n(EXR ignored)")
+            self.view_container.setPixmap(QPixmap())
+
+    # PLAYBACK CONTROLS 
+    def toggle_playback(self):
+        if self.is_playing:
+            self.pause_playback()
+        else:
+            self.start_playback()
+
+    def start_playback(self):
+        if not self.current_sequence: return
+        self.is_playing = True
+        self.btn_play.setText("||") 
+        self.timer.start()
+
+    def pause_playback(self):
+        self.is_playing = False
+        self.btn_play.setText("▶")
+        self.timer.stop()
+
+    def go_to_start(self):
+        self.slider.setValue(0)
+
+    def go_to_end(self):
+        self.slider.setValue(self.slider.maximum())
+
+    def advance_frame(self):
+        current = self.slider.value()
+        next_frame = current + 1
+        if next_frame > self.slider.maximum():
+            next_frame = 0 # Loop
+        self.slider.setValue(next_frame)
+
+    # DISPLAY LOGIC 
+    def change_frame(self, index):
+        if not self.current_sequence or index >= len(self.current_sequence): return
+        
+        path = self.current_sequence[index]
+        
+        # Frame Number Display
+        match = re.search(r'(\d+)\.', os.path.basename(path))
+        frame_num = match.group(1) if match else str(index)
+        self.lbl_frame.setText(str(int(frame_num) + 1000))
+        
+        # Image Display
+        if path in self.cache:
+            self.view_container.setPixmap(self.cache[path])
+        else:
+            pix = QPixmap(path)
+            
+            if pix.isNull():
+                self.view_container.setText("Invalid Image")
+                return
+
+            # SAFETY: Ensure don't scale to 0 if widget isn't visible yet
+            w = self.view_container.width()
+            h = self.view_container.height()
+            if w <= 0: w = 600
+            if h <= 0: h = 350
+
+            scaled = pix.scaled(w, h, Qt.KeepAspectRatio, Qt.SmoothTransformation)
+            self.cache[path] = scaled
+            self.view_container.setPixmap(scaled)
+    
+    # Handle window resizing to rescale images
+    def resizeEvent(self, event):
+        # When player resizes, refresh current frame to fit new size
+        if self.current_sequence:
+            self.cache = {} # Clear cache so we redraw at new resolution
+            self.change_frame(self.slider.value())
+        super().resizeEvent(event)
+
+#RENDER LIST ITEM WIDGET
+
+class RenderTaskButton(QPushButton):
+    """
+    Styled button for the 'renders' list (COMP, SLAPCOMP, etc.)
+    """
+    def __init__(self, text, full_path):
+        super().__init__()
+        self.full_path = full_path
+        self.setMinimumHeight(45)
+        self.setCheckable(True)
+        self.text_label = text
+        
+        # Layout
+        layout = QHBoxLayout(self)
+        layout.setContentsMargins(15, 0, 15, 0)
+        
+        self.lbl_text = QLabel(text)
+        self.lbl_text.setStyleSheet("font-weight: bold; font-size: 11px; color: #888; border: none; background: transparent;")
+        
+        # The 'light' indicator on the right
+        self.indicator = QLabel()
+        self.indicator.setFixedSize(30, 18)
+        self.indicator.setStyleSheet("background-color: #333; border-radius: 4px;")
+        
+        layout.addWidget(self.lbl_text)
+        layout.addStretch()
+        layout.addWidget(self.indicator)
+        
+        self.update_style(False)
+        self.toggled.connect(self.update_style)
+
+    def update_style(self, checked):
+        if checked:
+            self.setStyleSheet("QPushButton { background-color: #2b2b2b; border: none; border-radius: 4px; }")
+            self.lbl_text.setStyleSheet("font-weight: bold; font-size: 11px; color: white; border: none; background: transparent;")
+            self.indicator.setStyleSheet("background-color: #00CC66; border-radius: 4px;") # Bright Green
+        else:
+            self.setStyleSheet("QPushButton { background-color: transparent; border: none; border-radius: 4px; } QPushButton:hover { background-color: #222; }")
+            self.lbl_text.setStyleSheet("font-weight: bold; font-size: 11px; color: #888; border: none; background: transparent;")
+            self.indicator.setStyleSheet("background-color: #333; border-radius: 4px;") # Dark Grey
+
+class VersionCard(QPushButton):
+    """
+    Styled button for the 'versions' list (v003, v002, etc.)
+    """
+    def __init__(self, text, full_path):
+        super().__init__()
+        self.full_path = full_path
+        self.setMinimumHeight(60) # Taller, like a card
+        self.setCheckable(True)
+        self.text_label = text
+        
+        layout = QHBoxLayout(self)
+        layout.setContentsMargins(15, 10, 15, 10)
+        
+        self.lbl_text = QLabel(text)
+        self.lbl_text.setStyleSheet("font-weight: bold; font-size: 12px; color: #888; border: none; background: transparent;")
+        
+        # Larger indicator box
+        self.indicator = QLabel()
+        self.indicator.setFixedSize(50, 35)
+        self.indicator.setStyleSheet("background-color: #333; border-radius: 4px;")
+        
+        layout.addWidget(self.lbl_text)
+        layout.addStretch()
+        layout.addWidget(self.indicator)
+        
+        self.update_style(False)
+        self.toggled.connect(self.update_style)
+
+    def update_style(self, checked):
+        if checked:
+            self.setStyleSheet("QPushButton { background-color: #2b2b2b; border: 1px solid #00CC66; border-radius: 6px; }")
+            self.lbl_text.setStyleSheet("font-weight: bold; font-size: 12px; color: white; border: none; background: transparent;")
+            self.indicator.setStyleSheet("background-color: #00CC66; border-radius: 4px;")
+        else:
+            self.setStyleSheet("QPushButton { background-color: #222; border: 1px solid #333; border-radius: 6px; } QPushButton:hover { background-color: #2a2a2a; }")
+            self.lbl_text.setStyleSheet("font-weight: bold; font-size: 12px; color: #888; border: none; background: transparent;")
+            self.indicator.setStyleSheet("background-color: #333; border-radius: 4px;")
+
+class RenderItemWidget(QPushButton):
+    def __init__(self, text, subtext="", is_active=False):
+        super().__init__()
+        self.setFixedHeight(50)
+        self.setCheckable(True)
+        self.setChecked(is_active)
+        
+        layout = QHBoxLayout(self)
+        layout.setContentsMargins(15, 5, 15, 5)
+        
+        lbl_main = QLabel(text)
+        lbl_main.setStyleSheet("font-weight: bold; font-size: 12px; color: white; background: transparent; border: none;")
+        
+        layout.addWidget(lbl_main)
+        
+        if subtext:
+            lbl_sub = QLabel(subtext)
+            lbl_sub.setStyleSheet("color: #888; font-size: 10px; background: transparent; border: none;")
+            layout.addStretch()
+            layout.addWidget(lbl_sub)
+            
+        self.update_style()
+        self.toggled.connect(self.update_style)
+
+    def update_style(self):
+        if self.isChecked():
+            #green style like the image
+            self.setStyleSheet("""
+                QPushButton { background-color: #333; border: 1px solid #00ff00; border-radius: 6px; }
+            """)
+        else:
+            self.setStyleSheet("""
+                QPushButton { background-color: #2b2b2b; border: 1px solid #444; border-radius: 6px; }
+                QPushButton:hover { background-color: #383838; }
+            """)
+
+#RENDER UI MANAGER
+class RenderManagerWidget(QWidget):
+    def __init__(self, parent_ui):
+        super().__init__()
+        self.parent_ui = parent_ui #ref to main window for paths
+        self.project_root = parent_ui.project_root
+        
+        self.layout = QHBoxLayout(self)
+        self.layout.setContentsMargins(20, 20, 20, 20)
+        self.layout.setSpacing(20)
+
+        #COLUMN 1: SELECTION (Renders + Versions)
+        col1_layout = QVBoxLayout()
+        
+        #renders header
+        col1_layout.addWidget(QLabel("RENDERS"))
+        self.render_list = QVBoxLayout()
+        col1_layout.addLayout(self.render_list)
+        col1_layout.addSpacing(20)
+        
+        #versions header
+        col1_layout.addWidget(QLabel("VERSIONS"))
+        self.version_list = QVBoxLayout()
+        col1_layout.addLayout(self.version_list)
+        col1_layout.addStretch()
+        
+        #COLUMN 2: PLAYER
+        self.player = SequencePlayer()
+        
+        #COLUMN 3: AOVS
+        col3_layout = QVBoxLayout()
+        col3_layout.addWidget(QLabel("AOV / PASSES"))
+        self.aov_list = QVBoxLayout()
+        col3_layout.addLayout(self.aov_list)
+        col3_layout.addStretch()
+
+        #add to main layout
+        #container widgets for columns to control width
+        w1 = QWidget(); w1.setLayout(col1_layout); w1.setFixedWidth(250)
+        w3 = QWidget(); w3.setLayout(col3_layout); w3.setFixedWidth(250)
+        
+        self.layout.addWidget(w1)
+        self.layout.addWidget(self.player, 1) #stretch factor 1
+        self.layout.addWidget(w3)
+        
+        self.current_render_path = None
+        self.current_version_path = None
+
+    def refresh(self, shot_code):
+        #clear all lists
+        self.clear_layout(self.render_list)
+        self.clear_layout(self.version_list)
+        self.clear_layout(self.aov_list)
+        self.player.view.clear()
+        
+        if not shot_code: return
+
+        #structure: 40_shots/code/3D_RENDERS
+        base = os.path.join(self.project_root, "40_shots", shot_code, "3D_RENDERS")
+        
+        if not os.path.exists(base):
+            self.render_list.addWidget(QLabel("No 3D_RENDER folder"))
+            return
+
+        #find DEPT > TASK
+        #we assume folders in 3D_RENDER are DEPTS
+        depts = [d for d in os.listdir(base) if os.path.isdir(os.path.join(base, d))]
+        
+        found_any = False
+        
+        for dept in depts:
+            dept_path = os.path.join(base, dept)
+            tasks = [t for t in os.listdir(dept_path) if os.path.isdir(os.path.join(dept_path, t))]
+            
+            for task in tasks:
+                task_path = os.path.join(dept_path, task)
+                #create button
+                btn = RenderItemWidget(task, dept)
+                btn.clicked.connect(lambda c, p=task_path, b=btn: self.on_render_selected(p, b))
+                self.render_list.addWidget(btn)
+                found_any = True
+                
+        if not found_any:
+            self.render_list.addWidget(QLabel("No Tasks Found"))
+        else:
+            self.render_list.addStretch()
+
+    def on_render_selected(self, path, btn):
+        self.current_render_path = path
+        
+        #toggle logic (radio button behavior)
+        for i in range(self.render_list.count()):
+            w = self.render_list.itemAt(i).widget()
+            if isinstance(w, RenderItemWidget) and w != btn:
+                w.setChecked(False)
+        
+        #populate versions
+        self.clear_layout(self.version_list)
+        
+        if os.path.exists(path):
+            vers = sorted([v for v in os.listdir(path) if v.startswith("v") and os.path.isdir(os.path.join(path, v))], reverse=True)
+            
+            for v in vers:
+                v_path = os.path.join(path, v)
+                v_btn = RenderItemWidget(v)
+                v_btn.clicked.connect(lambda c, p=v_path, b=v_btn: self.on_version_selected(p, b))
+                self.version_list.addWidget(v_btn)
+                
+            self.version_list.addStretch()
+            
+            #auto select latest
+            if self.version_list.count() > 1: #remember stretch is an item
+                first = self.version_list.itemAt(0).widget()
+                if first: first.click()
+
+    def on_version_selected(self, path, btn):
+        self.current_version_path = path
+        
+        #toggle logic
+        for i in range(self.version_list.count()):
+            w = self.version_list.itemAt(i).widget()
+            if isinstance(w, RenderItemWidget) and w != btn:
+                w.setChecked(False)
+                
+        #populate passes/AOVs
+        self.clear_layout(self.aov_list)
+        
+        if os.path.exists(path):
+            passes = sorted([p for p in os.listdir(path) if os.path.isdir(os.path.join(path, p))])
+            
+            for p in passes:
+                p_path = os.path.join(path, p)
+                p_btn = RenderItemWidget(p)
+                #clicking a pass loads it into player
+                p_btn.clicked.connect(lambda c, p=p_path, b=p_btn: self.on_pass_selected(p, b))
+                self.aov_list.addWidget(p_btn)
+                
+            self.aov_list.addStretch()
+            
+            #auto select first pass (often beauty)
+            if self.aov_list.count() > 1:
+                first = self.aov_list.itemAt(0).widget()
+                if first: first.click()
+
+    def on_pass_selected(self, path, btn):
+        #toggle logic
+        for i in range(self.aov_list.count()):
+            w = self.aov_list.itemAt(i).widget()
+            if isinstance(w, RenderItemWidget) and w != btn:
+                w.setChecked(False)
+                
+        #load into player
+        self.player.load_sequence(path)
+
+    def clear_layout(self, layout):
+        while layout.count():
+            child = layout.takeAt(0)
+            if child.widget(): child.widget().deleteLater()
+
 #MAIN APP
 class OrionLauncherUI(QWidget):
     
     def __init__(self):
         super().__init__()
+        
         self.orion = OrionUtils(check_schema=True)
+        self.prefs_utils = PrefsUtils(self.orion)
+        self.settings = self.prefs_utils.load_settings()
+        self.system_utils = SystemUtils(self.orion, self.prefs_utils)
             
         self.project_root = self.orion.get_root_dir()
         self.current_context = "Shots" # Assets vs Shots
@@ -1181,7 +1745,7 @@ class OrionLauncherUI(QWidget):
     def init_ui(self):
         
         self.setWindowTitle(f'OrionTech')
-        self.resize(1550, 900)
+        self.resize(1570, 900)
         self.setStyleSheet("background-color: #121212; color: #ffffff; font-family: Segoe UI, sans-serif;")
 
         # MAIN LAYOUT
@@ -1265,19 +1829,21 @@ class OrionLauncherUI(QWidget):
         # The Stack 
         self.page_stack = QStackedWidget()
         
-        # Page 0: PRODUCTION VIEW (The complex splitter you had before)
+        # Page 0: PRODUCTION VIEW 
         self.production_view_widget = QWidget()
         self.setup_production_view() 
         self.page_stack.addWidget(self.production_view_widget)
         
-        # Page 1: APPS VIEW (Placeholder)
-        self.apps_view_widget = QLabel("APPS UI UNDER CONSTRUCTION")
-        self.apps_view_widget.setAlignment(Qt.AlignCenter)
+        # Page 1: APPS VIEW 
+        self.apps_view_widget = QWidget()
+        self.setup_apps_view()
         self.page_stack.addWidget(self.apps_view_widget)
 
-        # Page 2: RENDERS VIEW (Placeholder)
-        self.renders_view_widget = QLabel("RENDERS UI UNDER CONSTRUCTION")
-        self.renders_view_widget.setAlignment(Qt.AlignCenter)
+        # Page 2: RENDERS VIEW 
+        self.renders_view_widget = QWidget()
+        self.setup_renders_view()
+        # self.renders_view_widget = QLabel("RENDER UI UNDER CONSTRUCTION")
+        # self.renders_view_widget.setAlignment(Qt.AlignCenter)
         self.page_stack.addWidget(self.renders_view_widget)
 
         # Page 3: VAULT VIEW (Placeholder)
@@ -1285,9 +1851,9 @@ class OrionLauncherUI(QWidget):
         self.vault_view_widget.setAlignment(Qt.AlignCenter)
         self.page_stack.addWidget(self.vault_view_widget)
 
-        # Page 4: SETTINGS VIEW (Placeholder)
-        self.settings_view_widget = QLabel("SETTINGS UI UNDER CONSTRUCTION")
-        self.settings_view_widget.setAlignment(Qt.AlignCenter)
+        # Page 4: SETTINGS VIEW 
+        self.settings_view_widget = QWidget()
+        self.setup_settings_view() 
         self.page_stack.addWidget(self.settings_view_widget)
         
         # Add stack to right layout
@@ -1381,8 +1947,376 @@ class OrionLauncherUI(QWidget):
         
         layout.addWidget(self.production_splitter)
 
+    def setup_apps_view(self):
+        # Apply layout to apps view
+        self.apps_layout = QVBoxLayout(self.apps_view_widget)
+        self.apps_layout.setContentsMargins(60, 60, 60, 60) # Added padding for a cleaner look
+        self.apps_layout.setSpacing(20)
+
+        # Maya Launcher 
+        self.btn_launch_maya = QPushButton("Launch Maya")
+        self.btn_launch_maya.setMinimumHeight(60)
+        self.btn_launch_maya.setCursor(Qt.PointingHandCursor)
+        self.btn_launch_maya.setStyleSheet("""
+            QPushButton { background-color: #63B2BF; color: white; font-weight: bold; font-size: 16px; border-radius: 8px; }
+            QPushButton:hover { background-color: #87C8D4; }
+        """)
+        
+        # Nuke Launcher
+        self.btn_launch_nuke = QPushButton("Launch Nuke")
+        self.btn_launch_nuke.setMinimumHeight(60)
+        self.btn_launch_nuke.setCursor(Qt.PointingHandCursor)
+        self.btn_launch_nuke.setStyleSheet("""
+            QPushButton { background-color: #F2DC61; color: black; font-weight: bold; font-size: 16px; border-radius: 8px; }
+            QPushButton:hover { background-color: #FFEF9E; }
+        """)
+        
+        # Houdini Launcher 
+        self.btn_launch_houdini = QPushButton("Launch Houdini")
+        self.btn_launch_houdini.setMinimumHeight(60)
+        self.btn_launch_houdini.setCursor(Qt.PointingHandCursor)
+        self.btn_launch_houdini.setStyleSheet("""
+            QPushButton { background-color: #FC9749; color: white; font-weight: bold; font-size: 16px; border-radius: 8px; }
+            QPushButton:hover { background-color: #FFB37D; }
+        """)
+        
+        # Mari Launcher
+        self.btn_launch_mari = QPushButton("Launch Mari")
+        self.btn_launch_mari.setMinimumHeight(60)
+        self.btn_launch_mari.setCursor(Qt.PointingHandCursor)
+        self.btn_launch_mari.setStyleSheet("""
+            QPushButton { background-color: black; color: #F2DC61; font-weight: bold; font-size: 16px; border-radius: 8px; }
+            QPushButton:hover { background-color: #404040; }
+        """)
+        
+        # Connect Buttons to Handlers
+        self.btn_launch_maya.clicked.connect(self.handle_launch_maya)
+        self.btn_launch_nuke.clicked.connect(self.handle_launch_nuke)
+        self.btn_launch_houdini.clicked.connect(self.handle_launch_houdini)
+        self.btn_launch_mari.clicked.connect(self.handle_launch_mari)
+        
+        # Add to Layout
+        self.apps_layout.addWidget(self.btn_launch_maya)
+        self.apps_layout.addWidget(self.btn_launch_nuke)
+        self.apps_layout.addWidget(self.btn_launch_houdini)
+        self.apps_layout.addWidget(self.btn_launch_mari)
+        
+        self.apps_layout.addStretch()
+
+    def setup_renders_view(self):
+        # Master Layout for this page
+        layout = QHBoxLayout(self.renders_view_widget)
+        layout.setContentsMargins(0, 0, 0, 0)
+        layout.setSpacing(0)
+
+        # --- COLUMN 2: RENDER & VERSION LISTS ---
+        # Styling matched to Production View (#252525)
+        self.render_panel_frame = QFrame()
+        self.render_panel_frame.setMinimumWidth(280)
+        self.render_panel_frame.setMaximumWidth(320)
+        self.render_panel_frame.setStyleSheet("background-color: #252525; border-right: 1px solid #2a2a2a;")
+        
+        panel_layout = QVBoxLayout(self.render_panel_frame)
+        panel_layout.setContentsMargins(0, 0, 0, 0)
+
+        # Vertical Splitter
+        self.render_splitter = QSplitter(Qt.Vertical)
+        self.render_splitter.setHandleWidth(2)
+        self.render_splitter.setStyleSheet("QSplitter::handle { background-color: #121212; }")
+
+        # 1. TOP LIST: RENDERS (Tasks)
+        self.render_list_widget = QWidget()
+        render_list_layout = QVBoxLayout(self.render_list_widget)
+        render_list_layout.setContentsMargins(15, 20, 15, 20)
+        self.add_header(render_list_layout, "renders")
+
+        self.render_scroll = QScrollArea()
+        self.render_scroll.setWidgetResizable(True)
+        self.render_scroll.setFrameShape(QFrame.NoFrame)
+        self.render_scroll.setStyleSheet(get_scrollbar_style("#252525"))
+        
+        self.render_container = QWidget()
+        self.render_container.setStyleSheet("background: transparent;")
+        self.render_layout = QVBoxLayout(self.render_container)
+        self.render_layout.setAlignment(Qt.AlignTop)
+        self.render_layout.setSpacing(2)
+        
+        self.render_scroll.setWidget(self.render_container)
+        render_list_layout.addWidget(self.render_scroll)
+
+        # 2. BOTTOM LIST: VERSIONS
+        self.version_list_widget = QWidget()
+        version_list_layout = QVBoxLayout(self.version_list_widget)
+        version_list_layout.setContentsMargins(15, 10, 15, 20)
+        self.add_header(version_list_layout, "versions")
+
+        self.version_scroll = QScrollArea()
+        self.version_scroll.setWidgetResizable(True)
+        self.version_scroll.setFrameShape(QFrame.NoFrame)
+        self.version_scroll.setStyleSheet(get_scrollbar_style("#252525"))
+
+        self.version_container = QWidget()
+        self.version_container.setStyleSheet("background: transparent;")
+        self.version_layout = QVBoxLayout(self.version_container)
+        self.version_layout.setAlignment(Qt.AlignTop)
+        self.version_layout.setSpacing(5)
+
+        self.version_scroll.setWidget(self.version_container)
+        version_list_layout.addWidget(self.version_scroll)
+
+        self.render_splitter.addWidget(self.render_list_widget)
+        self.render_splitter.addWidget(self.version_list_widget)
+        self.render_splitter.setStretchFactor(0, 1)
+        self.render_splitter.setStretchFactor(1, 1)
+
+        panel_layout.addWidget(self.render_splitter)
+        layout.addWidget(self.render_panel_frame)
+
+        # --- COLUMN 3: MAIN CONTENT (Header + Player + AOVs) ---
+        self.main_content_widget = QWidget()
+        main_content_layout = QVBoxLayout(self.main_content_widget)
+        main_content_layout.setContentsMargins(0, 0, 0, 0)
+        main_content_layout.setSpacing(0)
+
+        # A. Header (Shot Info) - Reusing ShotInfoPanel class
+        self.render_info_panel = ShotInfoPanel()
+        main_content_layout.addWidget(self.render_info_panel)
+
+        # B. Content Area (Player Left, AOV Right)
+        content_area = QWidget()
+        content_row = QHBoxLayout(content_area)
+        content_row.setContentsMargins(30, 20, 30, 30)
+        content_row.setSpacing(30)
+
+        # Player
+        self.player = SequencePlayer()
+        content_row.addWidget(self.player, stretch=3)
+
+        # AOV List (Right Side)
+        aov_group = QWidget()
+        aov_group.setFixedWidth(220)
+        aov_layout = QVBoxLayout(aov_group)
+        aov_layout.setContentsMargins(0, 0, 0, 0)
+        
+        self.add_header(aov_layout, "AOV")
+        
+        self.aov_scroll = QScrollArea()
+        self.aov_scroll.setWidgetResizable(True)
+        self.aov_scroll.setFrameShape(QFrame.NoFrame)
+        self.aov_scroll.setStyleSheet(get_scrollbar_style("#121212"))
+        
+        self.aov_inner_container = QWidget()
+        self.aov_inner_container.setStyleSheet("background: transparent;")
+        self.aov_item_layout = QVBoxLayout(self.aov_inner_container)
+        self.aov_item_layout.setAlignment(Qt.AlignTop)
+        self.aov_item_layout.setSpacing(5)
+        
+        self.aov_scroll.setWidget(self.aov_inner_container)
+        aov_layout.addWidget(self.aov_scroll)
+        
+        content_row.addWidget(aov_group, stretch=1)
+
+        main_content_layout.addWidget(content_area)
+        layout.addWidget(self.main_content_widget)
+
+
+    def setup_settings_view(self):
+
+        # Apply layout to settings view
+        self.settings_layout = QVBoxLayout(self.settings_view_widget)
+        self.settings_layout.setContentsMargins(60, 60, 60, 60) # Added padding for a cleaner look
+        self.settings_layout.setSpacing(20)
+        
+        self.dark_mode_checkbox = QCheckBox('Enable Windows Dark Mode')
+        self.discord_checkbox = QCheckBox('Open Discord on Startup')
+        self.wacom_checkbox = QCheckBox('Wacom Fix')
+        
+        self.settings_layout.addWidget(self.dark_mode_checkbox)
+        self.settings_layout.addWidget(self.discord_checkbox)
+        self.settings_layout.addWidget(self.wacom_checkbox)
+        self.settings_layout.addStretch()
+
+        # Connections
+        self.dark_mode_checkbox.stateChanged.connect(self.toggle_dark_mode)
+        self.discord_checkbox.stateChanged.connect(self.toggle_discord_startup)
+        self.wacom_checkbox.stateChanged.connect(self.toggle_wacom_fix)
+        
+        # Set Defaults
+        self.dark_mode_checkbox.setChecked(self.settings.get('dark_mode', False))
+        self.discord_checkbox.setChecked(self.settings.get('discord_on_startup', False))
+        self.wacom_checkbox.setChecked(self.settings.get('wacom_fix', False))
+
+    # RENDER CONTEXT LOGIC
+    
+    def populate_render_list(self):
+        self.clear_layout(self.task_content)
+        if not self.current_shot_code: return
+
+        if self.current_context == "Assets":
+            base_folder = "30_assets"
+            item_path = os.path.join(self.project_root, base_folder, self.current_shot_code, "RENDERS")
+        else:
+            base_folder = "40_shots"
+            item_path = os.path.join(self.project_root, base_folder, self.current_shot_code, "3D_RENDERS")
+        
+        if os.path.exists(item_path):
+            items = sorted([d for d in os.listdir(item_path) if os.path.isdir(os.path.join(item_path, d))])
+            ignore = ["__pycache__", ".git"]
+            items = [i for i in items if i not in ignore and not i.startswith(".")]
+
+            for spec in items:
+                spec_full_path = os.path.join(item_path, spec)
+                group = SpecialismGroup(spec, spec_full_path, self)
+                self.task_content.addWidget(group)
+        else:
+             self.task_content.addWidget(QLabel("Folder not found on disk."))
+
+        self.task_content.addStretch()
+
+
+    # RENDER TAB LOGIC 
+
+    def refresh_renders_tab(self):
+        """Called when switching to Renders tab or selecting a shot while in Renders tab."""
+        self.clear_layout(self.render_layout)
+        self.clear_layout(self.version_layout)
+        self.clear_layout(self.aov_item_layout)
+        self.player.load_sequence(None) # Clear player
+
+        if not self.current_shot_code: 
+            return
+
+        shot_data = None
+        if self.current_context == "Shots":
+            shot_row = self.orion.get_shot(self.current_shot_code)
+            if shot_row: shot_data = dict(shot_row)
+        else:
+            asset_row = self.orion.get_asset(self.current_shot_code)
+            if asset_row: shot_data = dict(asset_row)
+
+        if shot_data:
+            s = shot_data.get('frame_start')
+            e = shot_data.get('frame_end')
+            d = shot_data.get('description', "")
+            # Update the specific panel for this view
+            self.render_info_panel.update_info(self.current_shot_code, s, e, d)
+
+        # Path: 40_shots/shot_code/3D_RENDER
+        render_root = os.path.join(self.project_root, "40_shots", self.current_shot_code, "3D_RENDERS")
+        
+        if not os.path.exists(render_root):
+            lbl = QLabel("No 3D_RENDER folder found")
+            lbl.setStyleSheet("color: #666; margin: 10px;")
+            self.render_layout.addWidget(lbl)
+            return
+
+        # Find all folders inside all Departments
+        # Assuming structure: 3D_RENDER > DEPT > TASK
+        depts = [d for d in os.listdir(render_root) if os.path.isdir(os.path.join(render_root, d))]
+        
+        tasks_found = []
+        for dept in depts:
+            dept_path = os.path.join(render_root, dept)
+            tasks = [t for t in os.listdir(dept_path) if os.path.isdir(os.path.join(dept_path, t))]
+            for t in tasks:
+                full_path = os.path.join(dept_path, t)
+                tasks_found.append((t, full_path))
+        
+        # Create buttons for the "renders" list (Col 2 Top)
+        for name, path in tasks_found:
+            btn = RenderTaskButton(name, path)
+            btn.clicked.connect(lambda c, b=btn: self.on_render_task_clicked(b))
+            self.render_layout.addWidget(btn)
+
+    def on_render_task_clicked(self, active_btn):
+        # 1. Visual Toggle Logic
+        for i in range(self.render_layout.count()):
+            widget = self.render_layout.itemAt(i).widget()
+            if isinstance(widget, RenderTaskButton):
+                widget.setChecked(widget == active_btn)
+        
+        # 2. Populate Versions (Col 2 Bottom)
+        self.clear_layout(self.version_layout)
+        self.clear_layout(self.aov_item_layout)
+        
+        task_path = active_btn.full_path
+        if not os.path.exists(task_path): return
+
+        # Find versions (v001, v002...)
+        versions = sorted([v for v in os.listdir(task_path) if v.startswith('v') and os.path.isdir(os.path.join(task_path, v))], reverse=True)
+
+        for v in versions:
+            v_path = os.path.join(task_path, v)
+            # Check if published
+            is_published = os.path.exists(os.path.join(v_path, "PUBLISHED")) # Example check
+            
+            btn = VersionCard(v, v_path)
+            if is_published:
+                # Add a "PUBLISHED" label inside the card if needed, or just change color
+                pass 
+                
+            btn.clicked.connect(lambda c, b=btn: self.on_version_clicked(b))
+            self.version_layout.addWidget(btn)
+            
+        # Auto-click latest version if exists
+        if self.version_layout.count() > 0:
+            first_ver = self.version_layout.itemAt(0).widget()
+            first_ver.click()
+
+    def on_version_clicked(self, active_btn):
+        # 1. Visual Toggle Logic
+        for i in range(self.version_layout.count()):
+            widget = self.version_layout.itemAt(i).widget()
+            if isinstance(widget, VersionCard):
+                widget.setChecked(widget == active_btn)
+
+        # 2. Populate AOVs and Load Player
+        self.clear_layout(self.aov_item_layout)
+        version_path = active_btn.full_path
+        
+        # Find AOVs (subfolders inside the version folder)
+        # e.g. v001/beauty, v001/diffuse
+        aovs = sorted([d for d in os.listdir(version_path) if os.path.isdir(os.path.join(version_path, d))])
+        
+        first_aov_path = None
+        
+        for aov in aovs:
+            aov_path = os.path.join(version_path, aov)
+            
+            # Simple button for AOV
+            btn = QPushButton(aov)
+            btn.setCheckable(True)
+            btn.setStyleSheet("""
+                QPushButton { text-align: left; padding: 10px; background-color: #2b2b2b; border: none; border-radius: 4px; color: #888; font-weight: bold;}
+                QPushButton:checked { background-color: #333; color: white; border-left: 3px solid #00CC66; }
+                QPushButton:hover { background-color: #333; }
+            """)
+            btn.clicked.connect(lambda c, p=aov_path, b=btn: self.on_aov_clicked(p, b))
+            self.aov_item_layout.addWidget(btn)
+            
+            if first_aov_path is None: first_aov_path = aov_path
+
+        self.aov_item_layout.addStretch()
+
+        # 3. Load the first AOV into the player automatically
+        if first_aov_path:
+            # Manually trigger the first AOV button to look active and load
+            first_btn = self.aov_item_layout.itemAt(0).widget()
+            first_btn.setChecked(True)
+            self.player.load_sequence(first_aov_path)
+    
+    def on_aov_clicked(self, path, active_btn):
+        # Toggle logic for AOVs
+        for i in range(self.aov_item_layout.count()):
+            widget = self.aov_item_layout.itemAt(i).widget()
+            if isinstance(widget, QPushButton) and widget != active_btn:
+                widget.setChecked(False)
+        
+        self.player.load_sequence(path)
+
     #LOGIC
     def populate_sidebar(self):
+        
         self.context_switch.show()
         self.action_bar.show()
         self.sidebar_scroll.show()
@@ -1429,11 +2363,15 @@ class OrionLauncherUI(QWidget):
             end = btn.full_data.get('frame_end')
             desc = btn.full_data.get('description', "")
             self.info_panel.update_info(self.current_shot_code, start, end, desc)
-        
+
         self.populate_task_list()
         self.clear_gallery()
         self.clear_layout(self.export_layout)
         
+        #RENDER LOGIC
+        if self.current_menu == "Renders":
+            self.refresh_renders_tab() # UPDATED CALL
+            
     def populate_task_list(self):
         self.clear_layout(self.task_content)
         if not self.current_shot_code: return
@@ -1740,7 +2678,10 @@ class OrionLauncherUI(QWidget):
                 QMessageBox.critical(self, "Error", str(e))
 
     def switch_context(self, mode):
-        self.current_menu = mode
+        
+        self.current_context = mode
+        print(self.current_context)
+        
         self.active_buttons = {"col1": None, "task": None}
         self.clear_layout(self.task_content)
         self.clear_layout(self.export_layout) 
@@ -1762,6 +2703,8 @@ class OrionLauncherUI(QWidget):
             self.page_stack.setCurrentIndex(1)
         elif mode == "Renders":
             self.page_stack.setCurrentIndex(2)
+            if self.current_shot_code:
+                self.refresh_renders_tab() 
         elif mode == "Vault":
             self.page_stack.setCurrentIndex(3)
         elif mode == "Settings":
@@ -2002,7 +2945,7 @@ class OrionLauncherUI(QWidget):
 
     def launch_dcc_file(self, card):
         
-        if self.current_context == "Shot":
+        if self.current_context == "Shots":
                 
             shot_code = self.current_shot_code
             shot_row = self.orion.get_shot(shot_code)
@@ -2210,6 +3153,84 @@ class OrionLauncherUI(QWidget):
         content_layout.setAlignment(Qt.AlignTop)
         scroll.setWidget(container)
         return wrapper, root_layout, scroll, content_layout
+
+#LAUNCHER LOGIC
+
+    def _launch_dcc(self, launcher_rel_path):
+        """
+        Helper method to run external launcher scripts using the current UI context.
+        """
+        import sys
+        import subprocess
+
+        # 1. Locate the launcher script in the pipeline structure
+        # self.orion.pipeline_dir resolves to the root folder (e.g. .../orionTech/core/..)
+        launcher_path = os.path.join(self.orion.pipeline_dir, launcher_rel_path)
+        
+        if not os.path.exists(launcher_path):
+            QMessageBox.warning(self, "Launcher Missing", f"Could not find launcher script at:\n{launcher_path}")
+            return
+
+        # 2. Prepare the command
+        # using sys.executable ensures we use the same python interpreter
+        cmd = [sys.executable, launcher_path]
+
+        # 3. Inject Context (if a shot or asset is selected)
+        if self.current_shot_code:
+            cmd.extend(["--code", self.current_shot_code])
+            
+            # If in "Shots" mode, we likely have frame ranges and discord IDs to pass
+            if self.current_context != "Assets":
+                shot_data = self.orion.get_shot(self.current_shot_code)
+                if shot_data:
+                    # Pass frame range
+                    cmd.extend(["--start", str(shot_data['frame_start'])])
+                    cmd.extend(["--end", str(shot_data['frame_end'])])
+                    
+                    # Pass Discord ID if it exists
+                    if shot_data['discord_thread_id']:
+                        cmd.extend(["--discord", str(shot_data['discord_thread_id'])])
+                        
+                    # Pass Shot Path on Disk
+                    if shot_data['shot_path']:
+                        cmd.extend(["--shotpath", str(shot_data['shot_path'])])
+
+        # 4. Execute non-blocking
+        try:
+            print(f"Orion Launching: {' '.join(cmd)}")
+            subprocess.Popen(cmd) 
+        except Exception as e:
+            QMessageBox.critical(self, "Launch Error", f"Failed to launch process:\n{e}")
+
+    def handle_launch_maya(self):
+        self._launch_dcc(os.path.join("dcc", "maya", "maya_launcher.py"))
+
+    def handle_launch_nuke(self):
+        self._launch_dcc(os.path.join("dcc", "nuke", "nuke_launcher.py"))
+
+    def handle_launch_houdini(self):
+        self._launch_dcc(os.path.join("dcc", "houdini", "houdini_launcher.py"))
+
+    def handle_launch_mari(self):
+        self._launch_dcc(os.path.join("dcc", "mari", "mari_launcher.py"))
+
+#SETTINGS LOGIC
+    def toggle_dark_mode(self, state):
+        self.settings['dark_mode'] = (state == Qt.Checked)
+        self.prefs_utils.save_settings(self.settings)
+        self.system_utils.set_windows_dark_mode(state == Qt.Checked)
+        
+    def toggle_discord_startup(self, state):
+        self.settings['discord_on_startup'] = (state == Qt.Checked)
+        self.prefs_utils.save_settings(self.settings)
+        
+        discord_path = "https://discord.com/login"
+        self.system_utils.open_window(discord_path, state == Qt.Checked)
+        
+    def toggle_wacom_fix(self, state):
+        self.settings['wacom_fix'] = (state == Qt.Checked)
+        self.prefs_utils.save_settings(self.settings)
+        self.system_utils.wacom_fix(state == Qt.Checked)
 
 if __name__ == '__main__':
     app = QApplication(sys.argv)

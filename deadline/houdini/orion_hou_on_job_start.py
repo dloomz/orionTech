@@ -3,7 +3,6 @@ import traceback
 
 #path to the directory containing orionUtils.py
 ORION_UTILS_DIR = "P:\\all_work\\studentGroups\\ORION_CORPORATION\\00_pipeline\\orionTech" 
-# ---
 
 if ORION_UTILS_DIR not in sys.path:
     sys.path.append(ORION_UTILS_DIR)
@@ -35,7 +34,7 @@ def __main__(*args):
              return
 
         message = (
-            f"📽️**Nuke Render Started:** `{job_name}`\n"
+            f"💥 **Houdini Render Started:** `{job_name}`\n"
             f"> **User:** @{user}\n"
             f"> **Pool:** {pool} | **Priority:** {priority}\n"
             f"> **Frames:** {job.JobFrames} ({task_count} tasks)\n"

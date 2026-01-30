@@ -379,21 +379,55 @@ class OrionUSDManager(MayaQWidgetDockableMixin, QtWidgets.QWidget):
             return False
 
     def export_camera(self):
+        """
+        Modified to locate the camera deep inside selection, rename it, 
+        and export ONLY the camera (not the parent group).
+        """
         export_dir, _ = self.get_paths()
         if not export_dir:
             cmds.warning("Invalid context paths. Save file in pipeline structure.")
             return
             
+        # Get current selection (Group or Cam)
         sel = cmds.ls(sl=True)
         if not sel:
-            cmds.warning("Select a camera.")
+            cmds.warning("Select the Camera Group or Camera.")
             return
 
+        # Find camera Shape inside selection recursively
+        #allDescendents=True searches down the hierarchy of the selected group
+        cam_shapes = cmds.listRelatives(sel, allDescendents=True, type='camera', fullPath=True)
+        
+        if not cam_shapes:
+            #Fallback: maybe user selected the camera shape itself?
+            if cmds.objectType(sel[0]) == "camera":
+                cam_shapes = [sel[0]]
+            else:
+                cmds.warning("No camera found inside selection.")
+                return
+            
+        # Get the Transform of the camera (parent of the shape)
+        cam_transform = cmds.listRelatives(cam_shapes[0], parent=True, fullPath=True)[0]
+        
+        # Rename the camera to standard pipeline naming
+        #Naming convention: {SHOTCODE}_camera
+        desired_name = f"{self.ctx['code']}_camera"
+        
+        #rename returns the new name (handles potential numbering if duplicate exists, though we want exact match)
+        final_cam = cmds.rename(cam_transform, desired_name)
+        
+        # Select JUST the camera
+        #This ignores the previously selected group so we don't export the garbage above the cam
+        cmds.select(final_cam)
+        
+        # Setup Export Paths
         base_name = f"{self.ctx['code']}_cam"
         filename = self.get_versioned_filename(export_dir, base_name)
         out_path = os.path.join(export_dir, filename)
         
-        root_prim = f"{self.ctx['code']}_camera"
+        # USD Arguments
+        #rootPrim matches the object name we just renamed
+        root_prim = final_cam
         
         args = {
             "rootPrim": root_prim,
@@ -401,7 +435,8 @@ class OrionUSDManager(MayaQWidgetDockableMixin, QtWidgets.QWidget):
             "defaultPrim": root_prim,
         }
         
-        self.perform_usd_export(out_path, sel, self.spin_start.value(), self.spin_end.value(), args)
+        # Perform Export
+        self.perform_usd_export(out_path, [final_cam], self.spin_start.value(), self.spin_end.value(), args)
 
     def export_animation(self):
         export_dir, _ = self.get_paths()

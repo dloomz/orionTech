@@ -696,6 +696,7 @@ class ContextSwitch(QFrame):
         
         self.update_style()
         self.mode_changed.emit(self.current_mode)
+        print(self.current_mode)
 
     def update_style(self):
         
@@ -727,14 +728,14 @@ class ThumbnailCard(QFrame):
         self.pixmap_loaded = False
 
         self.setFixedHeight(250)
-        self.setFixedWidth(300)
+        self.setFixedWidth(290)
         self.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
         self.setObjectName("ThumbnailCard")
 
         # Resolve thumbnail path
         self.thumb_path = self._resolve_thumbnail_path()
 
-        # Layout
+        # ---------- Layout ----------
         layout = QVBoxLayout(self)
         layout.setContentsMargins(8, 8, 8, 8)
         layout.setSpacing(6)
@@ -744,8 +745,7 @@ class ThumbnailCard(QFrame):
         self.image_area.setFixedHeight(180)
         self.image_area.setFixedWidth(280)
         self.image_area.setAlignment(Qt.AlignCenter)
-        #clicks pass through
-        self.image_area.setAttribute(Qt.WA_TransparentForMouseEvents) 
+        self.image_area.setAttribute(Qt.WA_TransparentForMouseEvents) # FIX: Allow clicks to pass through
         self.image_area.setStyleSheet(
             f"background-color: {fallback_color}; border-radius: 6px;"
         )
@@ -755,7 +755,7 @@ class ThumbnailCard(QFrame):
         # Filename
         self.name_lbl = QLabel(filename)
         self.name_lbl.setWordWrap(True)
-        self.name_lbl.setAttribute(Qt.WA_TransparentForMouseEvents) 
+        self.name_lbl.setAttribute(Qt.WA_TransparentForMouseEvents) # FIX: Allow clicks to pass through
         self.name_lbl.setStyleSheet(
             "color: white; font-weight: bold; font-size: 12px;"
         )
@@ -763,7 +763,7 @@ class ThumbnailCard(QFrame):
 
         # Published label
         self.status_lbl = QLabel("PUBLISHED ✓")
-        self.status_lbl.setAttribute(Qt.WA_TransparentForMouseEvents) 
+        self.status_lbl.setAttribute(Qt.WA_TransparentForMouseEvents) # FIX: Allow clicks to pass through
         self.status_lbl.setStyleSheet(
             "color: #00ff00; font-size: 11px; font-weight: bold;"
         )
@@ -1381,7 +1381,7 @@ class OrionLauncherUI(QWidget):
         main_layout.addWidget(self.main_splitter)
 
         # Initial Load
-        self.populate_sidebar(self.current_context)
+        self.populate_sidebar()
 
     def setup_production_view(self):
         layout = QVBoxLayout(self.production_view_widget)
@@ -1540,17 +1540,13 @@ class OrionLauncherUI(QWidget):
         self.wacom_checkbox.setChecked(self.settings.get('wacom_fix', False))
 
     #LOGIC
-    def populate_sidebar(self, mode):
-        
-        self.current_context = mode
-        
+    def populate_sidebar(self):
         self.context_switch.show()
         self.action_bar.show()
         self.sidebar_scroll.show()
         self.clear_layout(self.sidebar_content)
         
         if self.current_context == "Assets":
-            print("Go to here")
             try:
                 assets_data = self.orion.get_all_assets()
                 for asset in assets_data:
@@ -1751,7 +1747,7 @@ class OrionLauncherUI(QWidget):
         if hasattr(self, 'editor'):
             self.editor.deleteLater()
             del self.editor
-        self.populate_sidebar(self.current_context)
+        self.populate_sidebar()
 
     def update_discord_id_in_db(self, code, discord_id):
         try:
@@ -1895,17 +1891,14 @@ class OrionLauncherUI(QWidget):
                     self.info_panel.setVisible(False)
                     
                     # Refresh List
-                    self.populate_sidebar(self.current_context)
+                    self.populate_sidebar()
                 else:
                     QMessageBox.warning(self, "Error", "Failed to delete item. Check console for details.")
             except Exception as e:
                 QMessageBox.critical(self, "Error", str(e))
 
     def switch_context(self, mode):
-        
         self.current_mode = mode
-        print(self.current_mode)
-        
         self.active_buttons = {"col1": None, "task": None}
         self.clear_layout(self.task_content)
         self.clear_layout(self.export_layout) 
@@ -1914,7 +1907,7 @@ class OrionLauncherUI(QWidget):
         
         self.task_bottom_widget.setVisible(True)
             
-        self.populate_sidebar(self.current_mode)
+        self.populate_sidebar()
         
     def switch_menu_page(self, mode):
         

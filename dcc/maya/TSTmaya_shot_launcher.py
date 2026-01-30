@@ -462,14 +462,21 @@ class OrionMayaUI(MayaQWidgetDockableMixin, QtWidgets.QWidget):
         cam_transform = cmds.ls(f'{ORI_SHOT_CONTEXT}_camera', type='transform')
         cam_shapes = cmds.listRelatives(cam_transform, shapes=True, type='camera')
         
-        camera = cam_shapes[0]
+        cam = cam_shapes[0]
+        cam2 = cam[1]
         
-        camera_transform = cmds.listRelatives(camera, parent=True)[0]
+        cam_parent = cmds.listRelatives(cam, parent=True)[0]
 
         for attr in ("tx", "ty", "tz", "rx", "ry", "rz", "sx", "sy", "sz"):
-            cmds.setAttr(f"{camera_transform}.{attr}", lock=True, keyable=False, channelBox=False)
+            cmds.setAttr(f"{cam_parent}.{attr}", lock=True, keyable=False, channelBox=False)
             
-        # cmds.camera(camera_transform, displayGateMask = 1, displayFilmGate = 1)
+        cmds.setAttr(f"{cam_parent}.displayGateMask", )
+        
+        # print(str(cam_transform))  
+        # print(str(cam_shapes))  
+        # print(str(camera_transform))  
+        # print(str(camera))    
+        cmds.camera(cam, displayGateMask = True, displayFilmGate = True)
         
         if not os.path.exists(plate_root):
             print("Plate folder not found.")
@@ -484,9 +491,9 @@ class OrionMayaUI(MayaQWidgetDockableMixin, QtWidgets.QWidget):
         if found_seq:
 
             try:
-                image_plane = cmds.imagePlane(camera=camera, fileName=found_seq)[0]
+                image_plane = cmds.imagePlane(camera=cam, fileName=found_seq)[0]
                 cmds.setAttr(f"{image_plane}.useFrameExtension", 1)
-                print(f"Created Image Plane on {camera}")
+                print(f"Created Image Plane on {cam}")
             except Exception as e:
                 print(f"Error creating image plane: {e}")
         else:
