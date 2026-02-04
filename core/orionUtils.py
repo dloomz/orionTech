@@ -148,7 +148,7 @@ class OrionUtils():
             print(f"Path conversion error: {e}")
             return full_path
 
-    # --- DATABASE METHODS ---
+    #   DATABASE METHODS  
 
     def get_db_connection(self):
         if not os.path.exists(self.db_path):
@@ -185,16 +185,12 @@ class OrionUtils():
                 thumbnail_path TEXT
             )''')
             
-            # --- MIGRATION LOGIC ---
-            
-            # 1. Check SHOTS columns
             cursor.execute("PRAGMA table_info(shots)")
             shot_cols = [info[1] for info in cursor.fetchall()]
             if "description" not in shot_cols: cursor.execute("ALTER TABLE shots ADD COLUMN description TEXT")
             if "discord_thread_id" not in shot_cols: cursor.execute("ALTER TABLE shots ADD COLUMN discord_thread_id TEXT")
             if "thumbnail_path" not in shot_cols: cursor.execute("ALTER TABLE shots ADD COLUMN thumbnail_path TEXT")
 
-            # 2. Check ASSETS columns (THIS FIXES YOUR ERROR)
             cursor.execute("PRAGMA table_info(assets)")
             asset_cols = [info[1] for info in cursor.fetchall()]
             if "description" not in asset_cols: cursor.execute("ALTER TABLE assets ADD COLUMN description TEXT")
@@ -262,12 +258,9 @@ class OrionUtils():
         finally:
             conn.close()
 
-    # --- TAGGING SYSTEM (FIXED PERMISSION ERROR) ---
-
     def create_meta_tag(self, folder_path, shot_code, data=None, shot_id=None):
         """
         Creates orion_meta.json.
-        FIX: Handles Windows hidden file permission errors by unhiding before writing.
         """
         if not os.path.exists(folder_path):
             return False
@@ -289,8 +282,7 @@ class OrionUtils():
 
         json_path = os.path.join(folder_path, "orion_meta.json")
         
-        # --- PERMISSION FIX START ---
-        # If file exists and is hidden, unhide it so we can write to it
+        # file exists and is hidden, unhide so can write to it
         if os.name == 'nt' and os.path.exists(json_path):
             subprocess.run(["attrib", "-h", json_path], check=False, shell=True)
         # ----------------------------
@@ -343,7 +335,6 @@ class OrionUtils():
 
         json_path = os.path.join(folder_path, "orion_meta.json")
         
-        # Windows hidden file fix
         if os.name == 'nt' and os.path.exists(json_path):
             subprocess.run(["attrib", "-h", json_path], check=False, shell=True)
 
@@ -367,13 +358,12 @@ class OrionUtils():
             print(f"Tagging failed: {e}")
             return False
 
-    # --- ASSET METHODS ---
+    #   ASSET METHODS  
 
     def asset_create_meta_tag(self, folder_path, asset_code, data=None, asset_id=None):
         if not os.path.exists(folder_path): return False
         if not asset_id: asset_id = asset_code
 
-        # FIX: Variable names match arguments now
         meta_data = {
             "code": asset_code,
             "id": asset_id,
@@ -385,7 +375,6 @@ class OrionUtils():
 
         json_path = os.path.join(folder_path, "orion_meta.json")
         
-        # Windows hidden file fix (same as shots)
         if os.name == 'nt' and os.path.exists(json_path):
             subprocess.run(["attrib", "-h", json_path], check=False, shell=True)
 
@@ -494,7 +483,7 @@ class OrionUtils():
         finally:
             conn.close()
 
-    # --- FOLDER CREATION ---
+    #   FOLDER CREATION  
 
     def get_next_shot_code(self):
         shots_root = os.path.join(self.root_dir, '40_shots')
@@ -586,7 +575,7 @@ class OrionUtils():
         except: return False
         finally: conn.close()
 
-    # --- NOTIFICATIONS ---
+    #   NOTIFICATIONS  
 
     def send_discord_notification(self, message):
         if self.libs_path not in sys.path:

@@ -288,7 +288,7 @@ class OrionTechUI(QWidget):
         # Initial Load
         self.refresh_shot_list()
 
-    # --- HANDLERS ---
+    #   HANDLERS  
 
     def handle_launch_maya(self):
         """Executes the custom Maya Launcher"""

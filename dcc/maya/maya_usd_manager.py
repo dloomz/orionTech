@@ -163,7 +163,7 @@ class OrionUSDManager(MayaQWidgetDockableMixin, QtWidgets.QWidget):
         #CAMERA EXPORT 
         cam_group = QtWidgets.QGroupBox("Camera")
         cam_layout = QtWidgets.QVBoxLayout()
-        cam_layout.addWidget(QtWidgets.QLabel("Anim Only (No Geo/Mats, Xform Root).", styleSheet="color:#888"))
+        cam_layout.addWidget(QtWidgets.QLabel("Camera Only (No Geo, No Animations).", styleSheet="color:#888"))
         
         self.btn_cam = QtWidgets.QPushButton("Export Camera (vXXX)")
         self.btn_cam.setObjectName("ExportCam")
@@ -175,7 +175,7 @@ class OrionUSDManager(MayaQWidgetDockableMixin, QtWidgets.QWidget):
         #ANIMATION EXPORT 
         anim_group = QtWidgets.QGroupBox("Animation / Cache")
         anim_layout = QtWidgets.QVBoxLayout()
-        anim_layout.addWidget(QtWidgets.QLabel("Geo Cache (Meshes, UVs, No Mats).", styleSheet="color:#888"))
+        anim_layout.addWidget(QtWidgets.QLabel("Geo Cache.", styleSheet="color:#888"))
         
         #ASSET SELECTION DROPDOWN
         anim_layout.addWidget(QtWidgets.QLabel("Select Character/Asset:"))
@@ -251,10 +251,10 @@ class OrionUSDManager(MayaQWidgetDockableMixin, QtWidgets.QWidget):
         self.ctx['path'] = raw_path if raw_path != "None" else ""
         
         try:
-            self.ctx['start'] = int(os.environ.get("ORI_SHOT_FRAME_START", 1001))
+            self.ctx['start'] = int(os.environ.get("ORI_SHOT_FRAME_START", 1001)) - 20
             self.ctx['end'] = int(os.environ.get("ORI_SHOT_FRAME_END", 1100))
         except:
-            self.ctx['start'] = 1001
+            self.ctx['start'] = 981
             self.ctx['end'] = 1100
         
         #OVERRIDE WITH SCENE PATH 
@@ -460,15 +460,13 @@ class OrionUSDManager(MayaQWidgetDockableMixin, QtWidgets.QWidget):
         out_path = os.path.join(export_dir, filename)
         
         #name 2 match asset root prim
-        root_prim = asset_name
+        # root_prim = asset_name
         
         args = {
-            "rootPrim": root_prim,
-            "rootPrimType": "xform",
-            "defaultPrim": root_prim,
-            "exportSkels": "auto",
-            "exportSkin": "auto",
-            "exportBlendShapes": True,
+            "readAnimData": True,
+            "exportSkels": False,
+            "exportSkin": False,
+            "exportBlendShapes": False,
             "exportUVs": True,
             "exportColorSets": True
         }

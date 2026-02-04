@@ -403,7 +403,7 @@ class NodeMailUI(QtWidgets.QMainWindow):
                 names.sort()
                 
                 #format list
-                display_text = "Selected (" + str(len(names)) + " Nodes):\n----------------\n"
+                display_text = "Selected (" + str(len(names)) + " Nodes):\n     -\n"
                 display_text += "\n".join(names)
                 
                 self.snapshot_label.setPlainText(display_text)

@@ -17,7 +17,7 @@ if pipeline_root not in sys.path:
 
 from core.orionUtils import OrionUtils
 
-# --- SHOT TAB (Refactored Existing Logic) ---
+#   SHOT TAB (Refactored Existing Logic)  
 class ShotFixerTab(QWidget):
     def __init__(self, orion_inst, root_path):
         super().__init__()
@@ -220,7 +220,7 @@ class ShotFixerTab(QWidget):
             if self.table.cellWidget(r, 5).isEnabled():
                 self.fix_row(r)
 
-# --- ASSET TAB (New Functionality) ---
+#   ASSET TAB (New Functionality)  
 class AssetFixerTab(QWidget):
     def __init__(self, orion_inst):
         super().__init__()
@@ -420,7 +420,7 @@ class AssetFixerTab(QWidget):
             if self.table.cellWidget(r, 4).isEnabled():
                 self.fix_row(r)
 
-# --- MAIN WINDOW ---
+#   MAIN WINDOW  
 class OrionFixerWindow(QWidget):
     def __init__(self):
         super().__init__()

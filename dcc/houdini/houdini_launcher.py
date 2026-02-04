@@ -60,6 +60,10 @@ def launch_houdini(file_path=None, shot_code=None, frame_start=None, frame_end=N
     env["HOUDINI_USER_PREF_DIR"] = f"P:/all_work/studentGroups/ORION_CORPORATION/60_config/userPrefs/{user}/prefs/houdini__HVER__"
     env["ORI_SHOT_CONTEXT"] = shot_code if shot_code else ""
     
+    # #setting default hou parameters
+    # env["JOB"] = r"P:\all_work\studentGroups\ORION_CORPORATION"
+    # env["HIP"] = r"P:\all_work\studentGroups\ORION_CORPORATION\40_shots\$ORI_SHOT_CONTEXT"
+    
     # launch Houdini with modified environment
     cmd = [HOUDINI_EXE]
     

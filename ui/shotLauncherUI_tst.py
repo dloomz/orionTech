@@ -1105,7 +1105,7 @@ class AssetEditor(QFrame):
     def __init__(self, mode="create", existing_data=None):
         super().__init__()
         self.mode = mode
-        # FIX: Ensure existing_data is a dictionary immediately
+
         existing_data = existing_data or {}
         self.existing_data = existing_data
 
@@ -2009,7 +2009,7 @@ class OrionLauncherUI(QWidget):
         layout.setContentsMargins(0, 0, 0, 0)
         layout.setSpacing(0)
 
-        # --- COLUMN 2: RENDER & VERSION LISTS ---
+        #   COLUMN 2: RENDER & VERSION LISTS  
         # Styling matched to Production View (#252525)
         self.render_panel_frame = QFrame()
         self.render_panel_frame.setMinimumWidth(280)
@@ -2072,7 +2072,7 @@ class OrionLauncherUI(QWidget):
         panel_layout.addWidget(self.render_splitter)
         layout.addWidget(self.render_panel_frame)
 
-        # --- COLUMN 3: MAIN CONTENT (Header + Player + AOVs) ---
+        #   COLUMN 3: MAIN CONTENT (Header + Player + AOVs) ---
         self.main_content_widget = QWidget()
         main_content_layout = QVBoxLayout(self.main_content_widget)
         main_content_layout.setContentsMargins(0, 0, 0, 0)

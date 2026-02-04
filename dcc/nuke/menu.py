@@ -32,7 +32,7 @@ NUKE_DIR = os.path.expanduser("~/.nuke")
 TOOLSET_DIR = os.path.join(NUKE_DIR, "ToolSets", "Favorites")
 GIZMO_DIR = os.path.join(NUKE_DIR, "gizmos")
 
-# --- Top Menu: Extra ---
+#   Top Menu: Extra  
 mainMenu = nuke.menu("Nuke")
 extraMenu = mainMenu.addMenu("Extra")
 orionMenu = mainMenu.addMenu("ORION")
@@ -151,7 +151,7 @@ def open_nuke_folder():
 extraMenu.addSeparator()
 extraMenu.addCommand("Open .nuke Folder", "open_nuke_folder()")
 
-# --- Gizmo Toolbar ---
+#   Gizmo Toolbar  
 toolbar = nuke.menu('Nodes')
 uhMenu = toolbar.addMenu("UH COMP TOOLS", "uh_toolbar_icon.jpg")
 ETCMenu = toolbar.addMenu("ETC", "ETC_logo.png")

@@ -1257,7 +1257,7 @@ class OrionLauncherUI(QWidget):
     def init_ui(self):
         
         self.setWindowTitle(f'OrionTech')
-        self.resize(1550, 900)
+        self.resize(1550, 950)
         self.setStyleSheet("background-color: #121212; color: #ffffff; font-family: Segoe UI, sans-serif;")
 
         # MAIN LAYOUT
@@ -1869,7 +1869,7 @@ class OrionLauncherUI(QWidget):
     def delete_current_shot(self):
         if not self.current_shot_code: return
         
-        item_type = "Asset" if self.current_context == "Assets" else "Shot"
+        item_type = "Asset" if self.current_context == "Assets" else "Shots"
         reply = QMessageBox.question(self, "Confirm Delete", 
                                      f"Are you sure you want to delete {item_type}: {self.current_shot_code}?\n"
                                      "This will remove the folder and DB entry permanently.",
@@ -2098,8 +2098,8 @@ class OrionLauncherUI(QWidget):
         return layout
 
     def on_new_file_clicked(self):
-        
-        if self.current_context == "Shot":
+        print(f"TEST {self.current_context}")
+        if self.current_context == "Shots":
             
             shot_code = self.current_shot_code
             shot_row = self.orion.get_shot(shot_code)

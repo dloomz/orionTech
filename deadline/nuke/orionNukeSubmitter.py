@@ -57,7 +57,7 @@ class OrionSubmitDialog(nukescripts.PythonPanel):
         super(OrionSubmitDialog, self).__init__("Orion Nuke Submitter", "com.orion.nukesubmit")
         self.setMinimumSize(550, 500)
 
-        # --- Job Details ---
+        #   Job Details  
         self.tab_job = nuke.Tab_Knob("Job", "Job Options")
         self.addKnob(self.tab_job)
 
@@ -78,7 +78,7 @@ class OrionSubmitDialog(nukescripts.PythonPanel):
         self.separator1 = nuke.Text_Knob("sep1", "")
         self.addKnob(self.separator1)
 
-        # --- Scheduling ---
+        #   Scheduling  
         self.pool = nuke.Enumeration_Knob("pool", "Pool:", pools)
         self.addKnob(self.pool)
         self.pool.setTooltip("Primary Deadline pool.")
@@ -99,7 +99,7 @@ class OrionSubmitDialog(nukescripts.PythonPanel):
         self.separator2 = nuke.Text_Knob("sep2", "")
         self.addKnob(self.separator2)
 
-        # --- Nuke Options ---
+        #   Nuke Options  
         self.tab_nuke = nuke.Tab_Knob("Nuke", "Nuke Options")
         self.addKnob(self.tab_nuke)
 
@@ -136,7 +136,7 @@ class OrionSubmitDialog(nukescripts.PythonPanel):
         self.separator3 = nuke.Text_Knob("sep3", "")
         self.addKnob(self.separator3)
 
-        # --- Discord Notifications ---
+        #   Discord Notifications  
         self.discordNotify = nuke.Boolean_Knob("discordNotify", "Send Discord Notifications")
         self.addKnob(self.discordNotify)
         self.discordNotify.setValue(True)

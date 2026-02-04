@@ -344,6 +344,8 @@ class OrionHoudiniUI(QtWidgets.QWidget):
         hou.playbar.setFrameRange(global_start, global_end)
         hou.playbar.setPlaybackRange(playback_start, playback_end)
         hou.setFrame(playback_start)
+
+        os.environ["ORI_SHOT_CONTEXT"] = self.combo_shots.currentText()
         
         self.populate_shot_tree()
 

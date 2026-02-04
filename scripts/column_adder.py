@@ -1,5 +1,4 @@
 import sqlite3
-# Adjust path to your project.db
 conn = sqlite3.connect(r'P:\all_work\studentGroups\ORION_CORPORATION\00_pipeline\orionTech\data\project.db') 
 try:
     conn.execute("ALTER TABLE shots ADD COLUMN shot_path TEXT")

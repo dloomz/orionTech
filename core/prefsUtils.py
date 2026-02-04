@@ -65,7 +65,6 @@ class PrefsUtils:
         # Handle Houdini specifically (files)
         if software == "houdini":
             # Define Source (Local) and Destination (Server)
-            # Note: You might need to adjust these keys based on your houdini.json content
             src_dir = src_config.get("houdini_pref", "C:\\Docs\\houdini20.5")
             
             dst_fmt = dst_config.get("houdini_config", "60_config\\userPrefs\\{user}\\houdini")
@@ -175,7 +174,7 @@ class PrefsUtils:
         #                     except Exception as e:
         #                         print(f"Error loading prefs to {local_path}: {e}")
 
-    # --- SETTINGS HANDLING ---
+    #   SETTINGS HANDLING  
 
     def get_settings_path(self, user):
         """Gets path to user settings json. Updated to use 'data' folder."""

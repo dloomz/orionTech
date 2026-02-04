@@ -6,7 +6,7 @@ from tkinter import filedialog, messagebox
 from core.orionUtils import OrionUtils
 orion_utils = OrionUtils()
 
-# --- Configuration ---
+#   Configuration  
 SHOT_SUBFOLDERS = [
     "ANIM",
     "COMP/Apps/Nuke/Scripts",
@@ -39,7 +39,7 @@ class ShotCreatorApp:
         # We will set this later, after the UI is built
         self.project_root = ""
 
-        # --- UI Widgets (No changes in this section) ---
+        #   UI Widgets (No changes in this section)  
         frame_root = tk.Frame(root, padx=10, pady=10)
         frame_root.pack(fill='x')
 

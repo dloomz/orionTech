@@ -383,7 +383,6 @@ class NodeMailUI(QtWidgets.QMainWindow):
         main_layout.addLayout(right_layout, 2)
 
     def refresh_inbox(self):
-        # FIX START: Reset selection to avoid "stale pointer" crash
         self.current_selected_item = None
         self.btn_paste.setEnabled(False)
         self.btn_delete.setEnabled(False)
@@ -395,7 +394,6 @@ class NodeMailUI(QtWidgets.QMainWindow):
             if item.widget():
                 item.widget().deleteLater()
 
-        # FIX START: Force Nuke to process the deletion immediately
         QtWidgets.QApplication.processEvents()
         
         pattern = os.path.join(self.nodemail_path, "*.json")
@@ -420,12 +418,11 @@ class NodeMailUI(QtWidgets.QMainWindow):
         self.inbox_container.setVisible(True)
 
     def on_item_clicked(self, item):
-        # FIX: Check if current_selected_item still exists and is valid
         if self.current_selected_item:
             try:
                 self.current_selected_item.set_selected(False)
             except RuntimeError:
-                # If the item was deleted but variable wasn't cleared, ignore it
+                # item was deleted but variable wasn't cleared, ignore
                 pass
         
         self.current_selected_item = item
@@ -443,7 +440,6 @@ class NodeMailUI(QtWidgets.QMainWindow):
             self.inbox_vbox.removeWidget(self.current_selected_item)
             self.current_selected_item.deleteLater()
             
-            # FIX: Explicitly clear the selection variable
             self.current_selected_item = None
             self.btn_paste.setEnabled(False)
             self.btn_delete.setEnabled(False)
