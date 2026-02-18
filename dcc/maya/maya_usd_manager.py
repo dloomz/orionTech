@@ -379,10 +379,7 @@ class OrionUSDManager(MayaQWidgetDockableMixin, QtWidgets.QWidget):
             return False
 
     def export_camera(self):
-        """
-        Modified to locate the camera deep inside selection, rename it, 
-        and export ONLY the camera (not the parent group).
-        """
+
         export_dir, _ = self.get_paths()
         if not export_dir:
             cmds.warning("Invalid context paths. Save file in pipeline structure.")
@@ -455,7 +452,7 @@ class OrionUSDManager(MayaQWidgetDockableMixin, QtWidgets.QWidget):
             return
 
         #fiel naming
-        base_name = f"{self.ctx['code']}_{asset_name}"
+        base_name = f"{self.ctx.get('dept')}_{asset_name}"
         filename = self.get_versioned_filename(export_dir, base_name)
         out_path = os.path.join(export_dir, filename)
         
@@ -463,7 +460,6 @@ class OrionUSDManager(MayaQWidgetDockableMixin, QtWidgets.QWidget):
         # root_prim = asset_name
         
         args = {
-            "readAnimData": True,
             "exportSkels": False,
             "exportSkin": False,
             "exportBlendShapes": False,

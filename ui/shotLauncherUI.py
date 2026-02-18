@@ -1955,31 +1955,38 @@ class OrionLauncherUI(QWidget):
         
         items_to_add = [] 
 
-        # standard exports 
+        # reg exports
         if os.path.exists(export_path):
             try:
                 for f in os.listdir(export_path):
                     if f.startswith('.'): continue
                     full_p = os.path.join(export_path, f)
                     if os.path.isfile(full_p):
+                        # (Filename, Full Path, Is_Published=False)
                         items_to_add.append((f, full_p, False))
             except Exception as e:
                 print(f"[DEBUG] Error reading export path: {e}")
 
-        # published exports
+        # published exports (will b above)
         if os.path.exists(publish_path):
             try:
                 for f in os.listdir(publish_path):
                     if f.startswith('.'): continue
                     full_p = os.path.join(publish_path, f)
                     if os.path.isfile(full_p):
+                        # (Filename, Full Path, Is_Published=True)
                         items_to_add.append((f, full_p, True))
             except Exception as e:
                 print(f"[DEBUG] Error reading publish path: {e}")
         
-        # Sort alphabetically by filename
-        items_to_add.sort(key=lambda x: x[0])
+        # SORTING LOGIC
+        # tuple: (Is Published?, Modification Time)
+        # reverse=True means:
+        #  true (published) comes before False (unpublished)
+        #   higher Time (new) comes before lower Time (old)
+        items_to_add.sort(key=lambda x: (x[2], os.path.getmtime(x[1])), reverse=True)
 
+        # widgets
         if not items_to_add:
             lbl = QLabel("No export files found.")
             lbl.setStyleSheet("color: #666; font-style: italic; margin-left: 10px;")
@@ -1987,6 +1994,7 @@ class OrionLauncherUI(QWidget):
         else:
             for name, path, is_pub in items_to_add:
                 item = ExportItemWidget(name, path, is_published=is_pub)
+                # connect signal (publish/unpublish actions)
                 item.action_triggered.connect(self.handle_export_action)
                 self.export_layout.addWidget(item)
                 
@@ -2261,10 +2269,20 @@ class OrionLauncherUI(QWidget):
         
         if exclude_dirs is None: exclude_dirs = []
 
-        files = sorted(os.listdir(folder_path))
-        files = [f for f in files if f not in exclude_dirs]
-        files = [f for f in files if os.path.isfile(os.path.join(folder_path, f))]
-        files = [f for f in files if not f.startswith(".")]
+        #get all items
+        all_items = os.listdir(folder_path)
+        
+        #filter for files only (ignore folders and hidden files)
+        files = []
+        for f in all_items:
+            if f in exclude_dirs: continue
+            if f.startswith("."): continue
+            
+            full_path = os.path.join(folder_path, f)
+            if os.path.isfile(full_path):
+                files.append(f)
+
+        files.sort(key=lambda f: os.path.getmtime(os.path.join(folder_path, f)), reverse=True)
 
         if not files:
             lbl = QLabel("No files found.")

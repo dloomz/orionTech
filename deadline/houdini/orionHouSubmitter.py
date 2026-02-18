@@ -11,6 +11,7 @@ from PySide2 import QtWidgets, QtCore, QtGui
 PIPELINE_ROOT = r"P:\all_work\studentGroups\ORION_CORPORATION\00_pipeline\orionTech"
 EVENT_SCRIPT_DIR = os.path.join(PIPELINE_ROOT, "deadline", "houdini")
 STARTUP_PATH = os.path.join(PIPELINE_ROOT)
+ORI_SHOT_CONTEXT = os.getenv("ORI_SHOT_CONTEXT")
 
 if PIPELINE_ROOT not in sys.path:
     sys.path.append(PIPELINE_ROOT)
@@ -70,7 +71,7 @@ class OrionHoudiniSubmitter(QtWidgets.QDialog):
         
         self.le_name = QtWidgets.QLineEdit()
         self.le_comment = QtWidgets.QLineEdit()
-        self.le_dept = QtWidgets.QLineEdit("3D")
+        self.le_dept = QtWidgets.QLineEdit("ORION")
         
         form_job.addRow("Job Name:", self.le_name)
         form_job.addRow("Comment:", self.le_comment)
@@ -118,7 +119,7 @@ class OrionHoudiniSubmitter(QtWidgets.QDialog):
         self.le_frames.setPlaceholderText("e.g. 1001-1050")
         
         self.sb_chunk = QtWidgets.QSpinBox()
-        self.sb_chunk.setValue(5)
+        self.sb_chunk.setValue(1)
         self.sb_chunk.setMinimum(1)
         
         form_render.addRow("Node:", self.cb_rop)
@@ -170,7 +171,7 @@ class OrionHoudiniSubmitter(QtWidgets.QDialog):
     def populate_defaults(self):
         start = int(hou.playbar.frameRange()[0])
         end = int(hou.playbar.frameRange()[1])
-        self.le_frames.setText(f"{start}-{end}")
+        self.le_frames.setText(f"1001-{end}")
         self.le_name.setText(os.path.basename(hou.hipFile.path()))
 
         try:
@@ -256,6 +257,7 @@ class OrionHoudiniSubmitter(QtWidgets.QDialog):
             
             env_idx = 0
             f.write(f"EnvironmentKeyValue{env_idx}=PYTHONPATH={STARTUP_PATH}\n"); env_idx+=1
+            f.write(f"EnvironmentKeyValue{env_idx}=ORI_SHOT_CONTEXT={ORI_SHOT_CONTEXT}\n"); env_idx+=1
             
             if selected_shot_id:
                 f.write(f"EnvironmentKeyValue{env_idx}=SHOT={selected_shot_code}\n"); env_idx+=1

@@ -1447,44 +1447,80 @@ class SequencePlayer(QWidget):
 #RENDER LIST ITEM WIDGET
 
 class RenderTaskButton(QPushButton):
-    """
-    Styled button for the 'renders' list (COMP, SLAPCOMP, etc.)
-    """
     def __init__(self, text, full_path):
         super().__init__()
-        self.full_path = full_path
-        self.setMinimumHeight(45)
-        self.setCheckable(True)
         self.text_label = text
+        self.full_path = full_path
+        self.setMinimumHeight(35)
+        self.setCheckable(True)
         
         # Layout
         layout = QHBoxLayout(self)
-        layout.setContentsMargins(15, 0, 15, 0)
+        layout.setContentsMargins(10, 2, 10, 2)
         
-        self.lbl_text = QLabel(text)
-        self.lbl_text.setStyleSheet("font-weight: bold; font-size: 11px; color: #888; border: none; background: transparent;")
+        # Bullet point styling
+        self.bullet = QLabel("•")
+        self.bullet.setStyleSheet("color: #666; font-size: 16px; margin-right: 5px; background: transparent; border: none;")
+        layout.addWidget(self.bullet)
+
+        self.lbl = QLabel(text)
+        layout.addWidget(self.lbl)
         
-        # The 'light' indicator on the right
-        self.indicator = QLabel()
-        self.indicator.setFixedSize(30, 18)
-        self.indicator.setStyleSheet("background-color: #333; border-radius: 4px;")
-        
-        layout.addWidget(self.lbl_text)
         layout.addStretch()
-        layout.addWidget(self.indicator)
+        
+        # Small indicator light
+        self.box = QLabel()
+        self.box.setFixedSize(10, 10)
+        self.box.setStyleSheet("background-color: #333; border-radius: 5px;")
+        layout.addWidget(self.box)
         
         self.update_style(False)
         self.toggled.connect(self.update_style)
 
     def update_style(self, checked):
         if checked:
-            self.setStyleSheet("QPushButton { background-color: #2b2b2b; border: none; border-radius: 4px; }")
-            self.lbl_text.setStyleSheet("font-weight: bold; font-size: 11px; color: white; border: none; background: transparent;")
-            self.indicator.setStyleSheet("background-color: #00CC66; border-radius: 4px;") # Bright Green
+            style = "QPushButton { background-color: #eee; border-radius: 4px; border: none; text-align: left; }"
+            txt_color = "#222"
+            bullet_color = "#222"
+            box_col = "#00CC66" # Green light
         else:
-            self.setStyleSheet("QPushButton { background-color: transparent; border: none; border-radius: 4px; } QPushButton:hover { background-color: #222; }")
-            self.lbl_text.setStyleSheet("font-weight: bold; font-size: 11px; color: #888; border: none; background: transparent;")
-            self.indicator.setStyleSheet("background-color: #333; border-radius: 4px;") # Dark Grey
+            style = "QPushButton { background-color: #2b2b2b; border-radius: 4px; border: none; text-align: left; } QPushButton:hover { background-color: #383838; }"
+            txt_color = "#bbb"
+            bullet_color = "#666"
+            box_col = "#333"
+
+        self.setStyleSheet(style)
+        self.lbl.setStyleSheet(f"color: {txt_color}; font-size: 11px; border: none; background: transparent;")
+        self.bullet.setStyleSheet(f"color: {bullet_color}; font-size: 16px; margin-right: 5px; background: transparent; border: none;")
+        self.box.setStyleSheet(f"background-color: {box_col}; border-radius: 5px;")
+
+    # --- CONTEXT MENU (Right Click) ---
+    def mousePressEvent(self, event):
+        if event.button() == Qt.RightButton:
+            self.show_context_menu(event.pos())
+        super().mousePressEvent(event)
+
+    def show_context_menu(self, pos):
+        menu = QMenu(self)
+        menu.setStyleSheet("QMenu { background-color: #333; color: white; border: 1px solid #555; } QMenu::item:selected { background-color: #555; }")        
+
+        action_open = QAction("Open File Location", self)
+        action_open.triggered.connect(self.open_file_location)
+        menu.addAction(action_open)
+
+        action_copy = QAction("Copy Path", self)
+        action_copy.triggered.connect(self.copy_path)
+        menu.addAction(action_copy)
+            
+        menu.exec_(self.mapToGlobal(pos))
+
+    def open_file_location(self):
+        path = os.path.normpath(self.full_path)
+        if os.path.exists(path):
+            subprocess.Popen(r'explorer /select,"' + path + '"')
+    
+    def copy_path(self):
+        QApplication.clipboard().setText(self.full_path)
 
 class VersionCard(QPushButton):
     """
@@ -1561,6 +1597,62 @@ class RenderItemWidget(QPushButton):
                 QPushButton:hover { background-color: #383838; }
             """)
 
+class RenderDeptGroup(QWidget):
+    def __init__(self, dept_name, full_path, parent_ui):
+        super().__init__()
+        self.dept_name = dept_name
+        self.full_path = full_path
+        self.parent_ui = parent_ui # Reference to main window for callbacks
+        
+        self.is_expanded = False
+        self.tasks_loaded = False
+
+        self.layout = QVBoxLayout(self)
+        self.layout.setContentsMargins(0, 0, 0, 0)
+        self.layout.setSpacing(2)
+        
+        # Header Button (Uses existing SpecButton class)
+        self.header_btn = SpecButton(dept_name, "#009966") 
+        self.header_btn.clicked.connect(self.toggle_expand)
+        self.layout.addWidget(self.header_btn)
+        
+        # Container for Tasks
+        self.task_container = QWidget()
+        self.task_layout = QVBoxLayout(self.task_container)
+        self.task_layout.setContentsMargins(20, 5, 0, 10) # Indent tasks
+        self.task_layout.setSpacing(2)
+        
+        self.layout.addWidget(self.task_container)
+        self.task_container.setVisible(False)
+
+    def toggle_expand(self):
+        self.is_expanded = not self.is_expanded
+        self.task_container.setVisible(self.is_expanded)
+        self.header_btn.set_active(self.is_expanded)
+        
+        if self.is_expanded and not self.tasks_loaded:
+            self.populate_tasks()
+            self.tasks_loaded = True
+
+    def populate_tasks(self):
+        # Clear existing
+        while self.task_layout.count():
+            child = self.task_layout.takeAt(0)
+            if child.widget(): child.widget().deleteLater()
+
+        if os.path.exists(self.full_path):
+            # Tasks are folders inside the Department folder
+            tasks = sorted([d for d in os.listdir(self.full_path) if os.path.isdir(os.path.join(self.full_path, d))])
+            
+            for task in tasks:
+                full_task_path = os.path.join(self.full_path, task)
+                
+                btn = RenderTaskButton(task, full_task_path)
+                # Connect click to the main UI handler
+                btn.clicked.connect(lambda checked, b=btn: self.parent_ui.on_render_task_clicked(b))
+                self.task_layout.addWidget(btn)
+        else:
+            self.task_layout.addWidget(QLabel("Path not found"))
 #RENDER UI MANAGER
 class RenderManagerWidget(QWidget):
     def __init__(self, parent_ui):
@@ -1610,43 +1702,87 @@ class RenderManagerWidget(QWidget):
         self.current_version_path = None
 
     def refresh(self, shot_code):
-        #clear all lists
-        self.clear_layout(self.render_list)
-        self.clear_layout(self.version_list)
-        self.clear_layout(self.aov_list)
+        # clear all lists
+        self.clear_layout(self.render_layout) # This is now the container for Groups
+        self.clear_layout(self.version_layout)
         self.player.view.clear()
         
         if not shot_code: return
 
-        #structure: 40_shots/code/3D_RENDERS
+        # structure: 40_shots/code/3D_RENDERS
         base = os.path.join(self.project_root, "40_shots", shot_code, "3D_RENDERS")
         
         if not os.path.exists(base):
-            self.render_list.addWidget(QLabel("No 3D_RENDER folder"))
+            self.render_layout.addWidget(QLabel("No 3D_RENDER folder"))
             return
 
-        #find DEPT > TASK
-        #we assume folders in 3D_RENDER are DEPTS
-        depts = [d for d in os.listdir(base) if os.path.isdir(os.path.join(base, d))]
+        # find DEPT folders
+        depts = sorted([d for d in os.listdir(base) if os.path.isdir(os.path.join(base, d))])
         
         found_any = False
         
         for dept in depts:
             dept_path = os.path.join(base, dept)
-            tasks = [t for t in os.listdir(dept_path) if os.path.isdir(os.path.join(dept_path, t))]
             
-            for task in tasks:
-                task_path = os.path.join(dept_path, task)
-                #create button
-                btn = RenderItemWidget(task, dept)
-                btn.clicked.connect(lambda c, p=task_path, b=btn: self.on_render_selected(p, b))
-                self.render_list.addWidget(btn)
-                found_any = True
+            # Create a Group for the Department
+            # We pass 'self' so the group can call self.on_render_task_clicked
+            group = RenderDeptGroup(dept, dept_path, self)
+            self.render_layout.addWidget(group)
+            found_any = True
                 
         if not found_any:
-            self.render_list.addWidget(QLabel("No Tasks Found"))
-        else:
-            self.render_list.addStretch()
+            self.render_layout.addWidget(QLabel("No Departments Found"))
+        
+        self.render_layout.addStretch()
+
+    def on_render_task_clicked(self, active_btn):
+        # 1. Visual Toggle Logic - Search Recursively
+        # Since buttons are now inside Groups inside the layout, we need to be careful.
+        # The easiest way is to rely on the fact that only one RenderTaskButton should be checked.
+        
+        # A. Uncheck all other RenderTaskButtons in the whole Render List Layout
+        self.uncheck_all_recursive(self.render_layout, active_btn)
+        
+        # 2. Populate Versions (Col 2 Bottom)
+        self.clear_layout(self.version_layout)
+        
+        task_path = active_btn.full_path
+        if not os.path.exists(task_path): return
+
+        # Find versions (v001, v002...)
+        versions = sorted([v for v in os.listdir(task_path) if v.startswith("v") and os.path.isdir(os.path.join(task_path, v))], reverse=True)
+
+        for v in versions:
+            v_path = os.path.join(task_path, v)
+            is_published = os.path.exists(os.path.join(v_path, "PUBLISHED"))
+            
+            btn = VersionCard(v, v_path)
+            btn.clicked.connect(lambda c, b=btn: self.on_version_selected(b)) # Use existing logic
+            self.version_layout.addWidget(btn)
+            
+        self.version_layout.addStretch()
+        
+        # auto select latest
+        if self.version_layout.count() > 1: 
+            first = self.version_layout.itemAt(0).widget()
+            if first: first.click()
+
+    def uncheck_all_recursive(self, layout, active_btn):
+        """
+        Helper to traverse the layout (including nested Groups) to uncheck buttons
+        """
+        for i in range(layout.count()):
+            item = layout.itemAt(i)
+            widget = item.widget()
+            
+            # If it's a Department Group, search inside it
+            if isinstance(widget, RenderDeptGroup):
+                self.uncheck_all_recursive(widget.task_layout, active_btn)
+            
+            # If it's a button
+            elif isinstance(widget, RenderTaskButton):
+                if widget != active_btn:
+                    widget.setChecked(False)
 
     def on_render_selected(self, path, btn):
         self.current_render_path = path
@@ -2004,13 +2140,11 @@ class OrionLauncherUI(QWidget):
         self.apps_layout.addStretch()
 
     def setup_renders_view(self):
-        # Master Layout for this page
         layout = QHBoxLayout(self.renders_view_widget)
         layout.setContentsMargins(0, 0, 0, 0)
         layout.setSpacing(0)
 
-        #   COLUMN 2: RENDER & VERSION LISTS  
-        # Styling matched to Production View (#252525)
+        # --- LEFT COLUMN: RENDER LISTS (Departments/Tasks & Versions) ---
         self.render_panel_frame = QFrame()
         self.render_panel_frame.setMinimumWidth(280)
         self.render_panel_frame.setMaximumWidth(320)
@@ -2019,12 +2153,11 @@ class OrionLauncherUI(QWidget):
         panel_layout = QVBoxLayout(self.render_panel_frame)
         panel_layout.setContentsMargins(0, 0, 0, 0)
 
-        # Vertical Splitter
         self.render_splitter = QSplitter(Qt.Vertical)
         self.render_splitter.setHandleWidth(2)
         self.render_splitter.setStyleSheet("QSplitter::handle { background-color: #121212; }")
 
-        # 1. TOP LIST: RENDERS (Tasks)
+        # 1. Top List: Departments -> Tasks
         self.render_list_widget = QWidget()
         render_list_layout = QVBoxLayout(self.render_list_widget)
         render_list_layout.setContentsMargins(15, 20, 15, 20)
@@ -2037,14 +2170,14 @@ class OrionLauncherUI(QWidget):
         
         self.render_container = QWidget()
         self.render_container.setStyleSheet("background: transparent;")
-        self.render_layout = QVBoxLayout(self.render_container)
+        self.render_layout = QVBoxLayout(self.render_container) # Stores the RenderDeptGroups
         self.render_layout.setAlignment(Qt.AlignTop)
         self.render_layout.setSpacing(2)
         
         self.render_scroll.setWidget(self.render_container)
         render_list_layout.addWidget(self.render_scroll)
 
-        # 2. BOTTOM LIST: VERSIONS
+        # 2. Bottom List: Versions
         self.version_list_widget = QWidget()
         version_list_layout = QVBoxLayout(self.version_list_widget)
         version_list_layout.setContentsMargins(15, 10, 15, 20)
@@ -2072,49 +2205,23 @@ class OrionLauncherUI(QWidget):
         panel_layout.addWidget(self.render_splitter)
         layout.addWidget(self.render_panel_frame)
 
-        #   COLUMN 3: MAIN CONTENT (Header + Player + AOVs) ---
+        # --- RIGHT COLUMN: PLAYER ONLY (No AOVs) ---
         self.main_content_widget = QWidget()
         main_content_layout = QVBoxLayout(self.main_content_widget)
         main_content_layout.setContentsMargins(0, 0, 0, 0)
         main_content_layout.setSpacing(0)
 
-        # A. Header (Shot Info) - Reusing ShotInfoPanel class
+        # Header Info
         self.render_info_panel = ShotInfoPanel()
         main_content_layout.addWidget(self.render_info_panel)
 
-        # B. Content Area (Player Left, AOV Right)
+        # Player Area
         content_area = QWidget()
         content_row = QHBoxLayout(content_area)
         content_row.setContentsMargins(30, 20, 30, 30)
-        content_row.setSpacing(30)
-
-        # Player
+        
         self.player = SequencePlayer()
-        content_row.addWidget(self.player, stretch=3)
-
-        # AOV List (Right Side)
-        aov_group = QWidget()
-        aov_group.setFixedWidth(220)
-        aov_layout = QVBoxLayout(aov_group)
-        aov_layout.setContentsMargins(0, 0, 0, 0)
-        
-        self.add_header(aov_layout, "AOV")
-        
-        self.aov_scroll = QScrollArea()
-        self.aov_scroll.setWidgetResizable(True)
-        self.aov_scroll.setFrameShape(QFrame.NoFrame)
-        self.aov_scroll.setStyleSheet(get_scrollbar_style("#121212"))
-        
-        self.aov_inner_container = QWidget()
-        self.aov_inner_container.setStyleSheet("background: transparent;")
-        self.aov_item_layout = QVBoxLayout(self.aov_inner_container)
-        self.aov_item_layout.setAlignment(Qt.AlignTop)
-        self.aov_item_layout.setSpacing(5)
-        
-        self.aov_scroll.setWidget(self.aov_inner_container)
-        aov_layout.addWidget(self.aov_scroll)
-        
-        content_row.addWidget(aov_group, stretch=1)
+        content_row.addWidget(self.player) # Player takes full width
 
         main_content_layout.addWidget(content_area)
         layout.addWidget(self.main_content_widget)
@@ -2177,142 +2284,95 @@ class OrionLauncherUI(QWidget):
     # RENDER TAB LOGIC 
 
     def refresh_renders_tab(self):
-        """Called when switching to Renders tab or selecting a shot while in Renders tab."""
+        """Populates the Department List when switching tabs or shots."""
         self.clear_layout(self.render_layout)
         self.clear_layout(self.version_layout)
-        self.clear_layout(self.aov_item_layout)
-        self.player.load_sequence(None) # Clear player
+        self.player.load_sequence(None)
 
-        if not self.current_shot_code: 
-            return
+        if not self.current_shot_code: return
 
-        shot_data = None
+        # Update Header Info
         if self.current_context == "Shots":
-            shot_row = self.orion.get_shot(self.current_shot_code)
-            if shot_row: shot_data = dict(shot_row)
-        else:
-            asset_row = self.orion.get_asset(self.current_shot_code)
-            if asset_row: shot_data = dict(asset_row)
+            row = self.orion.get_shot(self.current_shot_code)
+            if row:
+                d = dict(row)
+                self.render_info_panel.update_info(d['code'], d['frame_start'], d['frame_end'], d['description'])
 
-        if shot_data:
-            s = shot_data.get('frame_start')
-            e = shot_data.get('frame_end')
-            d = shot_data.get('description', "")
-            # Update the specific panel for this view
-            self.render_info_panel.update_info(self.current_shot_code, s, e, d)
-
-        # Path: 40_shots/shot_code/3D_RENDER
+        # Root Path: .../40_shots/shot_code/3D_RENDERS
         render_root = os.path.join(self.project_root, "40_shots", self.current_shot_code, "3D_RENDERS")
         
         if not os.path.exists(render_root):
-            lbl = QLabel("No 3D_RENDER folder found")
-            lbl.setStyleSheet("color: #666; margin: 10px;")
-            self.render_layout.addWidget(lbl)
+            self.render_layout.addWidget(QLabel("No 3D_RENDERS folder found"))
             return
 
-        # Find all folders inside all Departments
-        # Assuming structure: 3D_RENDER > DEPT > TASK
-        depts = [d for d in os.listdir(render_root) if os.path.isdir(os.path.join(render_root, d))]
+        # Find Departments
+        depts = sorted([d for d in os.listdir(render_root) if os.path.isdir(os.path.join(render_root, d))])
         
-        tasks_found = []
+        found_any = False
         for dept in depts:
             dept_path = os.path.join(render_root, dept)
-            tasks = [t for t in os.listdir(dept_path) if os.path.isdir(os.path.join(dept_path, t))]
-            for t in tasks:
-                full_path = os.path.join(dept_path, t)
-                tasks_found.append((t, full_path))
+            # Create the Dropdown Group
+            group = RenderDeptGroup(dept, dept_path, self)
+            self.render_layout.addWidget(group)
+            found_any = True
+                
+        if not found_any:
+            self.render_layout.addWidget(QLabel("No Departments Found"))
         
-        # Create buttons for the "renders" list (Col 2 Top)
-        for name, path in tasks_found:
-            btn = RenderTaskButton(name, path)
-            btn.clicked.connect(lambda c, b=btn: self.on_render_task_clicked(b))
-            self.render_layout.addWidget(btn)
+        self.render_layout.addStretch()
 
     def on_render_task_clicked(self, active_btn):
-        # 1. Visual Toggle Logic
-        for i in range(self.render_layout.count()):
-            widget = self.render_layout.itemAt(i).widget()
-            if isinstance(widget, RenderTaskButton):
-                widget.setChecked(widget == active_btn)
+        """Logic when a Task (inside a Dept group) is clicked."""
         
-        # 2. Populate Versions (Col 2 Bottom)
+        # 1. Recursively uncheck other buttons so only one is active
+        self._recursive_uncheck(self.render_layout, active_btn)
+        
+        # 2. Populate Versions
         self.clear_layout(self.version_layout)
-        self.clear_layout(self.aov_item_layout)
         
         task_path = active_btn.full_path
         if not os.path.exists(task_path): return
 
-        # Find versions (v001, v002...)
-        versions = sorted([v for v in os.listdir(task_path) if v.startswith('v') and os.path.isdir(os.path.join(task_path, v))], reverse=True)
+        versions = sorted([v for v in os.listdir(task_path) if v.startswith("v") and os.path.isdir(os.path.join(task_path, v))], reverse=True)
 
         for v in versions:
             v_path = os.path.join(task_path, v)
-            # Check if published
-            is_published = os.path.exists(os.path.join(v_path, "PUBLISHED")) # Example check
             
             btn = VersionCard(v, v_path)
-            if is_published:
-                # Add a "PUBLISHED" label inside the card if needed, or just change color
-                pass 
-                
             btn.clicked.connect(lambda c, b=btn: self.on_version_clicked(b))
             self.version_layout.addWidget(btn)
             
-        # Auto-click latest version if exists
-        if self.version_layout.count() > 0:
-            first_ver = self.version_layout.itemAt(0).widget()
-            first_ver.click()
+        self.version_layout.addStretch()
+        
+        # Auto-click latest
+        if self.version_layout.count() > 1: 
+            first = self.version_layout.itemAt(0).widget()
+            if first: first.click()
 
     def on_version_clicked(self, active_btn):
-        # 1. Visual Toggle Logic
+        """Logic when a Version is clicked."""
+        # 1. Visual Toggle
         for i in range(self.version_layout.count()):
             widget = self.version_layout.itemAt(i).widget()
             if isinstance(widget, VersionCard):
                 widget.setChecked(widget == active_btn)
 
-        # 2. Populate AOVs and Load Player
-        self.clear_layout(self.aov_item_layout)
-        version_path = active_btn.full_path
-        
-        # Find AOVs (subfolders inside the version folder)
-        # e.g. v001/beauty, v001/diffuse
-        aovs = sorted([d for d in os.listdir(version_path) if os.path.isdir(os.path.join(version_path, d))])
-        
-        first_aov_path = None
-        
-        for aov in aovs:
-            aov_path = os.path.join(version_path, aov)
-            
-            # Simple button for AOV
-            btn = QPushButton(aov)
-            btn.setCheckable(True)
-            btn.setStyleSheet("""
-                QPushButton { text-align: left; padding: 10px; background-color: #2b2b2b; border: none; border-radius: 4px; color: #888; font-weight: bold;}
-                QPushButton:checked { background-color: #333; color: white; border-left: 3px solid #00CC66; }
-                QPushButton:hover { background-color: #333; }
-            """)
-            btn.clicked.connect(lambda c, p=aov_path, b=btn: self.on_aov_clicked(p, b))
-            self.aov_item_layout.addWidget(btn)
-            
-            if first_aov_path is None: first_aov_path = aov_path
+        # 2. Load Sequence directly (No AOVs)
+        self.player.load_sequence(active_btn.full_path)
 
-        self.aov_item_layout.addStretch()
-
-        # 3. Load the first AOV into the player automatically
-        if first_aov_path:
-            # Manually trigger the first AOV button to look active and load
-            first_btn = self.aov_item_layout.itemAt(0).widget()
-            first_btn.setChecked(True)
-            self.player.load_sequence(first_aov_path)
-    
-    def on_aov_clicked(self, path, active_btn):
-        # Toggle logic for AOVs
-        for i in range(self.aov_item_layout.count()):
-            widget = self.aov_item_layout.itemAt(i).widget()
-            if isinstance(widget, QPushButton) and widget != active_btn:
-                widget.setChecked(False)
-        
-        self.player.load_sequence(path)
+    def _recursive_uncheck(self, layout, active_btn):
+        """Helper to find buttons inside nested groups and uncheck them."""
+        for i in range(layout.count()):
+            item = layout.itemAt(i)
+            widget = item.widget()
+            
+            if isinstance(widget, RenderDeptGroup):
+                # Go deeper into the group's task layout
+                self._recursive_uncheck(widget.task_layout, active_btn)
+            
+            elif isinstance(widget, RenderTaskButton):
+                if widget != active_btn:
+                    widget.setChecked(False)
 
     #LOGIC
     def populate_sidebar(self):

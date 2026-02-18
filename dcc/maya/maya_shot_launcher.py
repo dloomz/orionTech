@@ -425,6 +425,36 @@ class OrionMayaUI(MayaQWidgetDockableMixin, QtWidgets.QWidget):
 
     #IMPORTERS
 
+    # HELPER: LOCKING AND LAYERING
+    def lock_and_layer_nodes(self, nodes):
+        # 1. Create Reference Layer (Visible but unselectable)
+        layer_name = "LOCKED_REFERENCE_LAYER"
+        if not cmds.objExists(layer_name):
+            cmds.createDisplayLayer(name=layer_name, empty=True)
+            cmds.setAttr(f"{layer_name}.displayType", 2)
+        
+        if not nodes: return
+
+        # 2. Filter for DAG nodes (objects in viewport)
+        dag_nodes = cmds.ls(nodes, dag=True, long=True)
+        if not dag_nodes: return
+
+        # 3. Add to Layer
+        try:
+            cmds.editDisplayLayerMembers(layer_name, dag_nodes, noRecurse=True)
+        except:
+            pass
+
+        # 4. Lock Transforms (EXACTLY AS YOU HAD IT)
+        # Using your logic: lock=True, keyable=False, channelBox=False
+        transforms = cmds.ls(dag_nodes, type="transform", long=True)
+        for node in transforms:
+            for attr in ("tx", "ty", "tz", "rx", "ry", "rz", "sx", "sy", "sz"):
+                try:
+                    cmds.setAttr(f"{node}.{attr}", lock=True, keyable=False, channelBox=False)
+                except:
+                    pass
+
     def import_camera(self):
         if not self.current_shot:
             print("Please select a shot first.")
@@ -434,43 +464,50 @@ class OrionMayaUI(MayaQWidgetDockableMixin, QtWidgets.QWidget):
         cam_path = os.path.join(self.root_dir, "40_shots", shot_code, "CAMERA", "MAYA", "EXPORT", "PUBLISHED")
         plate_root = os.path.join(self.root_dir, "40_shots", shot_code, "CAMERA", "PLATES")
         
-        found = None
+        # --- REFERENCE THE USD ---
+        found_cam = None
         if os.path.exists(cam_path):
             candidates = [f for f in os.listdir(cam_path) if f.endswith(".usdc") or f.endswith(".usd")]
             candidates.sort()
             if candidates:
-                found = os.path.join(cam_path, candidates[-1])
+                found_cam = os.path.join(cam_path, candidates[-1])
         
-        if found:
-            if found.endswith(".usd"):
+        if found_cam:
+            try:
                 if not cmds.pluginInfo("mayaUsdPlugin", q=True, loaded=True):
                     cmds.loadPlugin("mayaUsdPlugin")
-            try:
 
-                cmds.mayaUSDImport(
-                    file = found,
-                    readAnimData = True
-                    )
-                print(f"Imported Camera: {os.path.basename(found)}")
+                # Reference it
+                new_nodes = cmds.file(found_cam, 
+                                      reference=True, 
+                                      namespace="CAM", 
+                                      returnNewNodes=True,
+                                      type="USD Import",
+                                      options="readAnimData=1;useAsStatic=0")
+                
+                print(f"Referenced Camera: {os.path.basename(found_cam)}")
+                
+                # Apply locks
+                self.lock_and_layer_nodes(new_nodes)
+                
             except Exception as e:
-                print(f"Error importing camera: {e}")       
-        else:
-            print(f"No camera files found in: {cam_path}")
+                print(f"Error referencing camera: {e}")
+                return 
 
-        ORI_SHOT_CONTEXT = os.getenv('ORI_SHOT_CONTEXT')
+        # --- IMAGE PLANE (EXACT OLD CODE LOGIC) ---
+        
+        # 1. Find the camera
+        # Since we referenced it into "CAM", the name changed from "shot_camera" to "CAM:shot_camera"
+        # We search specifically for the camera shape inside the namespace.
+        cam_shapes = cmds.ls("CAM:*", type='camera', long=True)
+        
+        if not cam_shapes:
+            print("Could not find camera in CAM namespace.")
+            return
 
-        cam_transform = cmds.ls(f'{ORI_SHOT_CONTEXT}_camera', type='transform')
-        cam_shapes = cmds.listRelatives(cam_transform, shapes=True, type='camera')
-        
-        camera = cam_shapes[0]
-        
-        camera_transform = cmds.listRelatives(camera, parent=True)[0]
+        camera = cam_shapes[0] # This is the shape node
 
-        for attr in ("tx", "ty", "tz", "rx", "ry", "rz", "sx", "sy", "sz"):
-            cmds.setAttr(f"{camera_transform}.{attr}", lock=True, keyable=False, channelBox=False)
-            
-        # cmds.camera(camera_transform, displayGateMask = 1, displayFilmGate = 1)
-        
+        # 2. Find the sequence
         if not os.path.exists(plate_root):
             print("Plate folder not found.")
             return
@@ -480,20 +517,27 @@ class OrionMayaUI(MayaQWidgetDockableMixin, QtWidgets.QWidget):
             if item.lower().endswith((".exr", ".jpg", ".png", ".tif", ".tiff")):
                 found_seq = os.path.join(plate_root, item)
                 break
-            
+        
         if found_seq:
-
             try:
+                # 3. Create Image Plane (EXACTLY AS YOU HAD IT)
+                # No depth setting, no fitting, just standard Maya creation.
                 image_plane = cmds.imagePlane(camera=camera, fileName=found_seq)[0]
+                
+                # 4. Set Frame Extension
                 cmds.setAttr(f"{image_plane}.useFrameExtension", 1)
+                
                 print(f"Created Image Plane on {camera}")
             except Exception as e:
                 print(f"Error creating image plane: {e}")
         else:
-            print("No image sequences found in Source.")
+            print("No image sequences found in PLATES.")
 
+    # IMPORT LAYOUT
     def import_layout(self):
-        
+        if not self.current_shot:
+            return
+
         shot_code = self.current_shot['code']
         layout_path = os.path.join(self.root_dir, "40_shots", shot_code, "CAMERA", "LAYOUT", "EXPORT", "PUBLISHED")
         
@@ -505,20 +549,21 @@ class OrionMayaUI(MayaQWidgetDockableMixin, QtWidgets.QWidget):
                 found = os.path.join(layout_path, candidates[-1])
 
         if found:
-            if found.endswith(".usd"):
-                if not cmds.pluginInfo("mayaUsdPlugin", q=True, loaded=True):
-                    cmds.loadPlugin("mayaUsdPlugin")
             try:
-
-                cmds.mayaUSDImport(
-                    file = found,
-                    readAnimData = True
-                    )
-                print(f"Imported Layout: {os.path.basename(found)}")
+                # Reference the Layout
+                new_nodes = cmds.file(found, 
+                                      reference=True, 
+                                      namespace="LAYOUT", 
+                                      returnNewNodes=True,
+                                      type="USD Import",
+                                      options="readAnimData=1")
+                
+                # Lock the nodes
+                self.lock_and_layer_nodes(new_nodes)
+                
+                print(f"Referenced Layout: {os.path.basename(found)}")
             except Exception as e:
-                print(f"Error importing layout: {e}")       
-        else:
-            print(f"No layout files found in: {layout_path}")
+                print(f"Error referencing layout: {e}")
 
     def import_selected_asset_file(self):
         item = self.list_asset_files.currentItem()
