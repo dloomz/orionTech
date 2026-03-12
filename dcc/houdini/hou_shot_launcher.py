@@ -496,7 +496,7 @@ class OrionHoudiniUI(QtWidgets.QWidget):
             self.connect_node(lop)
 
     def import_selected_asset_file(self):
-        #get file and name
+        # get file and name
         file_item = self.list_asset_files.currentItem()
         if not file_item: return
         path = file_item.data(QtCore.Qt.UserRole)
@@ -506,34 +506,26 @@ class OrionHoudiniUI(QtWidgets.QWidget):
 
         stage = self.get_stage()
 
-        #load geo
-        geo_node = stage.createNode("reference", node_name=f"load_{asset_name}")
-        
-        if geo_node.parm("filepath1"):
-            geo_node.parm("filepath1").set(path)
+        # CHECK EXTENSION
+        if path.lower().endswith(('.usd', '.usdc', '.usda')):
+            lop = stage.createNode("sublayer", node_name=f"load_{asset_name}")
+            lop.parm("filepath1").set(path)
+            self.connect_node(lop)
+            hou.ui.displayMessage(f"Asset Sublayered: {asset_name}")
             
-        if geo_node.parm("primpath"):
-            geo_node.parm("primpath").set(f"/{asset_name}")
+        else:
+            geo_node = stage.createNode("reference", node_name=f"load_{asset_name}")
             
-        self.connect_node(geo_node)
+            if geo_node.parm("filepath1"):
+                geo_node.parm("filepath1").set(path)
+                
+            if geo_node.parm("primpath"):
+                geo_node.parm("primpath").set(f"/{asset_name}")
+                
+            self.connect_node(geo_node)
 
     def import_shot_task_file(self):
-        #anim
-        item = self.list_shot_files.currentItem()
-        if not item: return
-        path = item.data(QtCore.Qt.UserRole)
-        
-        stage = self.get_stage()
-        
-        #load anim
-        anim_node = stage.createNode("sublayer", node_name="load_anim")
-        
-        if anim_node.parm("filepath1"):
-            anim_node.parm("filepath1").set(path)
-            
-        self.connect_node(anim_node)
 
-    def import_shot_task_file(self):
         item = self.list_shot_files.currentItem()
         if not item: return
         
@@ -542,7 +534,7 @@ class OrionHoudiniUI(QtWidgets.QWidget):
         
         name = item.text().split('.')[0]
         
-        #SHOT TASKS 
+        # SHOT TASKS - Always Sublayer
         stage = self.get_stage()
         lop = stage.createNode("sublayer", node_name=name)
         lop.parm("filepath1").set(path)

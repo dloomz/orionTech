@@ -17,8 +17,7 @@ for folder in folders:
 #OCIO SET-UP
 
 def set_ocio_color_management():
-    
-    OCIO_PATH = r"//monster/projects/all_work/studentGroups/ORION_CORPORATION/60_config/colorManagement/aces_1.2/config.ocio"
+    OCIO_PATH = r"//monster/projects/all_work/studentGroups/ORION_CORPORATION/60_config/colorManagement/studio-config-v2.1.0_aces-v1.3_ocio-v2.3.ocio"
     
     if nuke.Root()['colorManagement'].value() == 'Nuke':
         nuke.Root()['colorManagement'].setValue('OCIO')

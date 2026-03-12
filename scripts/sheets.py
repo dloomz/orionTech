@@ -129,7 +129,7 @@ tracker = CompTracker()
 # print(tracker.get_specific_value("stc_0071", "Description"))
 
 # update a value (e.g. assigning a comper)
-tracker.update_shot_value("stc_0071", "CG Render", "New render")
+tracker.update_shot_value("stc_0010", "CG Render", "New render")
 
 # # useful extra: find all shots for 'Shruthi'
 # tracker.get_shots_by_artist("Shruthi")

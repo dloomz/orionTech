@@ -48,13 +48,18 @@ class OrionHoudiniSubmitter(QtWidgets.QDialog):
     def __init__(self, parent=None):
         super(OrionHoudiniSubmitter, self).__init__(parent)
         self.setWindowTitle("Orion Houdini Submitter")
-        self.setMinimumWidth(500)
+        self.setMinimumWidth(600)
+        self.setMinimumHeight(700)
         self.setStyleSheet("""
-            QDialog { background-color: #333; color: #ddd; }
-            QLabel { color: #ddd; font-weight: bold; }
+            QDialog { background-color: #333; color: #ddd; font-family: Segoe UI; }
+            QGroupBox { border: 1px solid #555; border-radius: 5px; margin-top: 10px; font-weight: bold; padding-top: 10px; }
+            QGroupBox::title { subcontrol-origin: margin; left: 10px; padding: 0 5px; color: #FF6000; }
+            QLabel { color: #ddd; }
             QLineEdit, QComboBox, QSpinBox { background-color: #444; color: #fff; border: 1px solid #555; padding: 5px; border-radius: 3px; }
-            QPushButton { background-color: #d35400; color: white; font-weight: bold; padding: 8px; border-radius: 4px; }
-            QPushButton:hover { background-color: #e67e22; }
+            QListWidget { background-color: #222; border: 1px solid #555; color: #fff; }
+            QListWidget::item:selected { background-color: #FF6000; color: white; }
+            QPushButton { background-color: #444; color: white; border-radius: 4px; padding: 6px; }
+            QPushButton:hover { background-color: #555; }
             QCheckBox { color: #ddd; }
         """)
 
@@ -65,20 +70,20 @@ class OrionHoudiniSubmitter(QtWidgets.QDialog):
     def init_ui(self):
         layout = QtWidgets.QVBoxLayout(self)
 
-        #   Job Details  
+        # --- Job Details ---
         gb_job = QtWidgets.QGroupBox("Job Details")
         form_job = QtWidgets.QFormLayout(gb_job)
         
         self.le_name = QtWidgets.QLineEdit()
         self.le_comment = QtWidgets.QLineEdit()
-        self.le_dept = QtWidgets.QLineEdit("ORION")
+        self.le_dept = QtWidgets.QLineEdit("ORION🤖🐩💖")
         
         form_job.addRow("Job Name:", self.le_name)
         form_job.addRow("Comment:", self.le_comment)
         form_job.addRow("Department:", self.le_dept)
         layout.addWidget(gb_job)
 
-        # Shot Context 
+        # --- Shot Context ---
         gb_context = QtWidgets.QGroupBox("Shot Context")
         form_context = QtWidgets.QFormLayout(gb_context)
         
@@ -93,7 +98,7 @@ class OrionHoudiniSubmitter(QtWidgets.QDialog):
         form_context.addRow("Select Shot:", self.cb_shot)
         layout.addWidget(gb_context)
 
-        # Deadline Settings 
+        # --- Deadline Settings ---
         gb_deadline = QtWidgets.QGroupBox("Deadline Settings")
         form_deadline = QtWidgets.QFormLayout(gb_deadline)
         
@@ -108,26 +113,63 @@ class OrionHoudiniSubmitter(QtWidgets.QDialog):
         form_deadline.addRow("Priority:", self.sb_priority)
         layout.addWidget(gb_deadline)
 
-        # Render Settings 
-        gb_render = QtWidgets.QGroupBox("Render Settings")
-        form_render = QtWidgets.QFormLayout(gb_render)
-        
-        self.cb_rop = QtWidgets.QComboBox()
-        self.refresh_rops() # initial
-        
-        self.le_frames = QtWidgets.QLineEdit()
-        self.le_frames.setPlaceholderText("e.g. 1001-1050")
-        
-        self.sb_chunk = QtWidgets.QSpinBox()
-        self.sb_chunk.setValue(1)
-        self.sb_chunk.setMinimum(1)
-        
-        form_render.addRow("Node:", self.cb_rop)
-        form_render.addRow("Frame Range:", self.le_frames)
-        form_render.addRow("Frames Per Task:", self.sb_chunk)
-        layout.addWidget(gb_render)
+        # --- Render Nodes (Multi-Select) ---
+        gb_rops = QtWidgets.QGroupBox("Render Nodes")
+        rop_layout = QtWidgets.QVBoxLayout(gb_rops)
 
-        # Options 
+        self.list_rops = QtWidgets.QListWidget()
+        self.list_rops.setSelectionMode(QtWidgets.QAbstractItemView.ExtendedSelection)
+        self.list_rops.setAlternatingRowColors(True)
+        rop_layout.addWidget(self.list_rops)
+
+        btn_rop_actions = QtWidgets.QHBoxLayout()
+        self.btn_sel_scene = QtWidgets.QPushButton("Select from Scene Selection")
+        self.btn_sel_scene.clicked.connect(self.select_rops_from_scene)
+        self.btn_refresh = QtWidgets.QPushButton("Refresh ROPs")
+        self.btn_refresh.clicked.connect(self.refresh_rops)
+        
+        btn_rop_actions.addWidget(self.btn_sel_scene)
+        btn_rop_actions.addWidget(self.btn_refresh)
+        rop_layout.addLayout(btn_rop_actions)
+        
+        layout.addWidget(gb_rops)
+
+        # --- Frame Range (Spinboxes) ---
+        gb_frames = QtWidgets.QGroupBox("Frame Range")
+        frame_layout = QtWidgets.QHBoxLayout(gb_frames)
+        
+        self.sb_start = QtWidgets.QSpinBox()
+        self.sb_start.setRange(-100000, 100000)
+        self.sb_start.setButtonSymbols(QtWidgets.QAbstractSpinBox.NoButtons)
+        
+        self.sb_end = QtWidgets.QSpinBox()
+        self.sb_end.setRange(-100000, 100000)
+        self.sb_end.setButtonSymbols(QtWidgets.QAbstractSpinBox.NoButtons)
+        
+        self.sb_step = QtWidgets.QSpinBox()
+        self.sb_step.setRange(1, 1000)
+        self.sb_step.setValue(1)
+
+        frame_layout.addWidget(QtWidgets.QLabel("Start:"))
+        frame_layout.addWidget(self.sb_start)
+        frame_layout.addWidget(QtWidgets.QLabel("End:"))
+        frame_layout.addWidget(self.sb_end)
+        frame_layout.addWidget(QtWidgets.QLabel("Step:"))
+        frame_layout.addWidget(self.sb_step)
+        
+        layout.addWidget(gb_frames)
+        
+        # Chunk Size
+        chunk_layout = QtWidgets.QHBoxLayout()
+        chunk_layout.addWidget(QtWidgets.QLabel("Frames Per Task (Chunk Size):"))
+        self.sb_chunk = QtWidgets.QSpinBox()
+        self.sb_chunk.setRange(1, 1000)
+        self.sb_chunk.setValue(1)
+        chunk_layout.addWidget(self.sb_chunk)
+        chunk_layout.addStretch()
+        layout.addLayout(chunk_layout)
+
+        # --- Options ---
         self.chk_discord = QtWidgets.QCheckBox("Send Discord Notifications")
         self.chk_discord.setChecked(True)
         self.chk_submit_scene = QtWidgets.QCheckBox("Submit Scene File")
@@ -136,16 +178,37 @@ class OrionHoudiniSubmitter(QtWidgets.QDialog):
         layout.addWidget(self.chk_discord)
         layout.addWidget(self.chk_submit_scene)
 
-        # Buttons
-        btn_layout = QtWidgets.QHBoxLayout()
-        self.btn_submit = QtWidgets.QPushButton("Submit to Deadline")
+        # --- Submit Button ---
+        self.btn_submit = QtWidgets.QPushButton("SUBMIT TO DEADLINE")
+        self.btn_submit.setStyleSheet("background-color: #d35400; font-weight: bold; font-size: 14px; padding: 10px;")
         self.btn_submit.clicked.connect(self.submit_job)
-        self.btn_refresh = QtWidgets.QPushButton("Refresh Nodes")
-        self.btn_refresh.clicked.connect(self.refresh_rops)
+        layout.addWidget(self.btn_submit)
         
-        btn_layout.addWidget(self.btn_refresh)
-        btn_layout.addWidget(self.btn_submit)
-        layout.addLayout(btn_layout)
+        # Initial Population
+        self.refresh_rops()
+
+    def get_next_version(self, task_path):
+        #Return v001 if the base directory doesnt exist yet
+        if not os.path.exists(task_path): 
+            return "v001"
+
+        max_ver = 0
+
+        #Scan directory for existing folders that start with v
+        for item in os.listdir(task_path):
+            full_path = os.path.join(task_path, item)
+            if item.startswith("v") and os.path.isdir(full_path):
+                try:
+                    #Slice off the v and convert the rest to an integer
+                    num = int(item[1:])
+                    if num > max_ver: 
+                        max_ver = num
+                except ValueError:
+                    #Skip folders like vTest where conversion to int fails
+                    pass
+
+        #Format the highest number + 1 with leading zeros
+        return f"v{max_ver + 1:03d}"
 
     def load_shots(self):
         try:
@@ -169,11 +232,18 @@ class OrionHoudiniSubmitter(QtWidgets.QDialog):
             print(f"Error loading shots: {e}")
 
     def populate_defaults(self):
+        # Frame Range
         start = int(hou.playbar.frameRange()[0])
         end = int(hou.playbar.frameRange()[1])
-        self.le_frames.setText(f"1001-{end}")
-        self.le_name.setText(os.path.basename(hou.hipFile.path()))
+        self.sb_start.setValue(start)
+        self.sb_end.setValue(end)
+        
+        # Job Name (Strip Extension)
+        raw_name = hou.hipFile.basename()
+        clean_name = os.path.splitext(raw_name)[0]
+        self.le_name.setText(clean_name)
 
+        # Pools/Groups
         try:
             pools = call_deadline_command(["-pools"]).split('\n')
             groups = call_deadline_command(["-groups"]).split('\n')
@@ -188,32 +258,48 @@ class OrionHoudiniSubmitter(QtWidgets.QDialog):
             pass
 
     def refresh_rops(self):
-        self.cb_rop.clear()
+        self.list_rops.clear()
         found_nodes = []
         
         try:
             all_nodes = hou.node("/").allSubChildren()
-            
             for node in all_nodes:
                 if isinstance(node, hou.RopNode):
                     if node.type().name() != "Deadline": 
                         found_nodes.append(node.path())
-                
                 elif isinstance(node, hou.LopNode):
                     if node.type().name() in ["karma", "karmacpu", "karmaxpu", "usdrender"]:
                         found_nodes.append(node.path())
-                        
         except Exception as e:
             print(f"Error refreshing ROPs: {e}")
-            pass
 
         found_nodes.sort()
-        self.cb_rop.addItems(found_nodes)
+        self.list_rops.addItems(found_nodes)
+
+    def select_rops_from_scene(self):
+        selected = hou.selectedNodes()
+        if not selected: return
+        
+        # Deselect all first
+        for i in range(self.list_rops.count()):
+            self.list_rops.item(i).setSelected(False)
+            
+        found_any = False
+        for node in selected:
+            path = node.path()
+            # Find item in list
+            items = self.list_rops.findItems(path, QtCore.Qt.MatchExactly)
+            if items:
+                items[0].setSelected(True)
+                found_any = True
+        
+        if not found_any:
+            hou.ui.displayMessage("No supported ROPs found in current selection.")
 
     def submit_job(self):
-        rop_path = self.cb_rop.currentText()
-        if not rop_path:
-            hou.ui.displayMessage("Please select a Render Node.")
+        selected_items = self.list_rops.selectedItems()
+        if not selected_items:
+            hou.ui.displayMessage("Please select at least one Render Node from the list.")
             return
         
         if not hou.hipFile.path() or hou.hipFile.path() == "untitled.hip":
@@ -223,79 +309,123 @@ class OrionHoudiniSubmitter(QtWidgets.QDialog):
         if hou.hipFile.hasUnsavedChanges():
             hou.hipFile.save()
 
-        job_name = self.le_name.text()
+        # Gather Common Data
+        base_job_name = self.le_name.text()
         comment = self.le_comment.text()
         dept = self.le_dept.text()
         pool = self.cb_pool.currentText()
         group = self.cb_group.currentText()
         priority = self.sb_priority.value()
-        frames = self.le_frames.text()
+        
+        start = self.sb_start.value()
+        end = self.sb_end.value()
+        step = self.sb_step.value()
+        frames_str = f"{start}-{end}"
+        if step > 1:
+            frames_str += f"x{step}"
+
         chunk_size = self.sb_chunk.value()
         submit_scene = self.chk_submit_scene.isChecked()
         use_discord = self.chk_discord.isChecked()
         
+        # Shot Context Logic
+        active_context = os.getenv("ORI_SHOT_CONTEXT")
         selected_shot_id = self.cb_shot.currentData()
         selected_shot_code = self.cb_shot.currentText()
-
-        tmp_dir = os.path.join(os.getenv("TEMP"), "orion_submission")
-        if not os.path.exists(tmp_dir): os.makedirs(tmp_dir)
         
-        job_info_path = os.path.join(tmp_dir, "houdini_job_info.job")
-        plugin_info_path = os.path.join(tmp_dir, "houdini_plugin_info.job")
+        if selected_shot_id:
+            active_context = selected_shot_code
 
-        with open(job_info_path, "w") as f:
-            f.write(f"Plugin=Houdini\n")
-            f.write(f"Name={job_name}\n")
-            f.write(f"Comment={comment}\n")
-            f.write(f"Department={dept}\n")
-            f.write(f"Pool={pool}\n")
-            f.write(f"Group={group}\n")
-            f.write(f"Priority={priority}\n")
-            f.write(f"Frames={frames}\n")
-            f.write(f"ChunkSize={chunk_size}\n")
-            f.write(f"UserName={os.getenv('USERNAME')}\n")
+       #SUBMISSION LOOP
+        submission_results = []
+        
+        for item in selected_items:
+            rop_path = item.text()
+            rop_node_name = rop_path.split("/")[-1]
             
-            env_idx = 0
-            f.write(f"EnvironmentKeyValue{env_idx}=PYTHONPATH={STARTUP_PATH}\n"); env_idx+=1
-            f.write(f"EnvironmentKeyValue{env_idx}=ORI_SHOT_CONTEXT={ORI_SHOT_CONTEXT}\n"); env_idx+=1
-            
-            if selected_shot_id:
-                f.write(f"EnvironmentKeyValue{env_idx}=SHOT={selected_shot_code}\n"); env_idx+=1
-                f.write(f"EnvironmentKeyValue{env_idx}=SHOT_ID={selected_shot_id}\n"); env_idx+=1
-                f.write(f"EnvironmentKeyValue{env_idx}=SEQ={selected_shot_code.split('_')[0]}\n"); env_idx+=1
+            #Unique name for this ROP so they are distinguishable inside the batch
+            current_job_name = f"{base_job_name} - {rop_node_name}" if len(selected_items) > 1 else base_job_name
 
-            if use_discord:
-                on_job_start = os.path.join(EVENT_SCRIPT_DIR, "orion_hou_on_job_start.py").replace("\\", "/")
-                on_job_finish = os.path.join(EVENT_SCRIPT_DIR, "orion_hou_on_job_finish.py").replace("\\", "/")
-                on_job_fail = os.path.join(EVENT_SCRIPT_DIR, "orion_hou_on_job_fail.py").replace("\\", "/")
+            #Construct the base path where the version folders will live
+            raw_base_dir = f"P:/all_work/studentGroups/ORION_CORPORATION/40_shots/${{ORI_SHOT_CONTEXT}}/3D_RENDERS/CG/{rop_node_name}"
+            
+            #hou.text.expandString resolve Houdini variables 
+            expanded_base_dir = hou.text.expandString(raw_base_dir)
+            
+            #Calculate the next version for this specific ROP
+            next_version = self.get_next_version(expanded_base_dir)
+
+            tmp_dir = os.path.join(os.getenv("TEMP"), "orion_submission")
+            if not os.path.exists(tmp_dir): os.makedirs(tmp_dir)
+            
+            #Use unique filenames for safety in loops
+            safe_rop_name = rop_node_name.replace(" ", "_")
+            job_info_path = os.path.join(tmp_dir, f"hou_job_{safe_rop_name}.job")
+            plugin_info_path = os.path.join(tmp_dir, f"hou_plugin_{safe_rop_name}.job")
+
+            #Write Job Info
+            with open(job_info_path, "w") as f:
+                f.write(f"Plugin=Houdini\n")
+                f.write(f"Name={current_job_name}\n")
+                f.write(f"BatchName={base_job_name}\n")
+                f.write(f"Comment={comment}\n")
+                f.write(f"Department={dept}\n")
+                f.write(f"Pool={pool}\n")
+                f.write(f"Group={group}\n")
+                f.write(f"Priority={priority}\n")
+                f.write(f"Frames={frames_str}\n")
+                f.write(f"ChunkSize={chunk_size}\n")
+                f.write(f"UserName={os.getenv('USERNAME')}\n")
                 
-                f.write(f"PreJobScript={on_job_start}\n")
-                f.write(f"PostJobScript={on_job_finish}\n")
-                f.write(f"ExtraInfoKeyValue0=OnJobFailureScript={on_job_fail}\n") 
-                f.write(f"ExtraInfoKeyValue1=OrionDiscordNotify=True\n")
-            else:
-                f.write(f"ExtraInfoKeyValue1=OrionDiscordNotify=False\n")
+                env_idx = 0
+                f.write(f"EnvironmentKeyValue{env_idx}=PYTHONPATH={STARTUP_PATH}\n"); env_idx+=1
+                f.write(f"EnvironmentKeyValue{env_idx}=ORI_SHOT_CONTEXT={active_context}\n"); env_idx+=1
+                
+                #Inject our newly calculated version variable into Deadline
+                f.write(f"EnvironmentKeyValue{env_idx}=ORI_RENDER_VERSION={next_version}\n"); env_idx+=1
+                
+                if selected_shot_id:
+                    f.write(f"EnvironmentKeyValue{env_idx}=SHOT={selected_shot_code}\n"); env_idx+=1
+                    f.write(f"EnvironmentKeyValue{env_idx}=SHOT_ID={selected_shot_id}\n"); env_idx+=1
+                    f.write(f"EnvironmentKeyValue{env_idx}=SEQ={selected_shot_code.split('_')[0]}\n"); env_idx+=1
 
-        with open(plugin_info_path, "w") as f:
-            if not submit_scene:
-                f.write(f"SceneFile={hou.hipFile.path()}\n")
-            
-            f.write(f"OutputDriver={rop_path}\n")
-            
-            ver = hou.applicationVersion()
-            safe_version = f"{ver[0]}.{ver[1]}" # 20.5
-            f.write(f"Version={safe_version}\n")
+                if use_discord:
+                    on_job_start = os.path.join(EVENT_SCRIPT_DIR, "orion_hou_on_job_start.py").replace("\\", "/")
+                    on_job_finish = os.path.join(EVENT_SCRIPT_DIR, "orion_hou_on_job_finish.py").replace("\\", "/")
+                    on_job_fail = os.path.join(EVENT_SCRIPT_DIR, "orion_hou_on_job_fail.py").replace("\\", "/")
+                    
+                    f.write(f"PreJobScript={on_job_start}\n")
+                    f.write(f"PostJobScript={on_job_finish}\n")
+                    f.write(f"ExtraInfoKeyValue0=OnJobFailureScript={on_job_fail}\n") 
+                    f.write(f"ExtraInfoKeyValue1=OrionDiscordNotify=True\n")
+                else:
+                    f.write(f"ExtraInfoKeyValue1=OrionDiscordNotify=False\n")
 
-            f.write("IgnoreInputs=True\n")
+            #Write Plugin Info
+            with open(plugin_info_path, "w") as f:
+                if not submit_scene:
+                    f.write(f"SceneFile={hou.hipFile.path()}\n")
+                
+                f.write(f"OutputDriver={rop_path}\n")
+                
+                ver = hou.applicationVersion()
+                safe_version = f"{ver[0]}.{ver[1]}"
+                f.write(f"Version={safe_version}\n")
+                f.write("IgnoreInputs=True\n")
 
-        args = [job_info_path, plugin_info_path]
-        if submit_scene:
-            args.append(hou.hipFile.path())
-            
-        result = call_deadline_command(args, hide_window=False)
-        hou.ui.displayMessage("Submission Result:\n\n" + result)
+            #Arguments
+            args = [job_info_path, plugin_info_path]
+            if submit_scene:
+                args.append(hou.hipFile.path())
+                
+            #Submit
+            result = call_deadline_command(args, hide_window=False)
+            submission_results.append(f"<b>{rop_node_name} ({next_version}):</b><br>{result}<br>")
+
+        #Report
+        final_msg = "<br>".join(submission_results)
+        hou.ui.displayMessage(f"Submission Complete for {len(selected_items)} Jobs.", details=final_msg)
 
 def show_submitter():
     dialog = OrionHoudiniSubmitter(hou.qt.mainWindow())
     dialog.show()
-    
