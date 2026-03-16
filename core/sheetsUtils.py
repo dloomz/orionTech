@@ -10,18 +10,19 @@ try:
 
 except Exception as e:
 
-    print(f"dlop {e}")
+    print(f"flop {e}")
 
 SPREADSHEET_URL = r"https://docs.google.com/spreadsheets/d/1HHrXjXcD7V49V-kJ0KLhjyjwAtcrB1RidioTwZHWbc0/edit?gid=623638562#gid=623638562"
 SPREADSHEET_ID = r"1HHrXjXcD7V49V-kJ0KLhjyjwAtcrB1RidioTwZHWbc0"
 SHEET_ID = r"623638562"
 
-class CompTracker:
-    def __init__(self):
+class SheetsUtils:
+    def __init__(self, Sheet):
         #setup connection
-        self.gc = gspread.service_account(filename=r"P:\all_work\studentGroups\ORION_CORPORATION\00_pipeline\orionTech\scripts\orion-481810-8d30a4bccaa6.json")
+        self.gc = gspread.service_account(filename=r"P:\all_work\studentGroups\ORION_CORPORATION\00_pipeline\orionTech\data\orion-481810-8d30a4bccaa6.json")
         self.sh = self.gc.open_by_key(SPREADSHEET_ID)
-        self.ws = self.sh.get_worksheet(3)
+        
+        self.ws = self.sh.get_worksheet(int(Sheet))
         
         #fetch all data and headers 
         self.all_values = self.ws.get_all_values()
@@ -120,16 +121,17 @@ class CompTracker:
 # EXAMPLES
 
 #init
-tracker = CompTracker()
+# compTracker = SheetsUtils(3)
+# progTracker = SheetsUtils(1)
 
-# view all data for one shot
-# tracker.get_shot_data("stc_0010")
+# # view all data for one shot
+# # tracker.get_shot_data("stc_0010")
 
-# view just one specific column
-# print(tracker.get_specific_value("stc_0071", "Description"))
+# # view just one specific column
+# print(progTracker.get_specific_value("stc_0063", "Renders"))
 
 # update a value (e.g. assigning a comper)
-tracker.update_shot_value("stc_0010", "CG Render", "New render")
+# tracker.update_shot_value("stc_0010", "CG Render", "New render")
 
 # # useful extra: find all shots for 'Shruthi'
 # tracker.get_shots_by_artist("Shruthi")

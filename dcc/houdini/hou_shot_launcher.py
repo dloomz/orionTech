@@ -346,6 +346,7 @@ class OrionHoudiniUI(QtWidgets.QWidget):
         hou.setFrame(playback_start)
 
         os.environ["ORI_SHOT_CONTEXT"] = self.combo_shots.currentText()
+        hou.putenv("ORI_SHOT_CONTEXT", self.combo_shots.currentText())
         
         self.populate_shot_tree()
 

@@ -563,6 +563,14 @@ class OrionUtils():
             return True
         except: return False
         finally: conn.close()
+        
+    # def get_shot_frames(self, code):
+    #     conn = self.get_db_connection()
+    #     try:
+    #         conn.execute('SELECT * FROM shots WHERE frame_start = ?, frame_end = ? WHERE code = ?', (code)).fetchone()
+    #         return True
+    #     except: return False
+    #     finally: conn.close()
 
     def delete_shot(self, code):
         conn = self.get_db_connection()

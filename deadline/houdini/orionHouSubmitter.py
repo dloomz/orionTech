@@ -64,6 +64,10 @@ class OrionHoudiniSubmitter(QtWidgets.QDialog):
         """)
 
         self.orion = OrionUtils() if OrionUtils else None
+        
+        #original context 
+        self.original_context = os.getenv("ORI_SHOT_CONTEXT")
+        
         self.init_ui()
         self.populate_defaults()
 
@@ -76,7 +80,7 @@ class OrionHoudiniSubmitter(QtWidgets.QDialog):
         
         self.le_name = QtWidgets.QLineEdit()
         self.le_comment = QtWidgets.QLineEdit()
-        self.le_dept = QtWidgets.QLineEdit("ORION🤖🐩💖")
+        self.le_dept = QtWidgets.QLineEdit()
         
         form_job.addRow("Job Name:", self.le_name)
         form_job.addRow("Comment:", self.le_comment)
@@ -97,6 +101,9 @@ class OrionHoudiniSubmitter(QtWidgets.QDialog):
             
         form_context.addRow("Select Shot:", self.cb_shot)
         layout.addWidget(gb_context)
+        
+        #Trigger update_local_context whenever the dropdown changes
+        self.cb_shot.currentIndexChanged.connect(self.update_local_context)
 
         # --- Deadline Settings ---
         gb_deadline = QtWidgets.QGroupBox("Deadline Settings")
@@ -256,6 +263,27 @@ class OrionHoudiniSubmitter(QtWidgets.QDialog):
                 self.cb_group.setCurrentText("none")
         except:
             pass
+        
+    def update_local_context(self, index):
+        #data and text from the currently selected item
+        selected_shot_id = self.cb_shot.itemData(index)
+        selected_shot_code = self.cb_shot.itemText(index)
+        
+        #If t ID specific shot was selected
+        if selected_shot_id:
+            new_context = selected_shot_code
+        else:
+            #If no ID Current Context item was selected so revert
+            new_context = self.original_context
+            
+        if new_context:
+            #Update the Python environment variable
+            os.environ["ORI_SHOT_CONTEXT"] = new_context
+            
+            #Update Houdinis internal variable so nodes evaluate it properly
+            hou.putenv("ORI_SHOT_CONTEXT", new_context)
+            
+            print(f"Updated local Houdini Context to: {new_context}")
 
     def refresh_rops(self):
         self.list_rops.clear()
@@ -346,10 +374,10 @@ class OrionHoudiniSubmitter(QtWidgets.QDialog):
             #Unique name for this ROP so they are distinguishable inside the batch
             current_job_name = f"{base_job_name} - {rop_node_name}" if len(selected_items) > 1 else base_job_name
 
-            #Construct the base path where the version folders will live
-            raw_base_dir = f"P:/all_work/studentGroups/ORION_CORPORATION/40_shots/${{ORI_SHOT_CONTEXT}}/3D_RENDERS/CG/{rop_node_name}"
+            #Inject the active_context python variable directly into the path string
+            raw_base_dir = f"P:/all_work/studentGroups/ORION_CORPORATION/40_shots/{active_context}/3D_RENDERS/CG/{rop_node_name}"
             
-            #hou.text.expandString resolve Houdini variables 
+            #hou.text.expandString will still resolve other Houdini variables if needed
             expanded_base_dir = hou.text.expandString(raw_base_dir)
             
             #Calculate the next version for this specific ROP

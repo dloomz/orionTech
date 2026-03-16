@@ -112,7 +112,7 @@ class OrionUSDManager(MayaQWidgetDockableMixin, QtWidgets.QWidget):
         ctx_group.setLayout(ctx_layout)
         self.main_layout.addWidget(ctx_group)
 
-        #TABS
+        #TABS 
         self.tabs = QtWidgets.QTabWidget()
         
         self.tab_export = QtWidgets.QWidget()
@@ -161,7 +161,7 @@ class OrionUSDManager(MayaQWidgetDockableMixin, QtWidgets.QWidget):
         fr_group.setLayout(fr_layout)
         layout.addWidget(fr_group)
 
-        #CAMERA EXPORT
+        #CAMERA EXPORT 
         cam_group = QtWidgets.QGroupBox("Camera")
         cam_layout = QtWidgets.QVBoxLayout()
         cam_layout.addWidget(QtWidgets.QLabel("Camera Only (No Geo, No Animations).", styleSheet="color:#888"))
@@ -173,7 +173,7 @@ class OrionUSDManager(MayaQWidgetDockableMixin, QtWidgets.QWidget):
         cam_group.setLayout(cam_layout)
         layout.addWidget(cam_group)
 
-        #ANIMATION EXPORT
+        #ANIMATION EXPORT 
         anim_group = QtWidgets.QGroupBox("Animation / Cache")
         anim_layout = QtWidgets.QVBoxLayout()
         anim_layout.addWidget(QtWidgets.QLabel("Geo Cache.", styleSheet="color:#888"))
@@ -244,7 +244,7 @@ class OrionUSDManager(MayaQWidgetDockableMixin, QtWidgets.QWidget):
     #LOGIC
 
     def refresh_context(self):
-        #READ ENV VARS
+        #READ ENV VARS 
         raw_code = os.environ.get("ORI_SHOT_CONTEXT", "Unknown")
         raw_path = os.environ.get("ORI_SHOT_PATH", "")
         
@@ -258,7 +258,7 @@ class OrionUSDManager(MayaQWidgetDockableMixin, QtWidgets.QWidget):
             self.ctx['start'] = 981
             self.ctx['end'] = 1100
         
-        #OVERRIDE WITH SCENE PATH
+        #OVERRIDE WITH SCENE PATH 
         scene_name = cmds.file(q=True, sn=True)
         
         self.ctx['dept'] = "Unknown"
@@ -325,7 +325,7 @@ class OrionUSDManager(MayaQWidgetDockableMixin, QtWidgets.QWidget):
             self.spin_end.setValue(int(cmds.playbackOptions(q=True, max=True)))
 
     def get_paths(self):
-        #calculates absolute export and publish folders
+        """Calculates Absolute Export and Publish folders."""
         shot_path = self.ctx.get('path')
         dept = self.ctx.get('dept')
         task = self.ctx.get('task')
@@ -355,7 +355,7 @@ class OrionUSDManager(MayaQWidgetDockableMixin, QtWidgets.QWidget):
 
     #EXPORT
 
-    def perform_usd_export(self, path, sel, start, end, export_args, silent=False):
+    def perform_usd_export(self, path, sel, start, end, export_args):
         path = path.replace("\\", "/")
         try:
             args = {
@@ -376,9 +376,7 @@ class OrionUSDManager(MayaQWidgetDockableMixin, QtWidgets.QWidget):
             self.refresh_file_list()
             return True
         except Exception as e:
-            #only show popup if not in silent mode
-            if not silent:
-                cmds.confirmDialog(title="Export Failed", message=str(e), icon="critical")
+            cmds.confirmDialog(title="Export Failed", message=str(e), icon="critical")
             return False
 
     def export_camera(self):
@@ -388,44 +386,44 @@ class OrionUSDManager(MayaQWidgetDockableMixin, QtWidgets.QWidget):
             cmds.warning("Invalid context paths. Save file in pipeline structure.")
             return
             
-        #get current selection (group or cam)
+        # Get current selection (Group or Cam)
         sel = cmds.ls(sl=True)
         if not sel:
             cmds.warning("Select the Camera Group or Camera.")
             return
 
-        #find camera shape inside selection recursively
-        #alldescendents=True searches down the hierarchy of the selected group
+        # Find camera Shape inside selection recursively
+        #allDescendents=True searches down the hierarchy of the selected group
         cam_shapes = cmds.listRelatives(sel, allDescendents=True, type='camera', fullPath=True)
         
         if not cam_shapes:
-            #fallback: maybe user selected the camera shape itself
+            #Fallback: maybe user selected the camera shape itself?
             if cmds.objectType(sel[0]) == "camera":
                 cam_shapes = [sel[0]]
             else:
                 cmds.warning("No camera found inside selection.")
                 return
             
-        #get the transform of the camera (parent of the shape)
+        # Get the Transform of the camera (parent of the shape)
         cam_transform = cmds.listRelatives(cam_shapes[0], parent=True, fullPath=True)[0]
         
-        #rename the camera to standard pipeline naming
-        #naming convention: {SHOTCODE}_camera
+        # Rename the camera to standard pipeline naming
+        #Naming convention: {SHOTCODE}_camera
         desired_name = f"{self.ctx['code']}_camera"
         
-        #rename returns the new name
+        #rename returns the new name 
         final_cam = cmds.rename(cam_transform, desired_name)
         
-        #select just the camera
+        # Select JUST the camera
         cmds.select(final_cam)
         
-        #setup export paths
+        # Setup Export Paths
         base_name = f"{self.ctx['code']}_cam"
         filename = self.get_versioned_filename(export_dir, base_name)
         out_path = os.path.join(export_dir, filename)
         
-        #USD arguments
-        #rootPrim matches the object name
+        # USD Arguments
+        #rootPrim matches the object name 
         root_prim = final_cam
         
         args = {
@@ -434,7 +432,7 @@ class OrionUSDManager(MayaQWidgetDockableMixin, QtWidgets.QWidget):
             "defaultPrim": root_prim,
         }
         
-        #perform export
+        # Perform Export
         self.perform_usd_export(out_path, [final_cam], self.spin_start.value(), self.spin_end.value(), args)
 
     def export_animation(self):
@@ -446,7 +444,7 @@ class OrionUSDManager(MayaQWidgetDockableMixin, QtWidgets.QWidget):
             cmds.warning("Select objects.")
             return
 
-        #name from dropdown
+        #name frm dropdown
         asset_name = self.combo_assets.currentData()
         
         if not asset_name:
@@ -457,23 +455,23 @@ class OrionUSDManager(MayaQWidgetDockableMixin, QtWidgets.QWidget):
         visor_hidden = False
         wrong_context = False
 
-        #check if the user is in a valid shot context
+        #Check if the user is in a valid shot context
         if self.ctx.get('type') != 'Shot' or self.ctx.get('code') == 'Unknown':
             wrong_context = True
 
-        #check if the selected asset is Ori
+        #Check if the selected asset is Ori
         if asset_name and "Ori" in asset_name:
-            #extract namespace from the selected object
+            #Extract namespace from the selected object
             node_name = sel[0].split('|')[-1]
             namespace = node_name.rsplit(':', 1)[0] + ':' if ':' in node_name else ""
             
-            #1. check the rig control attribute
+            #1. Check the rig control attribute
             ctrl_attr = f"{namespace}ctrl_face_controls.vissorGeoVisibility"
             if cmds.objExists(ctrl_attr):
                 if cmds.getAttr(ctrl_attr) == 0:
                     visor_hidden = True
 
-            #2. check the physical screen mesh visibility
+            #2. Check the physical screen mesh visibility
             search_pattern = f"{namespace}*screen*mesh*front*"
             visor_nodes = cmds.ls(search_pattern)
             if visor_nodes:
@@ -482,7 +480,7 @@ class OrionUSDManager(MayaQWidgetDockableMixin, QtWidgets.QWidget):
                     if cmds.getAttr(mesh_attr) == 0:
                         visor_hidden = True
 
-        #build the pop-up message dynamically
+        #Build the pop-up message dynamically
         msg = f"Shot Context: {self.ctx.get('code', 'Unknown')}\n"
         msg += f"Asset: {asset_name}\n\n"
 
@@ -492,12 +490,12 @@ class OrionUSDManager(MayaQWidgetDockableMixin, QtWidgets.QWidget):
         if visor_hidden:
             warnings.append("WARNING: Ori's Visor is currently HIDDEN!\nPlease fix this manually before exporting if it needs to be rendered.")
 
-        #determine which buttons to show
+        #Determine which buttons to show
         if warnings:
-            #join all active warnings together
+            #Join all active warnings together
             msg += "\n\n".join(warnings)
             
-            #only give them the option to ignore or cancel
+            #Only give them the option to ignore or cancel
             buttons = ["Export Anyway", "Cancel"]
             default_btn = "Cancel"
         else:
@@ -505,7 +503,7 @@ class OrionUSDManager(MayaQWidgetDockableMixin, QtWidgets.QWidget):
             buttons = ["Export", "Cancel"]
             default_btn = "Export"
 
-        #launch the pop-up
+        #Launch the pop-up
         res = cmds.confirmDialog(
             title="Pre-Export Sanity Check", 
             message=msg, 
@@ -515,43 +513,30 @@ class OrionUSDManager(MayaQWidgetDockableMixin, QtWidgets.QWidget):
             dismissString="Cancel"
         )
 
-        #handle the user's choice
+        #Handle the user's choice
         if res == "Cancel":
             print("Export cancelled by user.")
             return
         #SANITY CHECK END
 
-        #file naming
+        #fiel naming
         base_name = f"{self.ctx.get('dept')}_{asset_name}"
         filename = self.get_versioned_filename(export_dir, base_name)
         out_path = os.path.join(export_dir, filename)
         
-        #setup default args targeting native strip
-        #changed exportSkels and exportSkin from False to 'none' to fix API warnings
         args = {
-            "exportSkels": "none",
-            "exportSkin": "none",
+            "exportSkels": False,
+            "exportSkin": False,
             "exportBlendShapes": False,
             "exportUVs": True,
-            "exportColorSets": True,
-            "stripNamespaces": True
+            "exportColorSets": True
         }
         
-        #attempt 1: try native stripping silently
-        print("Attempting native Maya USD export...")
-        success = self.perform_usd_export(out_path, sel, self.spin_start.value(), self.spin_end.value(), args, silent=True)
-        used_fallback = False
+        #success boolean from perform_usd_export method
+        success = self.perform_usd_export(out_path, sel, self.spin_start.value(), self.spin_end.value(), args)
 
-        #attempt 2: if native failed, fallback to PyUSD route
-        if not success:
-            cmds.warning("Native namespace strip failed. Attempting fallback PyUSD method...")
-            args["stripNamespaces"] = False
-            #run again but let errors show to user this time
-            success = self.perform_usd_export(out_path, sel, self.spin_start.value(), self.spin_end.value(), args, silent=False)
-            used_fallback = True
-
-        #post-process: run PyUSD only if we used the fallback
-        if success and used_fallback:
+        #If worked run post-process format
+        if success:
             namespace_prefix = ""
             
             #grab selection and all its children to hunt for a namespace
@@ -568,16 +553,12 @@ class OrionUSDManager(MayaQWidgetDockableMixin, QtWidgets.QWidget):
                     
             #custom format method
             if namespace_prefix:
-                print(f"Fallback active: Stripping namespace '{namespace_prefix}' via PyUSD...")
                 self.format_anim_usd(out_path, namespace_prefix)
             else:
                 print("No namespaces found in hierarchy to strip.")
-                
-        elif success and not used_fallback:
-            print("Exported successfully using native Maya namespace stripping.")
             
     def format_anim_usd(self, usd_file_path, namespace_prefix):
-        #open raw USD file
+        #Open raw USD file
         layer = Sdf.Layer.FindOrOpen(usd_file_path)
         
         if not layer:
@@ -585,57 +566,45 @@ class OrionUSDManager(MayaQWidgetDockableMixin, QtWidgets.QWidget):
             return
 
         #COMMENTED OUT: attributes to keep for animation cache
-        #valid_attrs = ['xformOpOrder', 'points', 'extent', 'visibility']
-        #valid_prefixes = ('xformOp:',)
+        # valid_attrs = ['xformOpOrder', 'points', 'extent', 'visibility']
+        # valid_prefixes = ('xformOp:',)
 
         #recursive function for prim manipulation
         def process_prim(prim_spec):
-            #prevent crashing if this prim was deleted as a sibling collision earlier
-            if prim_spec.expired:
-                return
-
-            #COMMENTED OUT: change from def to over
-            #if prim_spec.specifier == Sdf.SpecifierDef:
+            #COMMENTED OUT: Change from def to over
+            # if prim_spec.specifier == Sdf.SpecifierDef:
             #    prim_spec.specifier = Sdf.SpecifierOver
                 
-            #COMMENTED OUT: strip typeName so USD does not redefine object type
-            #prim_spec.typeName = ""
+            #COMMENTED OUT: Strip typeName so USD does not redefine object type
+            # prim_spec.typeName = ""
 
-            #strip namespace prefix if it exists
+            #Strip namespace prefix if it exists
             if namespace_prefix and prim_spec.name.startswith(namespace_prefix):
-                new_name = prim_spec.name.replace(namespace_prefix, "", 1)
-                
-                try:
-                    prim_spec.name = new_name
-                except Exception as e:
-                    #collision detected if sibling shares the same name
-                    #leave the namespace intact on this specific prim
-                    print(f"Collision skipped: Kept namespace for '{prim_spec.name}'.")
-                    pass
+                prim_spec.name = prim_spec.name.replace(namespace_prefix, "", 1)
 
-            #COMMENTED OUT: remove all relationship bindings like Maya materials
-            #for rel in list(prim_spec.relationships):
+            #COMMENTED OUT: Remove all relationship bindings like Maya materials
+            # for rel in list(prim_spec.relationships):
             #    prim_spec.RemoveProperty(rel)
 
-            #COMMENTED OUT: remove all static geometry attributes
-            #for attr in list(prim_spec.attributes):
+            #COMMENTED OUT: Remove all static geometry attributes
+            # for attr in list(prim_spec.attributes):
             #    is_valid = attr.name in valid_attrs or attr.name.startswith(valid_prefixes)
             #    if not is_valid:
             #        prim_spec.RemoveProperty(attr)
 
-            #walk down to all children
+            #Walk down to all children
             for child in list(prim_spec.nameChildren):
                 process_prim(child)
 
-        #start processing from the root prims
+        #Start processing from the root prims
         for root_prim in list(layer.rootPrims):
             process_prim(root_prim)
 
-        #fix the defaultPrim metadata at the top of the file
+        #Fix the defaultPrim metadata at the top of the file
         if layer.defaultPrim and namespace_prefix and layer.defaultPrim.startswith(namespace_prefix):
             layer.defaultPrim = layer.defaultPrim.replace(namespace_prefix, "", 1)
 
-        #save back to disk
+        #Save back to disk
         layer.Save()
         print(f"Orion USD Manager: Successfully formatted namespaces in {usd_file_path}")
 

@@ -149,10 +149,11 @@ def set_frames_from_shot():
     start_frame = 1001
     end_frame = end_bookmark + 10
     start_scene = 981
+    end_scene = end_bookmark + 20
     
     #apply timeline ranges
-    cmds.playbackOptions(min=start_frame, max=end_frame)
-    cmds.playbackOptions(ast=start_scene, aet=end_frame)
+    cmds.playbackOptions(min=start_frame, max=end_scene)
+    cmds.playbackOptions(ast=start_scene, aet=end_scene)
 
     try:
         createBookmark(name="MainAction", start=start_bookmark, stop=end_bookmark, color=(1.0, 0.37, 0.0))
