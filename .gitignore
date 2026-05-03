@@ -5,3 +5,10 @@ data/project.db
 scripts/orion-481810-8d30a4bccaa6.json
 ui/shotLauncherUI_tst.py
 ui/shotLauncherUI_tst2.py
+scripts/flipbooker/FastFlipbook_webhooks.json
+img/
+dcc/maya/TSTmaya_shot_launcher.py
+dcc/maya/maya_usd_manager_2.py
+dcc/houdini/OCIO.json  
+dcc/houdini/masterConfig.json  
+dcc/houdini/lop_mc23aan.Lookdev.3.0.hdanc   
