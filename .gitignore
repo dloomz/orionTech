@@ -3,3 +3,5 @@ config/
 data/
 data/project.db
 scripts/orion-481810-8d30a4bccaa6.json
+ui/shotLauncherUI_tst.py
+ui/shotLauncherUI_tst2.py
