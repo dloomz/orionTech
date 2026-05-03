@@ -372,7 +372,7 @@ class OrionPlayblaster(QtWidgets.QWidget):
             cmds.isolateSelect(panel, state=1)
             cmds.isolateSelect(panel, addSelected=True)
         
-        #CLEANUP
+        #CLEANUP VIEWPORT
         cmds.modelEditor(panel, edit=True, 
                          displayAppearance='smoothShaded', 
                          displayTextures=True, 
@@ -415,7 +415,7 @@ class OrionPlayblaster(QtWidgets.QWidget):
                 
                 if plate_pattern:
                     print(f"Found Plate: {plate_pattern}")
-                    # scale2ref filter: scale playblast [1] to match plate [0] 
+                    #scale2ref filter: scale playblast [1] to match plate [0] 
                     cmd = (
                         f'"{self.ffmpeg_path}" -y '
                         f'-start_number {start_frame} -framerate {fps} -i "{plate_pattern}" '
@@ -441,6 +441,15 @@ class OrionPlayblaster(QtWidgets.QWidget):
             
             subprocess.run(cmd, shell=True, startupinfo=startupinfo, capture_output=True)
             
+            #CLEANUP IMAGE SEQUENCE
+            self.set_status("Cleaning up temporary files...")
+            temp_images = glob.glob(f"{img_path}.*.png")
+            for img in temp_images:
+                try:
+                    os.remove(img)
+                except Exception as e:
+                    print(f"Failed to delete {img}: {e}")
+
             if os.path.exists(mp4_path) and os.path.getsize(mp4_path) > 0:
                 msg_suffix = " (Slap Comp)" if do_slap_comp else ""
                 self.handle_upload_logic(mp4_path, task_name, version, msg_suffix)

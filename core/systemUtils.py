@@ -117,7 +117,6 @@ class SystemUtils:
         if enabled == True:
             WACOM_PATH = r"C:\Program Files\Tablet\Wacom\Professional_CPL.exe"
             
-            # CMD = f"powershell -c \"{WACOM_PATH}\""
             subprocess.Popen(WACOM_PATH)
             
         else:

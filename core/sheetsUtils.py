@@ -1,23 +1,23 @@
 import sys
 
-libs_path = r"P:\\all_work\\studentGroups\\ORION_CORPORATION\\60_config\\libs"
+LIBS_PATH = r"\\monster\\all_work\\studentGroups\\ORION_CORPORATION\\60_config\\libs"
 
-if libs_path not in sys.path:
-    sys.path.insert(0, libs_path)
+if LIBS_PATH not in sys.path:
+    sys.path.insert(0, LIBS_PATH)
 
 try:
     import gspread
-
-except Exception as e:
-
-    print(f"flop {e}")
-
-SPREADSHEET_URL = r"https://docs.google.com/spreadsheets/d/1HHrXjXcD7V49V-kJ0KLhjyjwAtcrB1RidioTwZHWbc0/edit?gid=623638562#gid=623638562"
-SPREADSHEET_ID = r"1HHrXjXcD7V49V-kJ0KLhjyjwAtcrB1RidioTwZHWbc0"
-SHEET_ID = r"623638562"
+except ImportError as e:
+    raise ImportError(f"Critical Error: gspread library not found at {LIBS_PATH}. Details: {e}")
 
 class SheetsUtils:
     def __init__(self, Sheet):
+
+        #links
+        SPREADSHEET_URL = r"https://docs.google.com/spreadsheets/d/1HHrXjXcD7V49V-kJ0KLhjyjwAtcrB1RidioTwZHWbc0/edit?gid=623638562#gid=623638562"
+        SPREADSHEET_ID = r"1HHrXjXcD7V49V-kJ0KLhjyjwAtcrB1RidioTwZHWbc0"
+        SHEET_ID = r"623638562"
+
         #setup connection
         self.gc = gspread.service_account(filename=r"P:\all_work\studentGroups\ORION_CORPORATION\00_pipeline\orionTech\data\orion-481810-8d30a4bccaa6.json")
         self.sh = self.gc.open_by_key(SPREADSHEET_ID)

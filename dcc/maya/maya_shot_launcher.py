@@ -427,7 +427,7 @@ class OrionMayaUI(MayaQWidgetDockableMixin, QtWidgets.QWidget):
 
     # HELPER: LOCKING AND LAYERING
     def lock_and_layer_nodes(self, nodes):
-        # 1. Create Reference Layer (Visible but unselectable)
+        # create ref layer
         layer_name = "LOCKED_REFERENCE_LAYER"
         if not cmds.objExists(layer_name):
             cmds.createDisplayLayer(name=layer_name, empty=True)
@@ -435,18 +435,17 @@ class OrionMayaUI(MayaQWidgetDockableMixin, QtWidgets.QWidget):
         
         if not nodes: return
 
-        # 2. Filter for DAG nodes (objects in viewport)
+        # filter DAG nodes (objects in viewport)
         dag_nodes = cmds.ls(nodes, dag=True, long=True)
         if not dag_nodes: return
 
-        # 3. Add to Layer
+        #add to layer
         try:
             cmds.editDisplayLayerMembers(layer_name, dag_nodes, noRecurse=True)
         except:
             pass
 
-        # 4. Lock Transforms (EXACTLY AS YOU HAD IT)
-        # Using your logic: lock=True, keyable=False, channelBox=False
+        #lock transforms
         transforms = cmds.ls(dag_nodes, type="transform", long=True)
         for node in transforms:
             for attr in ("tx", "ty", "tz", "rx", "ry", "rz", "sx", "sy", "sz"):
@@ -464,7 +463,7 @@ class OrionMayaUI(MayaQWidgetDockableMixin, QtWidgets.QWidget):
         cam_path = os.path.join(self.root_dir, "40_shots", shot_code, "CAMERA", "MAYA", "EXPORT", "PUBLISHED")
         plate_root = os.path.join(self.root_dir, "40_shots", shot_code, "CAMERA", "PLATES")
         
-        # --- REFERENCE THE USD ---
+        #REFERENCE THE USD 
         found_cam = None
         if os.path.exists(cam_path):
             candidates = [f for f in os.listdir(cam_path) if f.endswith(".usdc") or f.endswith(".usd")]
@@ -477,7 +476,7 @@ class OrionMayaUI(MayaQWidgetDockableMixin, QtWidgets.QWidget):
                 if not cmds.pluginInfo("mayaUsdPlugin", q=True, loaded=True):
                     cmds.loadPlugin("mayaUsdPlugin")
 
-                # Reference it
+                #ref
                 new_nodes = cmds.file(found_cam, 
                                       reference=True, 
                                       namespace="CAM", 
@@ -487,27 +486,25 @@ class OrionMayaUI(MayaQWidgetDockableMixin, QtWidgets.QWidget):
                 
                 print(f"Referenced Camera: {os.path.basename(found_cam)}")
                 
-                # Apply locks
+                #apply locks
                 self.lock_and_layer_nodes(new_nodes)
                 
             except Exception as e:
                 print(f"Error referencing camera: {e}")
                 return 
-
-        # --- IMAGE PLANE (EXACT OLD CODE LOGIC) ---
         
-        # 1. Find the camera
-        # Since we referenced it into "CAM", the name changed from "shot_camera" to "CAM:shot_camera"
-        # We search specifically for the camera shape inside the namespace.
+        #find the camera
+        #name changed from "shot_camera" to "CAM:shot_camera"
+        #search specifically for the camera shape inside the namespace.
         cam_shapes = cmds.ls("CAM:*", type='camera', long=True)
         
         if not cam_shapes:
             print("Could not find camera in CAM namespace.")
             return
 
-        camera = cam_shapes[0] # This is the shape node
+        camera = cam_shapes[0] #shape node
 
-        # 2. Find the sequence
+        #find sequence
         if not os.path.exists(plate_root):
             print("Plate folder not found.")
             return
@@ -520,11 +517,10 @@ class OrionMayaUI(MayaQWidgetDockableMixin, QtWidgets.QWidget):
         
         if found_seq:
             try:
-                # 3. Create Image Plane (EXACTLY AS YOU HAD IT)
-                # No depth setting, no fitting, just standard Maya creation.
+                #img plane
                 image_plane = cmds.imagePlane(camera=camera, fileName=found_seq)[0]
                 
-                # 4. Set Frame Extension
+                #frame extension
                 cmds.setAttr(f"{image_plane}.useFrameExtension", 1)
                 
                 print(f"Created Image Plane on {camera}")
@@ -550,7 +546,7 @@ class OrionMayaUI(MayaQWidgetDockableMixin, QtWidgets.QWidget):
 
         if found:
             try:
-                # Reference the Layout
+                #reference the layout
                 new_nodes = cmds.file(found, 
                                       reference=True, 
                                       namespace="LAYOUT", 
@@ -558,7 +554,7 @@ class OrionMayaUI(MayaQWidgetDockableMixin, QtWidgets.QWidget):
                                       type="USD Import",
                                       options="readAnimData=1")
                 
-                # Lock the nodes
+                #lock nodes
                 self.lock_and_layer_nodes(new_nodes)
                 
                 print(f"Referenced Layout: {os.path.basename(found)}")

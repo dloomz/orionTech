@@ -60,7 +60,7 @@ def create_karma_material_from_selection():
 
     # KEYWORD MAPPING 
     texture_map = {
-        'base_color': ['diffuse', 'albedo', 'basecolor', 'diff'],
+        'base_color': ['diffuse', 'albedo', 'basecolor', 'diff', 'color', 'base'],
         'coat': ['clearcoat', 'coat'],
         'coat_roughness': ['clearcoat_roughness', 'coat_rough', 'gloss', 'clearcoat_gloss'],
         'transmission': ['transmission', 'trans'],

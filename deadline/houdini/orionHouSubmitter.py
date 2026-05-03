@@ -7,7 +7,7 @@ import hou
 import tempfile
 from PySide2 import QtWidgets, QtCore, QtGui
 
-#   CONFIGURATION  
+#CONFIGURATION
 PIPELINE_ROOT = r"P:\all_work\studentGroups\ORION_CORPORATION\00_pipeline\orionTech"
 EVENT_SCRIPT_DIR = os.path.join(PIPELINE_ROOT, "deadline", "houdini")
 STARTUP_PATH = os.path.join(PIPELINE_ROOT)
@@ -22,7 +22,7 @@ except ImportError:
     print("OrionUtils not found. Shot Context features will be disabled.")
     OrionUtils = None
 
-#   DEADLINE HELPERS  
+#DEADLINE HELPERS
 def get_deadline_command():
     forced_path = r"C:\Program Files\Thinkbox\Deadline10\bin\deadlinecommand.exe"
     if os.path.exists(forced_path):
@@ -43,7 +43,7 @@ def call_deadline_command(arguments, hide_window=True):
     except Exception as e:
         return f"Error: {e}"
 
-#   UI CLASS  
+#UI CLASS
 class OrionHoudiniSubmitter(QtWidgets.QDialog):
     def __init__(self, parent=None):
         super(OrionHoudiniSubmitter, self).__init__(parent)
@@ -65,7 +65,7 @@ class OrionHoudiniSubmitter(QtWidgets.QDialog):
 
         self.orion = OrionUtils() if OrionUtils else None
         
-        #original context 
+        #Original context 
         self.original_context = os.getenv("ORI_SHOT_CONTEXT")
         
         self.init_ui()
@@ -74,7 +74,7 @@ class OrionHoudiniSubmitter(QtWidgets.QDialog):
     def init_ui(self):
         layout = QtWidgets.QVBoxLayout(self)
 
-        # --- Job Details ---
+        #Job Details
         gb_job = QtWidgets.QGroupBox("Job Details")
         form_job = QtWidgets.QFormLayout(gb_job)
         
@@ -87,7 +87,7 @@ class OrionHoudiniSubmitter(QtWidgets.QDialog):
         form_job.addRow("Department:", self.le_dept)
         layout.addWidget(gb_job)
 
-        # --- Shot Context ---
+        #Shot Context
         gb_context = QtWidgets.QGroupBox("Shot Context")
         form_context = QtWidgets.QFormLayout(gb_context)
         
@@ -105,7 +105,7 @@ class OrionHoudiniSubmitter(QtWidgets.QDialog):
         #Trigger update_local_context whenever the dropdown changes
         self.cb_shot.currentIndexChanged.connect(self.update_local_context)
 
-        # --- Deadline Settings ---
+        #Deadline Settings
         gb_deadline = QtWidgets.QGroupBox("Deadline Settings")
         form_deadline = QtWidgets.QFormLayout(gb_deadline)
         
@@ -120,7 +120,7 @@ class OrionHoudiniSubmitter(QtWidgets.QDialog):
         form_deadline.addRow("Priority:", self.sb_priority)
         layout.addWidget(gb_deadline)
 
-        # --- Render Nodes (Multi-Select) ---
+        #Render Nodes
         gb_rops = QtWidgets.QGroupBox("Render Nodes")
         rop_layout = QtWidgets.QVBoxLayout(gb_rops)
 
@@ -141,7 +141,7 @@ class OrionHoudiniSubmitter(QtWidgets.QDialog):
         
         layout.addWidget(gb_rops)
 
-        # --- Frame Range (Spinboxes) ---
+        #FrameRange
         gb_frames = QtWidgets.QGroupBox("Frame Range")
         frame_layout = QtWidgets.QHBoxLayout(gb_frames)
         
@@ -166,7 +166,7 @@ class OrionHoudiniSubmitter(QtWidgets.QDialog):
         
         layout.addWidget(gb_frames)
         
-        # Chunk Size
+        #Chunk Size
         chunk_layout = QtWidgets.QHBoxLayout()
         chunk_layout.addWidget(QtWidgets.QLabel("Frames Per Task (Chunk Size):"))
         self.sb_chunk = QtWidgets.QSpinBox()
@@ -176,22 +176,25 @@ class OrionHoudiniSubmitter(QtWidgets.QDialog):
         chunk_layout.addStretch()
         layout.addLayout(chunk_layout)
 
-        # --- Options ---
+        #Options
         self.chk_discord = QtWidgets.QCheckBox("Send Discord Notifications")
         self.chk_discord.setChecked(True)
         self.chk_submit_scene = QtWidgets.QCheckBox("Submit Scene File")
-        self.chk_submit_scene.setChecked(True)
+        self.chk_submit_scene.setChecked(False)
+        self.chk_batch = QtWidgets.QCheckBox("Group Jobs in Deadline (Batch Name)")
+        self.chk_batch.setChecked(True)
         
         layout.addWidget(self.chk_discord)
         layout.addWidget(self.chk_submit_scene)
+        layout.addWidget(self.chk_batch)
 
-        # --- Submit Button ---
+        #Submit Button
         self.btn_submit = QtWidgets.QPushButton("SUBMIT TO DEADLINE")
         self.btn_submit.setStyleSheet("background-color: #d35400; font-weight: bold; font-size: 14px; padding: 10px;")
         self.btn_submit.clicked.connect(self.submit_job)
         layout.addWidget(self.btn_submit)
         
-        # Initial Population
+        #Initial Population
         self.refresh_rops()
 
     def get_next_version(self, task_path):
@@ -239,18 +242,18 @@ class OrionHoudiniSubmitter(QtWidgets.QDialog):
             print(f"Error loading shots: {e}")
 
     def populate_defaults(self):
-        # Frame Range
-        start = int(hou.playbar.frameRange()[0])
+        #Frame Range
+        start = int(hou.playbar.playbackRange()[0])
         end = int(hou.playbar.frameRange()[1])
         self.sb_start.setValue(start)
         self.sb_end.setValue(end)
         
-        # Job Name (Strip Extension)
+        #Job Name
         raw_name = hou.hipFile.basename()
         clean_name = os.path.splitext(raw_name)[0]
         self.le_name.setText(clean_name)
 
-        # Pools/Groups
+        #Pools and Groups
         try:
             pools = call_deadline_command(["-pools"]).split('\n')
             groups = call_deadline_command(["-groups"]).split('\n')
@@ -265,11 +268,11 @@ class OrionHoudiniSubmitter(QtWidgets.QDialog):
             pass
         
     def update_local_context(self, index):
-        #data and text from the currently selected item
+        #Data and text from the currently selected item
         selected_shot_id = self.cb_shot.itemData(index)
         selected_shot_code = self.cb_shot.itemText(index)
         
-        #If t ID specific shot was selected
+        #If specific shot was selected
         if selected_shot_id:
             new_context = selected_shot_code
         else:
@@ -308,14 +311,14 @@ class OrionHoudiniSubmitter(QtWidgets.QDialog):
         selected = hou.selectedNodes()
         if not selected: return
         
-        # Deselect all first
+        #Deselect all first
         for i in range(self.list_rops.count()):
             self.list_rops.item(i).setSelected(False)
             
         found_any = False
         for node in selected:
             path = node.path()
-            # Find item in list
+            #Find item in list
             items = self.list_rops.findItems(path, QtCore.Qt.MatchExactly)
             if items:
                 items[0].setSelected(True)
@@ -337,7 +340,7 @@ class OrionHoudiniSubmitter(QtWidgets.QDialog):
         if hou.hipFile.hasUnsavedChanges():
             hou.hipFile.save()
 
-        # Gather Common Data
+        #Gather Common Data
         base_job_name = self.le_name.text()
         comment = self.le_comment.text()
         dept = self.le_dept.text()
@@ -355,8 +358,9 @@ class OrionHoudiniSubmitter(QtWidgets.QDialog):
         chunk_size = self.sb_chunk.value()
         submit_scene = self.chk_submit_scene.isChecked()
         use_discord = self.chk_discord.isChecked()
+        use_batch = self.chk_batch.isChecked()
         
-        # Shot Context Logic
+        #Shot Context Logic
         active_context = os.getenv("ORI_SHOT_CONTEXT")
         selected_shot_id = self.cb_shot.currentData()
         selected_shot_code = self.cb_shot.currentText()
@@ -371,22 +375,22 @@ class OrionHoudiniSubmitter(QtWidgets.QDialog):
             rop_path = item.text()
             rop_node_name = rop_path.split("/")[-1]
             
-            #Unique name for this ROP so they are distinguishable inside the batch
+            #Unique name 
             current_job_name = f"{base_job_name} - {rop_node_name}" if len(selected_items) > 1 else base_job_name
 
-            #Inject the active_context python variable directly into the path string
+            #ctive_context python variable  into the path string
             raw_base_dir = f"P:/all_work/studentGroups/ORION_CORPORATION/40_shots/{active_context}/3D_RENDERS/CG/{rop_node_name}"
             
-            #hou.text.expandString will still resolve other Houdini variables if needed
+            #hou.text.expandString 
             expanded_base_dir = hou.text.expandString(raw_base_dir)
             
-            #Calculate the next version for this specific ROP
+            #Calculate the next version for specific ROP
             next_version = self.get_next_version(expanded_base_dir)
 
             tmp_dir = os.path.join(os.getenv("TEMP"), "orion_submission")
             if not os.path.exists(tmp_dir): os.makedirs(tmp_dir)
             
-            #Use unique filenames for safety in loops
+            #Use unique filenames 
             safe_rop_name = rop_node_name.replace(" ", "_")
             job_info_path = os.path.join(tmp_dir, f"hou_job_{safe_rop_name}.job")
             plugin_info_path = os.path.join(tmp_dir, f"hou_plugin_{safe_rop_name}.job")
@@ -395,7 +399,8 @@ class OrionHoudiniSubmitter(QtWidgets.QDialog):
             with open(job_info_path, "w") as f:
                 f.write(f"Plugin=Houdini\n")
                 f.write(f"Name={current_job_name}\n")
-                f.write(f"BatchName={base_job_name}\n")
+                if use_batch:
+                    f.write(f"BatchName={base_job_name}\n")
                 f.write(f"Comment={comment}\n")
                 f.write(f"Department={dept}\n")
                 f.write(f"Pool={pool}\n")
@@ -409,7 +414,7 @@ class OrionHoudiniSubmitter(QtWidgets.QDialog):
                 f.write(f"EnvironmentKeyValue{env_idx}=PYTHONPATH={STARTUP_PATH}\n"); env_idx+=1
                 f.write(f"EnvironmentKeyValue{env_idx}=ORI_SHOT_CONTEXT={active_context}\n"); env_idx+=1
                 
-                #Inject our newly calculated version variable into Deadline
+                
                 f.write(f"EnvironmentKeyValue{env_idx}=ORI_RENDER_VERSION={next_version}\n"); env_idx+=1
                 
                 if selected_shot_id:

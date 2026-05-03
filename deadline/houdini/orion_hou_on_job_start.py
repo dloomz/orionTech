@@ -1,16 +1,19 @@
 import sys
 import traceback
 
-#path to the directory containing orionUtils.py
-ORION_UTILS_DIR = "P:\\all_work\\studentGroups\\ORION_CORPORATION\\00_pipeline\\orionTech" 
+ORION_UTILS_DIR = r"\\monster\\all_work\\studentGroups\\ORION_CORPORATION\\00_pipeline\\orionTech" 
+LIBS_PATH = r"\\monster\\all_work\\studentGroups\\ORION_CORPORATION\\60_config\\libs"
 
 if ORION_UTILS_DIR not in sys.path:
     sys.path.append(ORION_UTILS_DIR)
     
+if LIBS_PATH not in sys.path:
+    sys.path.append(LIBS_PATH)
+
 try:
     from core.sheetsUtils import SheetsUtils
 except ImportError:
-    print("SheetsUtils not found. Google sheet features will be disabled.")
+    print("SheetsUtils not found.")
     SheetsUtils = None
 
 def __main__(*args):
@@ -58,7 +61,7 @@ def __main__(*args):
     try:
         
         progTracker = SheetsUtils(1) if SheetsUtils else None
-        progTracker.update_shot_value({shot_context}, "Renders", "Rendering")
+        progTracker.update_shot_value(shot_context, "Renders", "Rendering")
         
     except Exception as e:
         deadline_plugin.LogWarning(f"!!! Sheets Error (on_job_start): {e}\n{traceback.format_exc()}")

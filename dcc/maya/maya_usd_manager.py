@@ -467,13 +467,13 @@ class OrionUSDManager(MayaQWidgetDockableMixin, QtWidgets.QWidget):
             node_name = sel[0].split('|')[-1]
             namespace = node_name.rsplit(':', 1)[0] + ':' if ':' in node_name else ""
             
-            #1. check the rig control attribute
+            #check the rig control attribute
             ctrl_attr = f"{namespace}ctrl_face_controls.vissorGeoVisibility"
             if cmds.objExists(ctrl_attr):
                 if cmds.getAttr(ctrl_attr) == 0:
                     visor_hidden = True
 
-            #2. check the physical screen mesh visibility
+            #check the physical screen mesh visibility
             search_pattern = f"{namespace}*screen*mesh*front*"
             visor_nodes = cmds.ls(search_pattern)
             if visor_nodes:
@@ -482,7 +482,7 @@ class OrionUSDManager(MayaQWidgetDockableMixin, QtWidgets.QWidget):
                     if cmds.getAttr(mesh_attr) == 0:
                         visor_hidden = True
 
-        #build the pop-up message dynamically
+        #build the pop-up message
         msg = f"Shot Context: {self.ctx.get('code', 'Unknown')}\n"
         msg += f"Asset: {asset_name}\n\n"
 
@@ -550,7 +550,7 @@ class OrionUSDManager(MayaQWidgetDockableMixin, QtWidgets.QWidget):
             success = self.perform_usd_export(out_path, sel, self.spin_start.value(), self.spin_end.value(), args, silent=False)
             used_fallback = True
 
-        #post-process: run PyUSD only if we used the fallback
+        #post-process: run PyUSD only if fallback
         if success and used_fallback:
             namespace_prefix = ""
             
@@ -558,7 +558,7 @@ class OrionUSDManager(MayaQWidgetDockableMixin, QtWidgets.QWidget):
             all_nodes = cmds.listRelatives(sel, allDescendents=True, fullPath=True) or []
             all_nodes.insert(0, sel[0])
             
-            #loop through hierarchy until we find a colon
+            #loop through hierarchy until colon
             for node in all_nodes:
                 short_name = node.split('|')[-1]
                 if ':' in short_name:
@@ -584,22 +584,11 @@ class OrionUSDManager(MayaQWidgetDockableMixin, QtWidgets.QWidget):
             cmds.warning(f"Could not open USD file for formatting: {usd_file_path}")
             return
 
-        #COMMENTED OUT: attributes to keep for animation cache
-        #valid_attrs = ['xformOpOrder', 'points', 'extent', 'visibility']
-        #valid_prefixes = ('xformOp:',)
-
         #recursive function for prim manipulation
         def process_prim(prim_spec):
             #prevent crashing if this prim was deleted as a sibling collision earlier
             if prim_spec.expired:
                 return
-
-            #COMMENTED OUT: change from def to over
-            #if prim_spec.specifier == Sdf.SpecifierDef:
-            #    prim_spec.specifier = Sdf.SpecifierOver
-                
-            #COMMENTED OUT: strip typeName so USD does not redefine object type
-            #prim_spec.typeName = ""
 
             #strip namespace prefix if it exists
             if namespace_prefix and prim_spec.name.startswith(namespace_prefix):
@@ -612,16 +601,6 @@ class OrionUSDManager(MayaQWidgetDockableMixin, QtWidgets.QWidget):
                     #leave the namespace intact on this specific prim
                     print(f"Collision skipped: Kept namespace for '{prim_spec.name}'.")
                     pass
-
-            #COMMENTED OUT: remove all relationship bindings like Maya materials
-            #for rel in list(prim_spec.relationships):
-            #    prim_spec.RemoveProperty(rel)
-
-            #COMMENTED OUT: remove all static geometry attributes
-            #for attr in list(prim_spec.attributes):
-            #    is_valid = attr.name in valid_attrs or attr.name.startswith(valid_prefixes)
-            #    if not is_valid:
-            #        prim_spec.RemoveProperty(attr)
 
             #walk down to all children
             for child in list(prim_spec.nameChildren):
